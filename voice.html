@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#081a32">
+<title>Aarohan QA Analytics Voice Assistant</title>
+<link rel="manifest" href="voice.webmanifest">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="logo.svg">
+<style>
+:root{--navy:#081a32;--navy2:#14286b;--gold:#f6d57a;--bg:#f4f7fb;--ink:#17273c;--muted:#62718a}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font:16px/1.6 system-ui,-apple-system,"Segoe UI","Noto Sans Gujarati","Shruti",Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+header{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;padding-top:max(12px,env(safe-area-inset-top))}
+header img{width:36px;height:36px}header h1{font-size:17px;margin:0;flex:1}
+header button{background:#ffffff22;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;padding:12px 14px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word}
+.u{align-self:flex-end;background:#dbe8ff;border-bottom-right-radius:4px}
+.a{align-self:flex-start;background:#fff;border:1px solid #e3e8ef;border-bottom-left-radius:4px}
+.a button{margin-top:8px;margin-right:6px;font-size:13px;border:1px solid #c9d3df;background:#f4f7fb;border-radius:8px;padding:4px 10px;cursor:pointer}
+.sys{align-self:center;color:var(--muted);font-size:13px;text-align:center}
+#quick{display:flex;gap:8px;overflow-x:auto;padding:0 16px 8px}
+#quick button{flex:none;border:1px solid #c9d3df;background:#fff;border-radius:20px;padding:7px 14px;font-size:14px;cursor:pointer}
+footer{background:#fff;border-top:1px solid #e3e8ef;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;resize:none;border:1px solid #c9d3df;border-radius:12px;padding:10px 12px;font:inherit;max-height:120px}
+#mic{width:56px;height:56px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:24px;cursor:pointer;flex:none}
+#mic.rec{background:#d93025;animation:p 1s infinite}
+@keyframes p{50%{box-shadow:0 0 0 12px #d9302533}}
+#send{height:56px;border:0;border-radius:14px;background:var(--gold);color:var(--navy);font-weight:700;padding:0 16px;cursor:pointer;flex:none}
+dialog{border:0;border-radius:16px;padding:22px;max-width:480px;width:92%}
+dialog::backdrop{background:#061326aa}
+dialog label{display:block;font-weight:600;margin:14px 0 4px;font-size:14px}
+dialog input,dialog select{width:100%;padding:10px;border:1px solid #c9d3df;border-radius:8px;font:inherit}
+dialog .row{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+dialog button{border:0;border-radius:8px;padding:10px 16px;font:inherit;cursor:pointer}
+.pri{background:var(--navy);color:#fff}.sec{background:#e8eef5}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <img src="logo.svg" alt="">
+  <h1>Aarohan QA Analytics<br><small style="font-weight:400;font-size:12px;color:#f6d57a">Voice Assistant</small></h1>
+  <button id="speakBtn" title="Jawab bolva">🔊 On</button>
+  <button id="setBtn">⚙️</button>
+</header>
+<div id="chat" aria-live="polite"></div>
+<div id="quick"></div>
+<footer>
+  <button id="mic" aria-label="Bolo">🎤</button>
+  <textarea id="inp" rows="1" placeholder="Gujarati ma bolo ke lakho..."></textarea>
+  <button id="send">Mokalo</button>
+</footer>
+
+<dialog id="dlg">
+  <h2 style="margin:0 0 4px">Settings</h2>
+  <div class="hint">Aa settings fakt aa device na browser ma save thay chhe. Server par nathi jati.</div>
+  <label for="key">Anthropic API key</label>
+  <input id="key" type="password" autocomplete="off" placeholder="sk-ant-...">
+  <div class="hint">Key console.anthropic.com par thi banavo ane tya <b>monthly spending limit</b> mukho. Key koi ne na aapsho. Phone khoyay to key delete karo.</div>
+  <label for="model">Model</label>
+  <select id="model">
+    <option value="claude-haiku-5-5">Haiku 5.5 (sasto, jhadpi)</option>
+    <option value="claude-sonnet-5-5">Sonnet 5.5 (vadhu hushiyar, mongho)</option>
+  </select>
+  <label for="lang">Bolvani bhasha (mic)</label>
+  <select id="lang"><option value="gu-IN">Gujarati (gu-IN)</option><option value="hi-IN">Hindi (hi-IN)</option><option value="en-IN">English (en-IN)</option></select>
+  <div class="row"><button class="sec" id="clearKey">Key delete</button><button class="pri" id="save">Save</button></div>
+</dialog>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var chat=$('chat'),inp=$('inp'),mic=$('mic'),dlg=$('dlg');
+var store={get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
+var speakOn=store.get('av_speak','1')==='1';$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';
+var history=[];
+var SYSTEM="Tu Sumit Rathod no personal assistant chhe. Sumit ek Pharma QA professional chhe je Aarohan QA Analytics (Excel, Power BI, Pharma QA reporting) nu freelance kaam kare chhe ane US, UK, Canada, Europe na clients ne target kare chhe. User ne jawab hamesha saral Gujarati ma aap (Gujarati lipi ma), jyare user e bija language ma puchhyu hoy tyare te language ma. Tunk, spasht, vyavahaarik jawab aap. Kyarey company/employer na naam, real batch data ke khota daavao na aap. Pharma ma 'validated GxP system' no daavo na kar. Jyare user puchhe 'kevi rite solve karvu', tyare ek line ma kah ke kayo rasto best chhe: (1) seedho jawab/buddhi thi, (2) Excel/Power BI tool ke template, ke (3) automation, ane kem. Jyare lakhan (LinkedIn post, proposal, email) joie tyare English ma taiyar lakhaan aap sathe Gujarati ma 1 line samjuti.";
+var QUICK=[
+ ['LinkedIn post','Aaj mate Pharma QA par ek LinkedIn post English ma lakho, sample dashboard sathe, 80 shabd ma.'],
+ ['Proposal','Excel dashboard project mate Freelancer/Upwork proposal English ma lakho. Client nu naam [Name] rakho.'],
+ ['Excel formula','Mane Excel ma overdue items gano mate formula samjavo.'],
+ ['Kevi rite solve?','Mara kaam ma mane roj repeat thatu kaam chhe. Mane kayo rasto best chhe: tool, automation ke seedho jawab?'],
+ ['Aaj nu kaam','Freelancing ma aaje mare shu 3 kaam karva joie?']
+];
+QUICK.forEach(function(q){var b=document.createElement('button');b.textContent=q[0];b.onclick=function(){inp.value=q[1];send()};$('quick').appendChild(b)});
+
+function add(cls,text){var d=document.createElement('div');d.className='msg '+cls;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+add('sys','Mic dabavo ane Gujarati ma bolo, ke text lakho. Pehla ⚙️ ma API key nakho.');
+
+function say(text){
+  if(!speakOn||!('speechSynthesis' in window))return;
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(text.replace(/[*#_`]/g,''));
+  u.lang=store.get('av_lang','gu-IN');
+  var vs=window.speechSynthesis.getVoices();
+  var v=vs.filter(function(x){return x.lang&&x.lang.toLowerCase().indexOf(u.lang.slice(0,2).toLowerCase())===0})[0];
+  if(v)u.voice=v;
+  window.speechSynthesis.speak(u);
+}
+
+async function send(){
+  var text=inp.value.trim();if(!text)return;
+  var key=store.get('av_key','');
+  if(!key){add('sys','Pehla ⚙️ ma API key save karo.');dlg.showModal();return}
+  inp.value='';add('u',text);history.push({role:'user',content:text});
+  var wait=add('a','...');
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:store.get('av_model','claude-haiku-5-5'),max_tokens:1500,system:SYSTEM,messages:history.slice(-12)})});
+    var j=await r.json();
+    if(!r.ok){throw new Error((j.error&&j.error.message)||('HTTP '+r.status))}
+    var ans=(j.content||[]).map(function(c){return c.text||''}).join('');
+    history.push({role:'assistant',content:ans});
+    wait.textContent=ans;
+    var cp=document.createElement('button');cp.textContent='Copy';cp.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(ans);cp.textContent='Copied'};
+    var sp=document.createElement('button');sp.textContent='Sambhlo';sp.onclick=function(){say(ans)};
+    wait.appendChild(document.createElement('br'));wait.appendChild(cp);wait.appendChild(sp);
+    say(ans);
+  }catch(e){wait.textContent='Bhool: '+e.message;history.pop()}
+  chat.scrollTop=chat.scrollHeight;
+}
+$('send').onclick=send;
+inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+
+// Voice input
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,on=false;
+if(!SR){mic.style.opacity=.4;mic.title='Aa browser ma mic support nathi. Chrome vapro.'}
+mic.onclick=function(){
+  if(!SR){add('sys','Aa browser ma voice input nathi. Android/PC Chrome vapro, ke text lakho.');return}
+  if(on){rec.stop();return}
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  rec=new SR();rec.lang=store.get('av_lang','gu-IN');rec.interimResults=true;rec.continuous=false;
+  var base=inp.value;
+  rec.onstart=function(){on=true;mic.classList.add('rec')};
+  rec.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=(base?base+' ':'')+t};
+  rec.onerror=function(e){add('sys','Mic bhool: '+e.error+(e.error==='not-allowed'?' (mic permission aapo)':''))};
+  rec.onend=function(){on=false;mic.classList.remove('rec');if(inp.value.trim()&&inp.value!==base)send()};
+  try{rec.start()}catch(e){}
+};
+
+// Settings
+$('setBtn').onclick=function(){$('key').value=store.get('av_key','');$('model').value=store.get('av_model','claude-haiku-5-5');$('lang').value=store.get('av_lang','gu-IN');dlg.showModal()};
+$('save').onclick=function(){var k=$('key').value.trim();if(k)store.set('av_key',k);store.set('av_model',$('model').value);store.set('av_lang',$('lang').value);dlg.close();add('sys','Settings save thayi.')};
+$('clearKey').onclick=function(){store.del('av_key');$('key').value='';add('sys','Key delete thai.')};
+$('speakBtn').onclick=function(){speakOn=!speakOn;store.set('av_speak',speakOn?'1':'0');$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';if(!speakOn&&window.speechSynthesis)window.speechSynthesis.cancel()};
+if('serviceWorker' in navigator){navigator.serviceWorker.register('voice-sw.js').catch(function(){})}
+})();
+</script>
+</body>
+</html>
