@@ -58,14 +58,17 @@ dialog button{border:0;border-radius:8px;padding:10px 16px;font:inherit;cursor:p
 <dialog id="dlg">
   <h2 style="margin:0 0 4px">Settings</h2>
   <div class="hint">Aa settings fakt aa device na browser ma save thay chhe. Server par nathi jati.</div>
-  <label for="key">Anthropic API key</label>
-  <input id="key" type="password" autocomplete="off" placeholder="sk-ant-...">
-  <div class="hint">Key console.anthropic.com par thi banavo ane tya <b>monthly spending limit</b> mukho. Key koi ne na aapsho. Phone khoyay to key delete karo.</div>
-  <label for="model">Model</label>
-  <select id="model">
-    <option value="claude-haiku-5-5">Haiku 5.5 (sasto, jhadpi)</option>
-    <option value="claude-sonnet-5-5">Sonnet 5.5 (vadhu hushiyar, mongho)</option>
+  <label for="provider">AI provider</label>
+  <select id="provider">
+    <option value="gemini">Google Gemini (FREE, card nathi joti)</option>
+    <option value="claude">Claude API (paisa vala)</option>
   </select>
+  <label for="key" id="keyLabel">API key</label>
+  <input id="key" type="password" autocomplete="off" placeholder="API key paste karo">
+  <div class="hint" id="keyHint"></div>
+  <label for="model">Model</label>
+  <select id="model"></select>
+  <div class="hint">Free Gemini ma tamaro data Google na products sudharva vaparay shake. <b>Confidential/company data na nakho.</b></div>
   <label for="lang">Bolvani bhasha (mic)</label>
   <select id="lang"><option value="gu-IN">Gujarati (gu-IN)</option><option value="hi-IN">Hindi (hi-IN)</option><option value="en-IN">English (en-IN)</option></select>
   <div class="row"><button class="sec" id="clearKey">Key delete</button><button class="pri" id="save">Save</button></div>
@@ -79,6 +82,9 @@ var store={get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d
 var speakOn=store.get('av_speak','1')==='1';$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';
 var history=[];
 var SYSTEM="Tu Sumit Rathod no personal assistant chhe. Sumit ek Pharma QA professional chhe je Aarohan QA Analytics (Excel, Power BI, Pharma QA reporting) nu freelance kaam kare chhe ane US, UK, Canada, Europe na clients ne target kare chhe. User ne jawab hamesha saral Gujarati ma aap (Gujarati lipi ma), jyare user e bija language ma puchhyu hoy tyare te language ma. Tunk, spasht, vyavahaarik jawab aap. Kyarey company/employer na naam, real batch data ke khota daavao na aap. Pharma ma 'validated GxP system' no daavo na kar. Jyare user puchhe 'kevi rite solve karvu', tyare ek line ma kah ke kayo rasto best chhe: (1) seedho jawab/buddhi thi, (2) Excel/Power BI tool ke template, ke (3) automation, ane kem. Jyare lakhan (LinkedIn post, proposal, email) joie tyare English ma taiyar lakhaan aap sathe Gujarati ma 1 line samjuti.";
+var PROV={gemini:{label:"Google Gemini API key (free)",hint:"aistudio.google.com/apikey par Google account thi login karo, Create API key dabavo, copy karine ahi paste karo. Card nathi joti. Free limit chhe.",models:[["gemini-3.8-flash","Gemini 3.8 Flash (free, jhadpi)"],["gemini-3.5-flash-lite","Gemini 3.5 Flash-Lite (free, sauthi halku)"],["gemini-2.5-flash","Gemini 2.5 Flash (free)"]]},claude:{label:"Anthropic API key",hint:"console.anthropic.com par credit bharo ane monthly spending limit mukho. Key koi ne na aapsho.",models:[["claude-haiku-5-5","Haiku 5.5 (sasto)"],["claude-sonnet-5-5","Sonnet 5.5 (mongho, hushiyar)"]]}};
+function fillModels(){var pv=$("provider").value,sel=$("model");sel.innerHTML="";PROV[pv].models.forEach(function(m){var o=document.createElement("option");o.value=m[0];o.textContent=m[1];sel.appendChild(o)});$("keyLabel").textContent=PROV[pv].label;$("keyHint").textContent=PROV[pv].hint;var sm=store.get("av_model_"+pv,"");if(sm)sel.value=sm;$("key").value=store.get("av_key_"+pv,"")}
+function curProv(){return store.get("av_provider","gemini")}
 var QUICK=[
  ['LinkedIn post','Aaj mate Pharma QA par ek LinkedIn post English ma lakho, sample dashboard sathe, 80 shabd ma.'],
  ['Proposal','Excel dashboard project mate Freelancer/Upwork proposal English ma lakho. Client nu naam [Name] rakho.'],
@@ -89,7 +95,7 @@ var QUICK=[
 QUICK.forEach(function(q){var b=document.createElement('button');b.textContent=q[0];b.onclick=function(){inp.value=q[1];send()};$('quick').appendChild(b)});
 
 function add(cls,text){var d=document.createElement('div');d.className='msg '+cls;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
-add('sys','Mic dabavo ane Gujarati ma bolo, ke text lakho. Pehla ⚙️ ma API key nakho.');
+add('sys','Mic dabavo ane Gujarati ma bolo, ke text lakho. Pehla ⚙️ ma provider (Gemini free) ane key nakho.');
 
 function say(text){
   if(!speakOn||!('speechSynthesis' in window))return;
@@ -104,16 +110,27 @@ function say(text){
 
 async function send(){
   var text=inp.value.trim();if(!text)return;
-  var key=store.get('av_key','');
+  var pv=curProv(),key=store.get('av_key_'+pv,'');
   if(!key){add('sys','Pehla ⚙️ ma API key save karo.');dlg.showModal();return}
   inp.value='';add('u',text);history.push({role:'user',content:text});
   var wait=add('a','...');
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:store.get('av_model','claude-haiku-5-5'),max_tokens:1500,system:SYSTEM,messages:history.slice(-12)})});
-    var j=await r.json();
-    if(!r.ok){throw new Error((j.error&&j.error.message)||('HTTP '+r.status))}
-    var ans=(j.content||[]).map(function(c){return c.text||''}).join('');
-    history.push({role:'assistant',content:ans});
+    var ans='';
+    var mdl=store.get('av_model_'+pv,PROV[pv].models[0][0]);
+    if(pv==='claude'){
+      var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:mdl,max_tokens:1500,system:SYSTEM,messages:history.slice(-12)})});
+      var j=await r.json();
+      if(!r.ok){throw new Error((j.error&&j.error.message)||('HTTP '+r.status))}
+      ans=(j.content||[]).map(function(c){return c.text||''}).join('');
+    } else {
+      var contents=history.slice(-12).map(function(m){return {role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}});
+      var r2=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+mdl+':generateContent',{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM}]},contents:contents,generationConfig:{maxOutputTokens:1500}})});
+      var j2=await r2.json();
+      if(!r2.ok){throw new Error((j2.error&&j2.error.message)||('HTTP '+r2.status))}
+      var cand=(j2.candidates||[])[0];
+      ans=cand&&cand.content&&cand.content.parts?cand.content.parts.map(function(c){return c.text||''}).join(''):'';
+      if(!ans){throw new Error('Khali jawab aavyo (safety/limit). Fari try karo.')}
+    }    history.push({role:'assistant',content:ans});
     wait.textContent=ans;
     var cp=document.createElement('button');cp.textContent='Copy';cp.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(ans);cp.textContent='Copied'};
     var sp=document.createElement('button');sp.textContent='Sambhlo';sp.onclick=function(){say(ans)};
@@ -142,10 +159,10 @@ mic.onclick=function(){
 };
 
 // Settings
-$('setBtn').onclick=function(){$('key').value=store.get('av_key','');$('model').value=store.get('av_model','claude-haiku-5-5');$('lang').value=store.get('av_lang','gu-IN');dlg.showModal()};
-$('save').onclick=function(){var k=$('key').value.trim();if(k)store.set('av_key',k);store.set('av_model',$('model').value);store.set('av_lang',$('lang').value);dlg.close();add('sys','Settings save thayi.')};
-$('clearKey').onclick=function(){store.del('av_key');$('key').value='';add('sys','Key delete thai.')};
-$('speakBtn').onclick=function(){speakOn=!speakOn;store.set('av_speak',speakOn?'1':'0');$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';if(!speakOn&&window.speechSynthesis)window.speechSynthesis.cancel()};
+$('setBtn').onclick=function(){$('provider').value=curProv();fillModels();$('lang').value=store.get('av_lang','gu-IN');dlg.showModal()};
+$('provider').onchange=fillModels;
+$('save').onclick=function(){var pv=$('provider').value,k=$('key').value.trim();store.set('av_provider',pv);if(k)store.set('av_key_'+pv,k);store.set('av_model_'+pv,$('model').value);store.set('av_lang',$('lang').value);dlg.close();add('sys','Settings save thayi ('+(pv==='gemini'?'Gemini free':'Claude')+').')};
+$('clearKey').onclick=function(){var pv=$('provider').value;store.del('av_key_'+pv);$('key').value='';add('sys','Key delete thai.')};$('speakBtn').onclick=function(){speakOn=!speakOn;store.set('av_speak',speakOn?'1':'0');$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';if(!speakOn&&window.speechSynthesis)window.speechSynthesis.cancel()};
 if('serviceWorker' in navigator){navigator.serviceWorker.register('voice-sw.js').catch(function(){})}
 })();
 </script>
