@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Expense Tracker Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: paste your expenses in plain lines, get them sorted by category, a monthly summary, the biggest spends and saving tips."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h3{margin:12px 0 4px;font-size:15px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+textarea,input{width:100%;padding:10px;border:1px solid #cdd6e3;border-radius:10px;font:15px system-ui;margin-top:3px}label{font-size:13px;font-weight:600}button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin-top:12px}
+.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.k div{background:#f5f7fb;border-radius:10px;padding:10px;text-align:center}.k b{display:block;font-size:22px}.k span{font-size:12px;color:var(--muted)}
+.b{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0}.b span{width:110px}.b i{display:block;height:14px;background:#14286b;border-radius:3px}.f{font-size:12px;color:var(--muted)}ul{padding-left:20px}@media(max-width:520px){.k{grid-template-columns:1fr}}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Expense Tracker Agent</h1><p class="s">Write one expense per line: <b>what, amount</b>. The agent guesses the category from the words. Sample month (fictitious) is filled in.</p>
+<label>Expenses<textarea id="d" rows="8">Rent, 15000
+Electricity bill, 2300
+Milk and vegetables, 1800
+Grocery shop, 4200
+Petrol, 2500
+Mobile recharge, 599
+Doctor visit, 800
+Netflix, 649
+Restaurant dinner, 1400
+School fees, 6000
+Courier charges, 350
+Packing material, 1200</textarea></label><label>Monthly income (Rs, optional)<input id="inc" type="number" value="45000"></label><button onclick="run()">Summarise</button></div><div id="o"></div><p class="f">Demonstration only. Category guesses are rule-based; check them yourself.</p></main>
+<script>
+var C=[["Home and bills",/rent|electric|water bill|gas|wifi|internet|recharge|maintenance/i],["Food",/milk|vegetable|grocery|restaurant|dinner|lunch|food|snack|swiggy|zomato/i],["Travel",/petrol|diesel|fuel|bus|auto|taxi|cab|train|flight|metro/i],["Health",/doctor|medicine|hospital|clinic|lab test|pharmacy/i],["Education",/school|fees|tuition|book|course/i],["Business",/courier|packing|stock|supplier|raw material|advertis/i],["Fun and subscriptions",/netflix|movie|hotstar|prime|game|trip|party/i]];
+function run(){var R=document.getElementById('d').value.split('\n').map(function(l){var p=l.split(',');var a=+p[p.length-1];return{w:p.slice(0,-1).join(',').trim(),a:a}}).filter(function(x){return x.w&&x.a>0}),cat={},tot=0,fm=function(n){return 'Rs '+Math.round(n).toLocaleString('en-IN')};
+if(!R.length){document.getElementById('o').innerHTML='<div class="card">Enter at least one line like "Petrol, 2500".</div>';return}
+R.forEach(function(x){var c=(C.filter(function(q){return q[1].test(x.w)})[0]||['Other'])[0];cat[c]=(cat[c]||0)+x.a;tot+=x.a});
+var ks=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a]}),inc=+document.getElementById('inc').value,sv=inc>0?inc-tot:null,big=R.slice().sort(function(a,b){return b.a-a.a}).slice(0,3),tips=[];
+if(cat['Fun and subscriptions']>tot*0.1)tips.push('Subscriptions and fun are over 10% of spending. Cancel unused subscriptions.');if(cat['Food']>tot*0.25)tips.push('Food is over 25% of spending. Plan a weekly menu and buy in bulk.');if(sv!==null&&sv<inc*0.2)tips.push('Savings are below 20% of income. Try to move 20% to savings on salary day.');if(!tips.length)tips.push('Spending looks balanced. Keep tracking monthly.');
+document.getElementById('o').innerHTML='<div class="card"><div class="k"><div><b>'+fm(tot)+'</b><span>Total spent</span></div><div><b>'+R.length+'</b><span>Entries</span></div><div><b>'+(sv===null?'-':fm(sv))+'</b><span>Left from income</span></div></div><h3>By category</h3>'+ks.map(function(k){return '<div class="b"><span>'+k+'</span><i style="width:'+(cat[k]/cat[ks[0]]*55)+'%"></i> '+fm(cat[k])+' ('+Math.round(cat[k]/tot*100)+'%)</div>'}).join('')+'<h3>Biggest spends</h3><ul>'+big.map(function(x){return '<li>'+x.w.replace(/</g,'&lt;')+': '+fm(x.a)+'</li>'}).join('')+'</ul><h3>Tips</h3><ul>'+tips.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul></div>'}
+run();
+</script></body></html>

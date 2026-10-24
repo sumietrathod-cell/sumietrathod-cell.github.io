@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Daily Sales Summary Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: paste today's sales, get total, best sellers, payment split and a ready WhatsApp summary for the owner. Works on your own data."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h3{margin:12px 0 4px;font-size:15px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+textarea,input{width:100%;padding:10px;border:1px solid #cdd6e3;border-radius:10px;font:15px system-ui;margin-top:3px}label{font-size:13px;font-weight:600}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin:10px 8px 0 0}button.w{background:#16a34a}
+.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.k div{background:#f5f7fb;border-radius:10px;padding:10px;text-align:center}.k b{display:block;font-size:22px}.k span{font-size:12px;color:var(--muted)}
+.b{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0}.b span{width:130px}.b i{display:block;height:14px;background:#14286b;border-radius:3px}pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.5 system-ui}.f{font-size:12px;color:var(--muted)}@media(max-width:520px){.k{grid-template-columns:1fr}}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Daily Sales Summary Agent</h1><p class="s">Paste today's sales, one per line: <b>item, quantity, amount, payment mode</b> (Cash / UPI / Card / Credit). Sample data is filled in. Yesterday's total is optional, for the comparison.</p>
+<label>Today's sales<textarea id="d" rows="7">Face wash, 3, 570, UPI
+Moisturiser, 2, 560, Cash
+Lipstick red, 4, 880, UPI
+Hair oil, 6, 600, Cash
+Sunscreen, 2, 760, Card
+Face wash, 2, 380, Cash
+Soap pack, 5, 450, Credit
+Lipstick red, 1, 220, UPI</textarea></label>
+<label>Shop name<input id="sn" value="Glow Beauty Store"></label><label>Yesterday's total (Rs, optional)<input id="y" type="number" value="3900"></label><label>Owner WhatsApp number (with 91)<input id="ph" value="919800000010"></label>
+<button onclick="run()">Make summary</button></div><div id="o"></div><p class="f">Demonstration only. Check totals against your own records.</p></main>
+<script>
+function run(){var R=document.getElementById('d').value.split('\n').map(function(l){var p=l.split(',').map(function(s){return s.trim()});return{i:p[0],q:+p[1],a:+p[2],m:(p[3]||'Cash').toLowerCase()}}).filter(function(x){return x.i&&x.q>0&&x.a>=0});
+if(!R.length){document.getElementById('o').innerHTML='<div class="card">Enter at least one valid line.</div>';return}
+var tot=0,it={},pm={};R.forEach(function(x){tot+=x.a;it[x.i]=it[x.i]||{q:0,a:0};it[x.i].q+=x.q;it[x.i].a+=x.a;var m=x.m.charAt(0).toUpperCase()+x.m.slice(1);pm[m]=(pm[m]||0)+x.a});
+var top=Object.keys(it).sort(function(a,b){return it[b].a-it[a].a}),y=+document.getElementById('y').value,units=R.reduce(function(s,x){return s+x.q},0),fm=function(n){return 'Rs '+Math.round(n).toLocaleString('en-IN')};
+var cmp=y>0?(tot>=y?'Up '+Math.round((tot-y)/y*100)+'% vs yesterday':'Down '+Math.round((y-tot)/y*100)+'% vs yesterday'):'';
+var cr=pm.Credit||0,sn=document.getElementById('sn').value,d=new Date().toLocaleDateString('en-IN');
+var t=sn+' sales summary, '+d+'\nTotal: '+fm(tot)+(cmp?' ('+cmp+')':'')+'\nBills: '+R.length+', units: '+units+'\nTop items: '+top.slice(0,3).map(function(k){return k+' '+fm(it[k].a)}).join(', ')+'\nPayments: '+Object.keys(pm).map(function(k){return k+' '+fm(pm[k])}).join(', ')+(cr?'\nCredit given today: '+fm(cr)+', please follow up.':'');
+var mx=it[top[0]].a;
+document.getElementById('o').innerHTML='<div class="card"><div class="k"><div><b>'+fm(tot)+'</b><span>Total</span></div><div><b>'+R.length+'</b><span>Bills</span></div><div><b>'+units+'</b><span>Units</span></div></div>'+(cmp?'<p><b>'+cmp+'</b></p>':'')+'<h3>Best sellers</h3>'+top.map(function(k){return '<div class="b"><span>'+k.replace(/</g,'&lt;')+'</span><i style="width:'+(it[k].a/mx*60)+'%"></i> '+fm(it[k].a)+'</div>'}).join('')+'<h3>Payment split</h3>'+Object.keys(pm).map(function(k){return '<div class="b"><span>'+k+'</span><i style="width:'+(pm[k]/tot*60)+'%"></i> '+fm(pm[k])+'</div>'}).join('')+'</div><div class="card"><h3 style="margin-top:0">Ready WhatsApp summary</h3><pre id="p">'+t.replace(/</g,'&lt;')+'</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'p\').innerText);this.textContent=\'Copied\'">Copy</button><a target="_blank" rel="noopener" href="https://wa.me/'+document.getElementById('ph').value.replace(/\D/g,'')+'?text='+encodeURIComponent(t)+'"><button class="w">Send on WhatsApp</button></a></div>'}
+run();
+</script></body></html>

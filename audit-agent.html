@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Audit Readiness Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: tick what is ready before an audit, get a readiness score by area, the gap list with priority and a draft action plan."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h3{margin:14px 0 4px;font-size:15px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.it{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #eef1f6;font-size:15px}.it input{margin-top:5px;width:18px;height:18px}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin-top:12px}
+.v{font-weight:800;font-size:19px;padding:10px 14px;border-radius:10px;margin-bottom:8px}.ok{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}
+.bar{height:10px;background:#e5e9f0;border-radius:99px;overflow:hidden;margin:3px 0 8px}.bar i{display:block;height:100%}pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.5 system-ui}.f{font-size:12px;color:var(--muted)}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Audit Readiness Agent</h1><p class="s">Tick what is ready. Items marked <b>(critical)</b> count double. The agent scores each area, lists the gaps by priority and drafts an action plan. Sample state is pre-filled.</p><div id="l"></div><button onclick="run()">Check readiness</button></div><div id="o"></div>
+<p class="f">Demonstration only. Use your site audit SOP and QA for the real checklist.</p></main>
+<script>
+var A={"Documentation":[["SOPs current, approved and in use",1,1],["Batch records complete and reviewed",1,1],["Logbooks filled on time, no overwriting",0,1],["Document change history controlled",0,0]],
+"Quality events":[["All deviations closed or on time",0,1],["CAPA effectiveness checked",0,1],["OOS and OOT investigations complete",1,1],["Change controls approved before implementation",1,0]],
+"Equipment and calibration":[["Calibration in date for all critical instruments",1,1],["Preventive maintenance on schedule",1,0],["Equipment qualification status current",1,1]],
+"People":[["Training records current for all staff",0,1],["Gowning and hygiene practice observed",1,0],["Job descriptions and authorisations updated",1,0]],
+"Facility and data":[["Environmental monitoring within limits",1,1],["Data integrity: audit trails reviewed",0,1],["Warehouse, labelling and segregation in order",1,0]]};
+var L=document.getElementById('l');Object.keys(A).forEach(function(k,ai){L.innerHTML+='<h3>'+k+'</h3>';A[k].forEach(function(x,i){L.innerHTML+='<label class="it"><input type="checkbox" data-a="'+ai+'" data-i="'+i+'" '+(x[1]?'checked':'')+'><span>'+x[0]+(x[2]?' <b>(critical)</b>':'')+'</span></label>'})});
+function run(){var ks=Object.keys(A),tw=0,gw=0,gaps=[],areas=[];ks.forEach(function(k,ai){var w=0,g=0;A[k].forEach(function(x,i){var wt=x[2]?2:1,on=document.querySelector('[data-a="'+ai+'"][data-i="'+i+'"]').checked;w+=wt;if(on)g+=wt;else gaps.push({a:k,t:x[0],c:x[2]})});tw+=w;gw+=g;areas.push([k,Math.round(g/w*100)])});
+var p=Math.round(gw/tw*100),cr=gaps.filter(function(g){return g.c}).length,c=cr===0&&p>=90?'ok':cr<=2&&p>=70?'warn':'bad',tx=cr===0&&p>=90?'Ready for audit':cr<=2&&p>=70?'Nearly ready: close the critical gaps first':'Not ready: urgent action needed';
+gaps.sort(function(a,b){return b.c-a.c});
+var plan=gaps.map(function(g,i){return (i+1)+'. ['+(g.c?'Critical':'Normal')+'] '+g.t+' ('+g.a+'). Owner: ____ Target: '+(g.c?'within 3 days':'within 10 days')}).join('\n');
+document.getElementById('o').innerHTML='<div class="card"><div class="v '+c+'">'+p+'% ready: '+tx+'</div>'+areas.map(function(a){return a[0]+' '+a[1]+'%<div class="bar"><i style="width:'+a[1]+'%;background:'+(a[1]>=90?'#16a34a':a[1]>=70?'#f59e0b':'#dc2626')+'"></i></div>'}).join('')+'</div><div class="card"><h3 style="margin-top:0">Gap list and draft action plan ('+gaps.length+' gaps, '+cr+' critical)</h3><pre id="p">Audit readiness action plan\nScore: '+p+'%\n\n'+(plan||'No gaps. Keep evidence ready.')+'</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'p\').innerText);this.textContent=\'Copied\'">Copy plan</button></div>'}
+run();
+</script></body></html>
