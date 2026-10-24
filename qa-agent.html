@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Demo AI agent for pharma QA: reviews a Deviation and CAPA tracker, ranks overdue items by GMP risk and drafts the escalation email.">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<title>QA Overdue Agent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: control-room page — header with run button, KPI strip, agent activity log beside the alert output, tracker table below */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --ink:#14262b; --muted:#5d7277; --line:#dde6e7;
+  --brand:#0e6f74; --brand-ink:#ffffff; --amber:#b86e00; --red:#c0362c; --green:#25804a; --soft:#e6f2f2;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1719; --surface:#152225; --ink:#e3eeef; --muted:#93a9ad; --line:#24363a;
+  --brand:#3fb3b8; --brand-ink:#06191b; --amber:#f0a73a; --red:#ff7b6e; --green:#5fcf8a; --soft:#18302f; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1719; --surface:#152225; --ink:#e3eeef; --muted:#93a9ad; --line:#24363a;
+  --brand:#3fb3b8; --brand-ink:#06191b; --amber:#f0a73a; --red:#ff7b6e; --green:#5fcf8a; --soft:#18302f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:grid;gap:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+h1{margin:2px 0 4px;font-size:1.6rem;line-height:1.15;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:60ch}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;font:inherit;font-weight:600;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--brand);color:var(--brand-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible,label.up:focus-within{outline:3px solid var(--amber);outline-offset:2px}
+label.up{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+label.up input{position:absolute;opacity:0;width:1px;height:1px}
+.mode{font-size:.8rem;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi span{font-size:.8rem;color:var(--muted)}
+.kpi.red b{color:var(--red)} .kpi.amber b{color:var(--amber)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.panel h2{margin:0 0 10px;font-size:1rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:.86rem}
+.log li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
+.dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:700;background:var(--soft);color:var(--brand)}
+.log code{font-family:var(--mono);font-size:.78rem;background:var(--soft);padding:1px 6px;border-radius:5px}
+.log .t{color:var(--muted);font-size:.78rem}
+.idle{color:var(--muted);font-size:.88rem;margin:0}
+.email{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.email .hd{background:var(--soft);padding:10px 12px;font-size:.85rem;display:grid;gap:2px}
+.email .hd b{font-size:.95rem}
+.email .bd{padding:12px;white-space:pre-wrap;font-size:.88rem;max-height:420px;overflow:auto}
+.prio{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;background:var(--red)}
+.summary{margin:10px 0 0;font-size:.9rem;white-space:pre-wrap}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:760px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.id{font-family:var(--mono);font-size:.78rem;white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.p-over{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+.p-soon{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}
+.p-ok{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+.p-closed{background:var(--soft);color:var(--muted)}
+.cls-Critical{color:var(--red);font-weight:700}.cls-Major{color:var(--amber);font-weight:600}
+.hint{font-size:.78rem;color:var(--muted);margin:8px 0 0}
+.copy{font-size:.8rem;padding:6px 10px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:no-preference){.log li{animation:in .25s ease-out}@keyframes in{from{transform:translateY(4px);opacity:.4}}}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Aarohan QA Analytics · AI agent demo</div>
+      <h1>Deviation &amp; CAPA Overdue Agent</h1>
+      <p>The agent reads the QA tracker, finds overdue and soon-due records, ranks them by risk and drafts the escalation mail for the QA Head.</p>
+    </div>
+    <div class="actions">
+      <label class="up" for="csv">Load my CSV<input type="file" id="csv" accept=".csv,text/csv"></label>
+      <button class="btn" id="run">Run agent</button>
+      <button class="btn ghost" id="stop" hidden>Stop</button>
+    </div>
+  </header>
+  <div class="mode" id="mode">Sample tracker loaded (example data). Checking AI availability…</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="two">
+    <section class="panel">
+      <h2>Agent activity</h2>
+      <ul class="log" id="log"></ul>
+      <p class="idle" id="idle">Press <b>Run agent</b>. Each step the agent takes appears here.</p>
+    </section>
+    <section class="panel">
+      <h2>Escalation alert <button class="btn ghost copy" id="copy" hidden>Copy email</button></h2>
+      <div id="out"><p class="idle">The drafted alert and the agent's summary appear here.</p></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>QA tracker <span class="mode" id="asof"></span></h2>
+    <div class="tablewrap"><table><thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Dept</th><th>Owner</th><th>Class</th><th>Due</th><th>Status</th><th>Days</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <p class="hint">CSV columns: id, type, title, department, owner, classification, opened, due, status (dates as YYYY-MM-DD; status "Closed" is ignored).</p>
+  </section>
+</div>
+
+<script>
+const DAY=864e5;
+const today=new Date(); today.setHours(0,0,0,0);
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const off=n=>iso(new Date(today.getTime()+n*DAY));
+// Example records, dated relative to today so the demo always has live overdue items
+let RECORDS=[
+ ["DEV-2026-118","Deviation","Temperature excursion in cold room CR-02","Warehouse","R. Patel","Major",-41,-11,"Investigation"],
+ ["DEV-2026-121","Deviation","Line clearance not documented, Batch TB2614","Production","S. Mehta","Minor",-38,-8,"Investigation"],
+ ["DEV-2026-124","Deviation","OOS assay result, Paracetamol 500 mg","QC","A. Shah","Critical",-35,-5,"Open"],
+ ["CAPA-2026-057","CAPA","Retrain packers on label reconciliation","Packing","K. Desai","Major",-70,-22,"CAPA in progress"],
+ ["CAPA-2026-061","CAPA","Install alarm on CR-02 temperature logger","Engineering","M. Joshi","Major",-50,-3,"CAPA in progress"],
+ ["DEV-2026-129","Deviation","Wrong revision of BMR issued","QA","N. Trivedi","Minor",-22,2,"Investigation"],
+ ["DEV-2026-131","Deviation","Particle count above limit, Grade B area","Production","S. Mehta","Critical",-18,4,"Investigation"],
+ ["CAPA-2026-064","CAPA","Revise SOP for HPLC column storage","QC","A. Shah","Minor",-30,6,"CAPA in progress"],
+ ["DEV-2026-133","Deviation","Balance calibration overdue in dispensing","Engineering","M. Joshi","Major",-14,9,"Open"],
+ ["CAPA-2026-066","CAPA","Vendor audit for excipient supplier","QA","N. Trivedi","Major",-25,15,"CAPA in progress"],
+ ["DEV-2026-135","Deviation","Torn carton received, Lot PK-772","Warehouse","R. Patel","Minor",-9,21,"Open"],
+ ["DEV-2026-110","Deviation","Gowning breach in aseptic corridor","Production","S. Mehta","Major",-60,-30,"Closed"],
+ ["CAPA-2026-049","CAPA","Update cleaning validation matrix","QA","N. Trivedi","Major",-90,-40,"Closed"],
+ ["DEV-2026-136","Deviation","Stability chamber humidity drift","QC","A. Shah","Major",-6,24,"Open"]
+].map(r=>({id:r[0],type:r[1],title:r[2],department:r[3],owner:r[4],classification:r[5],opened:off(r[6]),due:off(r[7]),status:r[8]}));
+let sampleData=true;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const daysTo=r=>Math.round((new Date(r.due+"T00:00:00")-today)/DAY);
+const open=()=>RECORDS.filter(r=>!/closed/i.test(r.status));
+const state=r=>{if(/closed/i.test(r.status))return"closed";const d=daysTo(r);return d<0?"over":d<=7?"soon":"ok";};
+const RANK={Critical:3,Major:2,Minor:1};
+
+function render(){
+  const o=open(), over=o.filter(r=>daysTo(r)<0), soon=o.filter(r=>{const d=daysTo(r);return d>=0&&d<=7;});
+  const crit=over.filter(r=>r.classification==="Critical").length;
+  $("kpis").innerHTML=`<div class="kpi"><b>${o.length}</b><span>Open records</span></div>
+   <div class="kpi red"><b>${over.length}</b><span>Overdue</span></div>
+   <div class="kpi amber"><b>${soon.length}</b><span>Due in 7 days</span></div>
+   <div class="kpi red"><b>${crit}</b><span>Critical overdue</span></div>`;
+  $("asof").textContent=`as of ${today.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}${sampleData?" · example data":""}`;
+  const sorted=[...RECORDS].sort((a,b)=>(state(a)==="closed")-(state(b)==="closed")||daysTo(a)-daysTo(b));
+  $("rows").innerHTML=sorted.map(r=>{const s=state(r),d=daysTo(r);
+    const lab={over:`Overdue`,soon:`Due soon`,ok:`On track`,closed:`Closed`}[s];
+    return `<tr><td class="id">${esc(r.id)}</td><td>${esc(r.type)}</td><td>${esc(r.title)}</td><td>${esc(r.department)}</td><td>${esc(r.owner)}</td>
+    <td class="cls-${esc(r.classification)}">${esc(r.classification)}</td><td class="num">${esc(r.due)}</td>
+    <td><span class="pill p-${s}">${lab}</span><div class="mode">${esc(r.status)}</div></td>
+    <td class="num">${s==="closed"?"–":d<0?`${-d} late`:`${d} left`}</td></tr>`;}).join("");
+}
+
+// ---- agent tools (shared by AI mode and offline mode)
+const short=r=>({id:r.id,type:r.type,title:r.title,dept:r.department,owner:r.owner,class:r.classification,due:r.due,status:r.status,days_overdue:Math.max(0,-daysTo(r)),days_left:Math.max(0,daysTo(r))});
+const TOOLS={
+  get_summary:()=>{const o=open();return{today:iso(today),open:o.length,overdue:o.filter(r=>daysTo(r)<0).length,due_7_days:o.filter(r=>{const d=daysTo(r);return d>=0&&d<=7}).length,
+     by_type:{Deviation:o.filter(r=>r.type==="Deviation").length,CAPA:o.filter(r=>r.type==="CAPA").length}};},
+  list_records:({filter="overdue",department})=>{let o=open();
+     if(filter==="overdue")o=o.filter(r=>daysTo(r)<0);else if(filter==="due_soon")o=o.filter(r=>{const d=daysTo(r);return d>=0&&d<=7;});
+     if(department)o=o.filter(r=>r.department.toLowerCase()===String(department).toLowerCase());
+     return o.map(short);},
+  owner_workload:()=>{const m={};for(const r of open()){const k=r.owner;m[k]=m[k]||{owner:k,department:r.department,open:0,overdue:0,critical_open:0};m[k].open++;if(daysTo(r)<0)m[k].overdue++;if(r.classification==="Critical")m[k].critical_open++;}
+     return Object.values(m).sort((a,b)=>b.overdue-a.overdue||b.critical_open-a.critical_open);}
+};
+let alertData=null;
+function showAlert(a,summary){
+  alertData=a;
+  $("out").innerHTML=`<div class="email"><div class="hd"><div><span class="prio">${esc(a.priority||"High")} priority</span></div>
+    <b>${esc(a.subject)}</b><span>To: ${esc(a.to)}</span></div><div class="bd">${esc(a.body)}</div></div>
+    ${summary?`<p class="summary">${esc(summary)}</p>`:""}`;
+  $("copy").hidden=false;
+}
+
+let logN=0;
+function log(html){$("idle").hidden=true;logN++;const li=document.createElement("li");li.innerHTML=`<span class="dot">${logN}</span><div>${html}</div>`;$("log").append(li);return li;}
+function resetLog(){$("log").innerHTML="";logN=0;$("idle").hidden=true;$("copy").hidden=true;$("out").innerHTML=`<p class="idle">Working…</p>`;}
+
+// ---- AI mode
+let sample=null, ctl=null;
+(async()=>{try{sample=await window.claude?.use?.("sample");}catch(e){sample=null;}
+  $("mode").textContent=sample?`AI mode: Claude runs the agent on your own Claude account (you'll be asked to allow it once).${sampleData?" Using example data.":""}`
+    :`Offline mode: AI is not available in this view, so the agent runs its built-in rules.${sampleData?" Using example data.":""}`;})();
+
+async function runAI(){
+  ctl=new AbortController();
+  const status=log(`Thinking… <span class="t">planning the review</span>`);
+  const tools=[
+    {name:"get_summary",description:"Returns today's date and counts of open, overdue and due-in-7-days QA records by type.",execute:()=>{log(`Called <code>get_summary</code>`);return TOOLS.get_summary();}},
+    {name:"list_records",description:"Lists open QA records. filter: 'overdue' (past due date), 'due_soon' (due within 7 days) or 'all_open'. Optional department. Returns id, type, title, dept, owner, class, due, status, days_overdue, days_left.",
+     inputSchema:{type:"object",properties:{filter:{type:"string",enum:["overdue","due_soon","all_open"]},department:{type:"string"}},required:["filter"]},
+     execute:(i)=>{const f=String(i.filter||"overdue");log(`Called <code>list_records</code> <span class="t">filter = ${esc(f)}${i.department?", dept = "+esc(i.department):""}</span>`);return TOOLS.list_records({filter:f,department:i.department?String(i.department):undefined});}},
+    {name:"owner_workload",description:"Returns each owner's open, overdue and critical open record counts, worst first.",execute:()=>{log(`Called <code>owner_workload</code>`);return TOOLS.owner_workload();}},
+    {name:"save_alert",description:"Saves the escalation email to the QA Head. Call exactly once, after reviewing the data.",
+     inputSchema:{type:"object",properties:{to:{type:"string"},subject:{type:"string"},priority:{type:"string",enum:["Critical","High","Medium"]},body:{type:"string"}},required:["to","subject","priority","body"]},
+     execute:(i)=>{log(`Called <code>save_alert</code> <span class="t">drafted the escalation email</span>`);showAlert({to:String(i.to),subject:String(i.subject),priority:String(i.priority),body:String(i.body)});return "saved";}}
+  ];
+  const prompt=`You are a pharmaceutical QA compliance agent working for the QA Head of a GMP manufacturing site. Today is ${iso(today)}.
+Task: review the Deviation and CAPA tracker using the tools, then escalate.
+1. Get the summary, the overdue records, the records due in the next 7 days and the owner workload.
+2. Rank the overdue items by risk: Critical before Major before Minor, then by days overdue. Note GMP impact briefly (product quality, patient safety, data integrity, audit risk).
+3. Call save_alert once with an email to "QA Head; Department Heads" in plain text: a 2-line overview, a numbered priority list (ID, title, owner, days overdue, the specific next action and a realistic target date), a short "due this week" list, and owners who need follow-up. Keep it under 250 words, professional, no markdown symbols.
+4. Then reply with a 3-line summary for the dashboard: overall risk level, the single most urgent item, and the recommended action today. No markdown.`;
+  const {text}=await sample(prompt,{tools,signal:ctl.signal,onText:({text})=>{status.querySelector("div").innerHTML=`Writing summary…`;}});
+  status.querySelector("div").innerHTML=`Plan and review done`;
+  log(`Finished <span class="t">${new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</span>`);
+  if(alertData) showAlert(alertData,text.trim()); else $("out").innerHTML=`<p class="summary">${esc(text.trim())}</p>`;
+}
+
+// ---- offline mode (rules)
+async function runRules(){
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const s=TOOLS.get_summary(); log(`Called <code>get_summary</code> <span class="t">${s.open} open, ${s.overdue} overdue</span>`); await wait(350);
+  const over=TOOLS.list_records({filter:"overdue"}).sort((a,b)=>RANK[b.class]-RANK[a.class]||b.days_overdue-a.days_overdue);
+  log(`Called <code>list_records</code> <span class="t">filter = overdue → ${over.length} records</span>`); await wait(350);
+  const soon=TOOLS.list_records({filter:"due_soon"}); log(`Called <code>list_records</code> <span class="t">filter = due_soon → ${soon.length} records</span>`); await wait(350);
+  const wl=TOOLS.owner_workload().filter(w=>w.overdue>0); log(`Called <code>owner_workload</code> <span class="t">${wl.length} owners with overdue items</span>`); await wait(350);
+  const tgt=n=>off(n);
+  const body=`Dear QA Head,
+
+Tracker review on ${iso(today)}: ${s.open} records open, ${s.overdue} overdue, ${s.due_7_days} due within 7 days.
+
+Overdue, in order of risk:
+${over.map((r,i)=>`${i+1}. ${r.id} ${r.title} (${r.class}) - ${r.owner}, ${r.days_overdue} days overdue. Next action: ${r.class==="Critical"?"impact assessment and interim control within 24 h":r.type==="CAPA"?"complete CAPA actions and plan effectiveness check":"complete investigation and submit for QA review"}; target ${tgt(r.class==="Critical"?2:5)}.`).join("\n")}
+
+Due this week:
+${soon.map(r=>`- ${r.id} ${r.title} (${r.owner}), due ${r.due}`).join("\n")||"- None"}
+
+Follow-up needed with: ${wl.map(w=>`${w.owner} (${w.overdue} overdue)`).join(", ")||"no one"}.
+
+Regards,
+QA Overdue Agent`;
+  showAlert({to:"QA Head; Department Heads",subject:`QA escalation: ${s.overdue} overdue records, ${over.filter(r=>r.class==="Critical").length} critical`,priority:over.some(r=>r.class==="Critical")?"Critical":"High",body},
+    `Risk: ${over.some(r=>r.class==="Critical")?"High":"Medium"}. Most urgent: ${over[0]?over[0].id+" "+over[0].title:"none"}. Action today: assign owners and confirm target dates.\n(Offline rules mode. Open this page inside Claude for the AI agent.)`);
+  log(`Called <code>save_alert</code> <span class="t">drafted the escalation email</span>`);
+  log(`Finished`);
+}
+
+$("run").onclick=async()=>{
+  resetLog(); alertData=null; $("run").disabled=true;
+  try{
+    if(sample){$("stop").hidden=false;await runAI();}
+    else await runRules();
+  }catch(e){
+    const code=e&&e.code;
+    if(code==="cancelled"){log(`Stopped by you`);}
+    else if(code==="not_granted"||code==="sampling_disabled"||code==="tools_unavailable"){sample=null;$("mode").textContent="Offline mode: AI was not allowed in this view, so the agent ran its built-in rules.";await runRules();}
+    else if(code==="rate_limited"){log(`Claude is busy for your account right now. Try again in a minute.`);}
+    else {log(`The AI step failed (${esc(code||"error")}). Running the built-in rules instead.`);await runRules();}
+  }finally{$("run").disabled=false;$("stop").hidden=true;}
+};
+$("stop").onclick=()=>ctl?.abort();
+$("copy").onclick=()=>{if(!alertData)return;const t=`To: ${alertData.to}\nSubject: ${alertData.subject}\n\n${alertData.body}`;
+  navigator.clipboard.writeText(t).then(()=>{$("copy").textContent="Copied";}).catch(()=>{const r=document.createRange();r.selectNodeContents(document.querySelector(".email .bd"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copy").textContent="Selected";});};
+
+// CSV upload
+$("csv").onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const txt=await f.text(); const lines=txt.trim().split(/\r?\n/);
+  const split=l=>{const out=[];let cur="",q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===","&&!q){out.push(cur);cur="";}else cur+=ch;}out.push(cur);return out.map(s=>s.trim());};
+  const head=split(lines[0]).map(h=>h.toLowerCase());
+  const need=["id","type","title","department","owner","classification","due","status"];
+  const miss=need.filter(n=>!head.includes(n));
+  if(miss.length){$("mode").textContent=`That CSV is missing columns: ${miss.join(", ")}. Keep the sample data or fix the header row.`;return;}
+  RECORDS=lines.slice(1).filter(Boolean).map(l=>{const v=split(l);const o={};head.forEach((h,i)=>o[h]=v[i]||"");return o;}).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.due));
+  sampleData=false; render(); $("mode").textContent=`Loaded ${RECORDS.length} records from ${f.name}. ${sample?"AI mode ready.":"Offline rules mode."}`;
+};
+
+render();
+</script>
+
+</body>
+</html>
