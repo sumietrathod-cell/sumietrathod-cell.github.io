@@ -16,4 +16,4 @@ var st=g+'! '+of+' till '+vt+'. Order on WhatsApp.',ig=g+' from '+sn+'!\n'+of+',
 function box(t,x,wb){return '<div class="card"><b>'+t+'</b><pre>'+x.replace(/</g,'&lt;')+'</pre><button onclick="navigator.clipboard.writeText(this.previousElementSibling.innerText);this.textContent=\'Copied\'">Copy</button>'+(wb?'<a target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent(x)+'"><button class="w">Share on WhatsApp</button></a>':'')+'</div>'}
 document.getElementById('o').innerHTML=box('WhatsApp message',wa+(ph?'\nOrder: wa.me/'+ph:''),true)+box('Status text',st,false)+box('Instagram caption',ig,false)}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

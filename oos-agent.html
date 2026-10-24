@@ -28,4 +28,4 @@ o+='</div>';
 if(oos||oot){o+='<div class="card"><h3>Draft investigation summary</h3><pre id="d">'+(oos?'OOS':'OOT')+' investigation: '+p+', Batch '+b+'\nTest: '+t+'\nSpecification: '+lo+' to '+hi+' '+u+'\nReported result: '+r+' '+u+'\nTrend: mean '+(h.length>=3?m.toFixed(2):'n/a')+', SD '+(h.length>=3?sd.toFixed(2):'n/a')+'\nStatus: QA informed, Phase I laboratory investigation '+(oos?'initiated':'not required, trend review opened')+'.\nNext step: complete checklist, record conclusion, decide on retest only as per SOP.</pre><button onclick="navigator.clipboard.writeText($(\'d\').innerText);this.textContent=\'Copied\'">Copy summary</button></div>'}
 $('out').innerHTML=o}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

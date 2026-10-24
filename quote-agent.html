@@ -20,4 +20,4 @@ function calc(){var bi=+document.querySelector('input[name=b]:checked').value,p=
 document.getElementById('pr').textContent='US$'+p+' (about Rs '+(p*RATE).toLocaleString('en-IN')+')';document.getElementById('tm').textContent='Estimated time: '+d+' to '+(d+3)+' days';
 var t='Hello Sumit, I used the quote estimator on your website.\nProject: '+B[bi][0]+'\nExtras: '+(ex.join('; ')||'none')+'\nEstimate: US$'+p+' ('+d+' to '+(d+3)+' days)\nPlease share an exact quote.';document.getElementById('wa').href='https://wa.me/916357115513?text='+encodeURIComponent(t)}
 document.querySelectorAll('input').forEach(function(e){e.onchange=calc});calc();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

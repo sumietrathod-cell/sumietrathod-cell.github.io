@@ -21,4 +21,4 @@ function draw(){chips('sv',SV,'s',function(v){return v});chips('dy',D,'d',lab);c
 var ok=sel.s&&sel.d&&sel.t;document.getElementById('sm').textContent=ok?sel.s+' on '+lab(sel.d)+' at '+sel.t:'Choose a service, day and time.';document.getElementById('go').disabled=!ok}
 function book(){var n=document.getElementById('n').value||'Customer',p=document.getElementById('p').value||'';var t='Booking request: '+sel.s+' on '+lab(sel.d)+' at '+sel.t+'. Name: '+n+(p?', phone: '+p:'')+'. Please confirm.';window.open('https://wa.me/'+OWN+'?text='+encodeURIComponent(t),'_blank')}
 draw();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

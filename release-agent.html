@@ -22,4 +22,4 @@ var b=document.getElementById('b');b.style.width=p+'%';b.style.background=r?'#16
 document.getElementById('bl').innerHTML=(bl.length?'<b>Blockers (critical)</b><ul>'+bl.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':'')+(ms.length?'<b>Supporting items pending</b><ul>'+ms.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':'');
 document.getElementById('n').textContent='Batch PT25-017, Paracetamol Tablets IP 500 mg\nReadiness: '+p+'%\nStatus: '+(r?'No critical blockers. QA release decision can proceed.':'HOLD. Critical items pending: '+bl.join('; ')+'.')+(ms.length?'\nSupporting items to close: '+ms.join('; ')+'.':'')+'\nNext review: after pending items are closed.'}
 calc();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

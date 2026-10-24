@@ -24,4 +24,4 @@ function draw(){document.getElementById('r').innerHTML=R.slice().sort(function(a
 document.getElementById('csv').onchange=function(e){var f=e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){var L=rd.result.trim().split(/\r?\n/),h=L[0].split(',').map(function(s){return s.trim().toLowerCase()});
 var x=L.slice(1).map(function(l){var v=l.split(','),o={};h.forEach(function(k,i){o[k]=(v[i]||'').trim()});return o}).filter(function(o){return /^\d{4}-\d{2}-\d{2}$/.test(o.due)&&o.id});if(x.length){R=x.map(function(o){o.criticality=RK[o.criticality]?o.criticality:'Minor';return o});run()}else alert('Could not read the CSV. Check the column names.')};rd.readAsText(f)};
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

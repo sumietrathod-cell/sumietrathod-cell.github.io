@@ -27,4 +27,4 @@ document.getElementById('o').innerHTML='<div class="card"><div class="k"><div><b
 function dl(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([window.__csv],{type:'text/csv'}));a.download='clean_data.csv';a.click()}
 document.getElementById('csv').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){document.getElementById('d').value=r.result;run()};r.readAsText(f)};
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

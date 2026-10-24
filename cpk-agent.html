@@ -22,4 +22,4 @@ if(oos)act='There are '+oos+' value(s) outside the limits. Check for OOS investi
 var mn=Math.min.apply(null,x),mx=Math.max.apply(null,x),bins=10,w=(mx-mn)/bins||1,c=new Array(bins).fill(0);x.forEach(function(v){c[Math.min(bins-1,Math.floor((v-mn)/w))]++});var cm=Math.max.apply(null,c);
 document.getElementById('o').innerHTML='<div class="card"><div class="v '+cls+'">Cpk '+cpk.toFixed(2)+': '+txt+'</div><div class="k"><div><b>'+m.toFixed(2)+'</b><span>Mean</span></div><div><b>'+sd.toFixed(3)+'</b><span>Std dev</span></div><div><b>'+cp.toFixed(2)+'</b><span>Cp</span></div><div><b>'+n+'</b><span>Values</span></div></div><div class="h">'+c.map(function(v){return '<i style="height:'+(v/cm*100)+'%" title="'+v+'"></i>'}).join('')+'</div><div class="f">Histogram: '+mn.toFixed(2)+' to '+mx.toFixed(2)+'. Limits '+lo+' to '+hi+'.</div><p><b>Recommended action:</b> '+act+'</p></div>'}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

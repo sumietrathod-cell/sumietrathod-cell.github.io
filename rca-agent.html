@@ -29,4 +29,4 @@ w.forEach(function(x){h+='<li>'+x+'</li>'});
 h+='</ol></div><div class="card"><h3 style="margin-top:0">Draft CAPA</h3><pre id="c">Severity: '+sv+'\nLikely categories: '+hits.join(', ')+'\n\nCorrective action:\n'+hits.slice(0,3).map(function(k){return '- '+K[k].a}).join('\n')+'\n\nPreventive action:\n- Add a check point to the SOP/batch record so the condition is caught early\n- Trend similar events for the next 6 months\n\nEffectiveness check: no recurrence in the next 3 batches; QA review after 30 days.</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'c\').innerText);this.textContent=\'Copied\'">Copy CAPA</button></div>';
 document.getElementById('o').innerHTML=h}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

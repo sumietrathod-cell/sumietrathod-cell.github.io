@@ -21,4 +21,4 @@ var st=['Log the complaint and assign a number; retrieve retention sample and ba
 if(ae)st.unshift('Collect patient and event details; refer to pharmacovigilance procedure');
 document.getElementById('o').innerHTML='<div class="card"><div class="v '+cl+'">'+sev+': '+hit.map(function(c){return c[0]}).join(' + ')+'</div><p><b>Batch:</b> '+b+'<br><b>Timeline:</b> '+tl+'</p><h3>Investigation steps</h3><ul>'+st.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul></div><div class="card"><h3 style="margin-top:0">Draft acknowledgement</h3><pre id="p">Dear Sir/Madam,\n\nThank you for informing us about your concern regarding batch '+b+'. We take every report seriously and have opened an investigation. Please keep the product and packaging, and share any photos and purchase details. We will update you on the outcome '+(sev==='Critical'?'as soon as possible':'within the agreed time')+'.\n\nRegards,\nQuality Assurance</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'p\').innerText);this.textContent=\'Copied\'">Copy reply</button></div>'}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

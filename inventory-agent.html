@@ -21,4 +21,4 @@ document.getElementById('o').innerHTML=Object.keys(by).map(function(k){var t='He
 document.getElementById('r').innerHTML=rows.map(function(x){return '<tr><td>'+x.s.item.replace(/</g,'&lt;')+'</td><td>'+x.s.stock+'</td><td>'+x.s.ds+'</td><td>'+(x.d>=999?'-':x.d.toFixed(1))+'</td><td>'+x.s.lead+' d</td><td><span class="p '+x.st+'">'+(x.st==='r'?'Reorder now':x.st==='a'?'Reorder soon':'OK')+'</span></td></tr>'}).join('')}
 document.getElementById('csv').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var q=r.result.trim().split(/\r?\n/),h=q[0].split(',').map(function(s){return s.trim().toLowerCase()});var x=q.slice(1).map(function(l){var v=l.split(','),o={};h.forEach(function(k,i){o[k]=(v[i]||'').trim()});return{item:o.item,stock:+o.stock,ds:+o.daily_sales,lead:+o.lead_days||3,sup:o.supplier||'Supplier',cost:+o.unit_cost||0}}).filter(function(o){return o.item&&!isNaN(o.stock)&&!isNaN(o.ds)});if(x.length){S=x;run()}else alert('Could not read the CSV. Check the column names.')};r.readAsText(f)};
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

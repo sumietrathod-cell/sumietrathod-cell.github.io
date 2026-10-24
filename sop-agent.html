@@ -23,4 +23,4 @@ document.getElementById('o').innerHTML=Object.keys(by).map(function(o){var t='De
 document.getElementById('r').innerHTML=S.slice().sort(function(a,b){return dl(a)-dl(b)}).map(function(s){var d=dl(s),c=d<0?'r':d<=60?'a':'g';return '<tr><td>'+s.no+'</td><td>'+s.title.replace(/</g,'&lt;')+'</td><td>'+s.dept+'</td><td>'+s.owner+'</td><td>'+iso(due(s))+'</td><td><span class="p '+c+'">'+(d<0?(-d)+' days late':d+' days left')+'</span></td></tr>'}).join('')}
 document.getElementById('csv').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var q=r.result.trim().split(/\r?\n/),h=q[0].split(',').map(function(s){return s.trim().toLowerCase()});var x=q.slice(1).map(function(l){var v=l.split(','),o={};h.forEach(function(k,i){o[k]=(v[i]||'').trim()});return{no:o.sop_no,title:o.title,dept:o.department||'',owner:o.owner||'Owner',eff:o.effective,rm:+o.review_months||24}}).filter(function(o){return o.no&&/^\d{4}-\d{2}-\d{2}$/.test(o.eff)});if(x.length){S=x;run()}else alert('Could not read the CSV. Check the column names.')};r.readAsText(f)};
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

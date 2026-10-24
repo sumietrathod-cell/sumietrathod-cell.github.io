@@ -23,4 +23,4 @@ var ch=['Impact on product quality and patient safety','Impact on validation sta
 if(ty==='Material / supplier')ch.push('Supplier qualification and 3 batch trial');if(ty==='Equipment')ch.push('Qualification (IQ/OQ/PQ) and calibration');if(ty==='Method / specification')ch.push('Method validation or transfer');
 document.getElementById('o').innerHTML='<div class="card"><div class="v '+c+'">'+cls+' change</div><h3 style="margin-top:0">Approvals needed</h3><ul>'+ap.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><h3>Assessment checklist</h3><ul>'+ch.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul></div><div class="card"><h3 style="margin-top:0">Draft change summary</h3><pre id="p">Change type: '+ty+'\nDescription: '+t+'\nClassification: '+cls+'\nAffects: '+(hit.join('; ')||'none selected')+'\nApprovals: '+ap.join('; ')+'\nImplementation only after QA approval and completion of the checklist.</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'p\').innerText);this.textContent=\'Copied\'">Copy summary</button></div>'}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

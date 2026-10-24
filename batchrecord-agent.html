@@ -22,4 +22,4 @@ gaps.sort(function(a,b){return b.c-a.c});
 var plan=gaps.map(function(g,i){return (i+1)+'. ['+(g.c?'Critical':'Normal')+'] '+g.t+' ('+g.a+'). Owner: ____ Target: '+(g.c?'within 3 days':'within 10 days')}).join('\n');
 document.getElementById('o').innerHTML='<div class="card"><div class="v '+c+'">'+p+'% complete: '+tx+'</div>'+areas.map(function(a){return a[0]+' '+a[1]+'%<div class="bar"><i style="width:'+a[1]+'%;background:'+(a[1]>=90?'#16a34a':a[1]>=70?'#f59e0b':'#dc2626')+'"></i></div>'}).join('')+'</div><div class="card"><h3 style="margin-top:0">Queries and draft note ('+gaps.length+' gaps, '+cr+' critical)</h3><pre id="p">Batch record review: queries to department\nScore: '+p+'%\n\n'+(plan||'No queries. Record complete.')+'</pre><button onclick="navigator.clipboard.writeText(document.getElementById(\'p\').innerText);this.textContent=\'Copied\'">Copy plan</button></div>'}
 run();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>
