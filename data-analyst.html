@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data Analyst Portfolio | Sumit Rathod</title><meta name="description" content="Data analyst portfolio by Sumit Rathod: live SQL on a pharma QA dataset, dashboards and reporting projects. Sample data is fictitious."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}header b{letter-spacing:.08em}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px;text-decoration:none}
+main{max-width:980px;margin:auto;padding:22px 16px 40px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:20px;margin-bottom:16px}h1{font-size:30px;margin:0 0 6px;color:#14286b}h2{font-size:21px;margin:0 0 6px}h3{font-size:16px;margin:14px 0 4px}p.s{color:var(--muted);margin:0 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chips span{background:#eef2ff;color:#14286b;border-radius:99px;padding:5px 14px;font-size:14px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.p{border:1px solid #e3e8ef;border-radius:12px;padding:14px}.p b{display:block;color:#14286b}.p a{color:#14286b;font-weight:600}
+.q{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.q button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:99px;padding:8px 14px;font-size:14px;cursor:pointer}.q button.on{background:var(--navy);color:#fff}
+textarea{width:100%;min-height:120px;font:14px/1.5 ui-monospace,Consolas,monospace;padding:10px;border:1px solid #cdd6e3;border-radius:10px;background:#0f172a;color:#e2e8f0}
+button.run{background:#16a34a;color:#fff;border:0;border-radius:99px;padding:11px 22px;font-weight:700;cursor:pointer;margin-top:8px}.note{background:#fffaf0;border-left:4px solid var(--gold);padding:10px 14px;border-radius:8px;font-size:14px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eef1f6}th{font-size:12px;color:var(--muted);text-transform:uppercase}.tw{overflow-x:auto;max-height:340px;margin-top:10px}.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:3px 0}.bar span{width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar i{display:block;height:14px;background:#14286b;border-radius:3px}.err{color:#b91c1c;font-size:14px;margin-top:8px}.f{font-size:12px;color:var(--muted)}
+</style></head><body><header><div><b>SUMIT RATHOD</b> &middot; DATA ANALYST PORTFOLIO</div><a href="index.html">Aarohan QA Analytics</a></header><main>
+<div class="card"><h1>Sumit Rathod</h1><p class="s">Data analyst from 13+ years in pharmaceutical Quality Assurance. I turn quality and operations data into clear reports, dashboards and decisions.</p>
+<div class="chips"><span>Advanced Excel</span><span>Power BI</span><span>SQL (learning, shown below)</span><span>SAP</span><span>MasterControl</span><span>Pharma QA domain</span></div>
+<p>Ahmedabad, India &middot; <a href="mailto:sumietrathod@gmail.com">sumietrathod@gmail.com</a> &middot; <a href="https://wa.me/916357115513">WhatsApp 6357115513</a> &middot; <a href="https://www.linkedin.com/in/sumit-rathod-5aa544434/">LinkedIn</a></p></div>
+
+<div class="card"><h2>Live SQL on a pharma QA dataset</h2><p class="s">A real SQL database runs in your browser (SQLite). The data is fictitious: 160 deviations and their CAPA records for a manufacturing site. Pick a question or edit the query and run it.</p>
+<div class="q" id="q"></div><textarea id="sql" spellcheck="false"></textarea><br><button class="run" onclick="run()">Run query</button><div id="msg" class="f">Loading SQL engine...</div>
+<div class="note" id="why"></div><div id="bars"></div><div class="tw" id="out"></div>
+<p class="f">Tables: deviations(id, dept, severity, category, opened, closed) and capa(id, dev_id, owner, due, status). Dates are text in YYYY-MM-DD.</p></div>
+
+<div class="card"><h2>Projects</h2><div class="grid">
+<div class="p"><b>Pharma QA Intelligence Dashboard</b>Excel dashboard: deviations, CAPA, OOS/OOT, document reviews and batch release with management insights. Fictitious data.<br><a href="index.html#portfolio">See on website</a></div>
+<div class="p"><b>APQR Draft Agent</b>Trend charts with limits, Cpk, OOS/OOT flags and APQR sections from batch data.<br><a href="apqr-agent.html">Try it</a></div>
+<div class="p"><b>Deviation and CAPA Overdue Agent</b>Reads a tracker, ranks overdue items by risk and drafts the escalation mail.<br><a href="qa-agent.html">Try it</a></div>
+<div class="p"><b>Cpk and Stability analysis</b>Process capability and shelf-life trend with simple regression.<br><a href="cpk-agent.html">Cpk</a> &middot; <a href="stability-agent.html">Stability</a></div>
+<div class="p"><b>36 demo agents</b>Reporting and automation tools for QA teams and small businesses.<br><a href="index.html">Browse all</a></div>
+<div class="p"><b>Glow with Yamini shop app</b>Mobile shop app: 293 products, cart, UPI QR and WhatsApp orders.<br><a href="https://glowwithyamini.netlify.app">Open app</a></div></div></div>
+
+<div class="card"><h2>About me</h2><p>I work in QA at Aceto Pharma (India) since 2013 with SAP, MasterControl and controlled documentation. I am now building a data analytics career: Advanced Excel, Power BI and SQL, with Python and Gen AI in progress. I am looking for Data Analyst, MIS / Reporting Analyst and BI roles, in India or remote.</p></div>
+<p class="f">All data on this page is fictitious. These are demonstration projects, not client work.</p></main>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+<script>
+var Q=[
+["Deviations by department","SELECT dept, COUNT(*) AS deviations FROM deviations GROUP BY dept ORDER BY deviations DESC;","Counts how many deviations each department raised. GROUP BY plus COUNT, sorted high to low."],
+["Monthly trend","SELECT substr(opened,1,7) AS month, COUNT(*) AS deviations FROM deviations GROUP BY month ORDER BY month;","Extracts year-month from the date and counts per month to show the trend."],
+["Avg days to close by severity","SELECT severity, ROUND(AVG(julianday(closed)-julianday(opened)),1) AS avg_days_to_close, COUNT(*) AS closed_cases FROM deviations WHERE closed IS NOT NULL GROUP BY severity ORDER BY avg_days_to_close DESC;","Average closure time per severity, using only closed cases (WHERE closed IS NOT NULL)."],
+["Overdue CAPA with deviation details","SELECT c.id AS capa, c.owner, c.due, d.dept, d.severity FROM capa c JOIN deviations d ON d.id=c.dev_id WHERE c.status<>'Closed' AND c.due<'2026-10-24' ORDER BY d.severity, c.due LIMIT 15;","JOINs CAPA to its deviation and lists open CAPA past due, with the department and severity."],
+["Top 2 categories per department","SELECT dept, category, n FROM (SELECT dept, category, COUNT(*) AS n, RANK() OVER (PARTITION BY dept ORDER BY COUNT(*) DESC) AS rk FROM deviations GROUP BY dept, category) WHERE rk<=2 ORDER BY dept, n DESC;","Uses a window function (RANK OVER PARTITION BY) to find the two most common categories in each department."],
+["Share of Critical by dept (%)","SELECT dept, ROUND(100.0*SUM(severity='Critical')/COUNT(*),1) AS pct_critical, COUNT(*) AS total FROM deviations GROUP BY dept ORDER BY pct_critical DESC;","Percentage of critical deviations per department using a conditional SUM."]];
+var db=null;
+function seeded(s){return function(){s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+function build(SQL){db=new SQL.Database();var r=seeded(42),D=['QC','Production','Warehouse','QA','Engineering','Packing'],S=['Minor','Major','Critical'],C=['Documentation','Equipment','Process','Material','Environment','Human error'],O=['A. Shah','S. Mehta','R. Patel','M. Joshi','K. Desai','N. Trivedi'];
+db.run("CREATE TABLE deviations(id TEXT,dept TEXT,severity TEXT,category TEXT,opened TEXT,closed TEXT);CREATE TABLE capa(id TEXT,dev_id TEXT,owner TEXT,due TEXT,status TEXT);");
+var base=new Date('2026-01-01').getTime(),st1=db.prepare("INSERT INTO deviations VALUES(?,?,?,?,?,?)"),st2=db.prepare("INSERT INTO capa VALUES(?,?,?,?,?)");
+function f(t){return new Date(t).toISOString().slice(0,10)}
+for(var i=1;i<=160;i++){var id='DEV-'+(1000+i),dept=D[Math.floor(Math.pow(r(),1.4)*D.length)],sev=r()<.12?'Critical':r()<.45?'Major':'Minor',cat=C[Math.floor(r()*C.length)],op=base+Math.floor(r()*290)*864e5,days=sev==='Critical'?20+r()*40:sev==='Major'?12+r()*30:5+r()*20,cl=op+days*864e5,closed=cl<new Date('2026-10-24').getTime()&&r()<.85?f(cl):null;
+st1.run([id,dept,sev,cat,f(op),closed]);
+if(r()<.7){var due=op+(30+r()*50)*864e5,stt=closed&&r()<.7?'Closed':'Open';st2.run(['CAPA-'+(500+i),id,O[Math.floor(r()*O.length)],f(due),stt])}}
+st1.free();st2.free()}
+function show(i){document.getElementById('sql').value=Q[i][1];document.getElementById('why').textContent='What this shows: '+Q[i][2];[].forEach.call(document.querySelectorAll('#q button'),function(b,j){b.className=j===i?'on':''});run()}
+function run(){if(!db)return;var o=document.getElementById('out'),b=document.getElementById('bars');o.innerHTML='';b.innerHTML='';try{var r=db.exec(document.getElementById('sql').value);if(!r.length){o.innerHTML='<div class="f">Query ran. No rows returned.</div>';return}var c=r[0].columns,v=r[0].values;
+o.innerHTML='<table><thead><tr>'+c.map(function(x){return '<th>'+x+'</th>'}).join('')+'</tr></thead><tbody>'+v.map(function(row){return '<tr>'+row.map(function(x){return '<td>'+(x===null?'NULL':String(x).replace(/</g,'&lt;'))+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table>';
+var ni=-1;for(var k=c.length-1;k>=0;k--){if(v.length&&typeof v[0][k]==='number'){ni=k;break}}
+if(ni>0&&v.length<=20){var mx=Math.max.apply(null,v.map(function(x){return x[ni]}))||1;b.innerHTML='<h3>Chart: '+c[ni]+'</h3>'+v.map(function(x){return '<div class="bar"><span>'+String(x[0]).replace(/</g,'&lt;')+'</span><i style="width:'+(x[ni]/mx*60)+'%"></i> '+x[ni]+'</div>'}).join('')}}catch(e){o.innerHTML='<div class="err">'+e.message+'</div>'}}
+var qd=document.getElementById('q');Q.forEach(function(x,i){var b=document.createElement('button');b.textContent=x[0];b.onclick=function(){show(i)};qd.appendChild(b)});
+document.getElementById('sql').value=Q[0][1];
+if(window.initSqlJs){initSqlJs({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/'+f}}).then(function(SQL){build(SQL);document.getElementById('msg').textContent='SQL engine ready (SQLite in your browser).';show(0)},function(){document.getElementById('msg').textContent='Could not load the SQL engine. Please check your internet connection.'})}else{document.getElementById('msg').textContent='Could not load the SQL engine. Please check your internet connection.'}
+</script></body></html>
