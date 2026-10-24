@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Project Quote Estimator | Aarohan QA Analytics</title><meta name="description" content="Pick what you need built and get an instant starting price and timeline from Aarohan QA Analytics, then send the brief on WhatsApp."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:680px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h3{margin:14px 0 6px;font-size:15px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.o{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eef1f6}.o input{margin-top:5px;width:18px;height:18px}.o small{display:block;color:var(--muted)}
+.big{background:var(--navy);color:#fff;border-radius:14px;padding:16px 18px;text-align:center}.big b{display:block;font-size:30px;color:var(--gold)}
+.go{display:block;background:#16a34a;color:#fff;border-radius:99px;padding:13px 22px;font-weight:700;text-align:center;margin-top:12px}.f{font-size:12px;color:var(--muted)}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Project Quote Estimator</h1><p class="s">Pick the base project, then tick extras. You get a starting price in US$ and Rs, an estimated time, and a brief to send on WhatsApp.</p>
+<h3>1. Base project</h3><div id="b"></div><h3>2. Extras</h3><div id="x"></div></div>
+<div class="big"><span id="t">Starting from</span><b id="pr"></b><span id="tm"></span></div><a class="go" id="wa" target="_blank" rel="noopener">Send this brief on WhatsApp</a>
+<p class="f">Starting estimate only. Final price after I see your data and scope. 50% advance, balance on delivery, 7 days free fixes.</p></main>
+<script>
+var RATE=88,B=[["QA Tracker (Excel): deviation, CAPA or OOS",25,3],["Tracker + One-page Dashboard",50,6],["Multi-product QA Suite",90,10],["Power BI Dashboard",70,7],["Mobile shop app with WhatsApp orders",50,5],["Billing / GST invoice app",55,6],["Booking app (clinic, salon, tuition)",50,5],["Small business website",40,4]],
+X=[["Load my own CSV / Excel data",10,1],["AI-assisted draft agent (email, summary)",25,3],["Extra charts or reports",10,1],["Branding: logo and colours",15,2],["Training call (1 hour)",10,1],["Monthly support (first month)",12,0]],sb=0;
+var be=document.getElementById('b'),xe=document.getElementById('x');
+B.forEach(function(r,i){be.innerHTML+='<label class="o"><input type="radio" name="b" value="'+i+'" '+(i===1?'checked':'')+'><span>'+r[0]+'<small>from US$'+r[1]+'</small></span></label>'});
+X.forEach(function(r,i){xe.innerHTML+='<label class="o"><input type="checkbox" value="'+i+'"><span>'+r[0]+'<small>+ US$'+r[1]+'</small></span></label>'});
+function calc(){var bi=+document.querySelector('input[name=b]:checked').value,p=B[bi][1],d=B[bi][2],ex=[];document.querySelectorAll('#x input:checked').forEach(function(e){var r=X[+e.value];p+=r[1];d+=r[2];ex.push(r[0])});
+document.getElementById('pr').textContent='US$'+p+' (about Rs '+(p*RATE).toLocaleString('en-IN')+')';document.getElementById('tm').textContent='Estimated time: '+d+' to '+(d+3)+' days';
+var t='Hello Sumit, I used the quote estimator on your website.\nProject: '+B[bi][0]+'\nExtras: '+(ex.join('; ')||'none')+'\nEstimate: US$'+p+' ('+d+' to '+(d+3)+' days)\nPlease share an exact quote.';document.getElementById('wa').href='https://wa.me/916357115513?text='+encodeURIComponent(t)}
+document.querySelectorAll('input').forEach(function(e){e.onchange=calc});calc();
+</script></body></html>

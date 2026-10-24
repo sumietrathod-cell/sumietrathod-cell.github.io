@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Appointment Booking Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: a clinic or salon customer picks a service, day and time slot; the booking request goes to the owner on WhatsApp."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:620px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h3{margin:14px 0 6px;font-size:15px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.ch{display:flex;flex-wrap:wrap;gap:8px}.ch button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:99px;padding:8px 14px;font-size:14px;cursor:pointer}.ch button.on{background:var(--navy);color:#fff}.ch button:disabled{opacity:.35;text-decoration:line-through;cursor:default}
+input{width:100%;padding:10px;border:1px solid #cdd6e3;border-radius:10px;font:15px system-ui;margin-top:3px}label{font-size:13px;font-weight:600;display:block;margin-top:8px}
+.go{background:#16a34a;color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin-top:14px;width:100%}.go:disabled{background:#9ca3af}.f{font-size:12px;color:var(--muted)}.sum{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14px}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Appointment Booking Agent</h1><p class="s">Demo for a clinic, salon or tuition class. The customer picks service, day and time; the owner gets the request on WhatsApp. Struck-out slots are already taken (sample).</p>
+<h3>1. Service</h3><div class="ch" id="sv"></div><h3>2. Day</h3><div class="ch" id="dy"></div><h3>3. Time</h3><div class="ch" id="tm"></div>
+<label>Your name<input id="n" placeholder="Name"></label><label>Your phone<input id="p" placeholder="Phone number"></label>
+<div class="sum" id="sm">Choose a service, day and time.</div><button class="go" id="go" disabled onclick="book()">Send booking request on WhatsApp</button></div>
+<p class="f">Demonstration only. The owner number below is the Aarohan demo number; for a real client it becomes their number. Slots shown as taken are sample data.</p></main>
+<script>
+var OWN="916357115513",SV=["Consultation (15 min)","Follow-up visit","Hair cut","Facial","Tuition demo class"],T=["10:00","10:30","11:00","11:30","12:00","16:00","16:30","17:00","17:30","18:00"],sel={s:null,d:null,t:null};
+var D=[];for(var i=1;D.length<6;i++){var x=new Date();x.setDate(x.getDate()+i);if(x.getDay()!==0)D.push(x)}
+function lab(x){return x.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
+function taken(d,t){return ((d.getDate()*7+T.indexOf(t)*3)%5)===0}
+function chips(id,arr,key,fmt,dis){var el=document.getElementById(id);el.innerHTML='';arr.forEach(function(v){var b=document.createElement('button');b.textContent=fmt(v);if(dis&&dis(v))b.disabled=true;if(sel[key]===v)b.className='on';b.onclick=function(){sel[key]=v;if(key==='d'&&sel.t&&taken(v,sel.t))sel.t=null;draw()};el.appendChild(b)})}
+function draw(){chips('sv',SV,'s',function(v){return v});chips('dy',D,'d',lab);chips('tm',T,'t',function(v){return v},function(v){return sel.d&&taken(sel.d,v)});
+var ok=sel.s&&sel.d&&sel.t;document.getElementById('sm').textContent=ok?sel.s+' on '+lab(sel.d)+' at '+sel.t:'Choose a service, day and time.';document.getElementById('go').disabled=!ok}
+function book(){var n=document.getElementById('n').value||'Customer',p=document.getElementById('p').value||'';var t='Booking request: '+sel.s+' on '+lab(sel.d)+' at '+sel.t+'. Name: '+n+(p?', phone: '+p:'')+'. Please confirm.';window.open('https://wa.me/'+OWN+'?text='+encodeURIComponent(t),'_blank')}
+draw();
+</script></body></html>

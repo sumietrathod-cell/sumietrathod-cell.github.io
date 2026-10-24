@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GST Invoice Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: type what you sold in plain words, get a GST invoice with totals, then print or send it on WhatsApp."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+textarea,input,select{width:100%;padding:10px;border:1px solid #cdd6e3;border-radius:10px;font:15px system-ui;margin-top:3px}label{font-size:13px;font-weight:600;display:block}.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:11px 20px;font-weight:700;font-size:15px;cursor:pointer;margin:10px 8px 0 0}button.w{background:#16a34a}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}th,td{padding:7px 6px;border-bottom:1px solid #eef1f6;text-align:right}th:first-child,td:first-child{text-align:left}th{font-size:12px;color:var(--muted);text-transform:uppercase}.t td{border:0;padding:3px 6px}.f{font-size:12px;color:var(--muted)}
+@media print{header,.no,.f{display:none}body{background:#fff}.card{border:0}}@media(max-width:520px){.g{grid-template-columns:1fr}}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card no"><h1>GST Invoice Agent</h1><p class="s">Write what you sold, one item per line: <b>item, quantity, rate, GST%</b>. GST% is optional (default 18). Sample items are filled in.</p>
+<div class="g"><label>Customer name<input id="cn" value="Neha Boutique"></label><label>Customer phone (for WhatsApp)<input id="cp" value="919800000003"></label></div>
+<label>Items<textarea id="it" rows="5">Cotton kurti, 3, 850, 5
+Dupatta, 2, 400, 12
+Courier charges, 1, 120, 18</textarea></label>
+<div class="g"><label>Your business name<input id="bn" value="Aarohan Demo Store"></label><label>Your GSTIN<input id="gs" value="24ABCDE1234F1Z5"></label></div>
+<button onclick="run()">Make invoice</button></div><div id="o"></div><p class="f">Demonstration only. Check amounts, GST rates and invoice rules with your CA before using for real billing.</p></main>
+<script>
+var no=1001;function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function run(){var rows=document.getElementById('it').value.split('\n').map(function(l){var p=l.split(',').map(function(s){return s.trim()});return{n:p[0],q:+p[1],r:+p[2],g:p[3]===undefined||p[3]===''?18:+p[3]}}).filter(function(x){return x.n&&x.q>0&&x.r>=0&&!isNaN(x.g)});
+if(!rows.length){document.getElementById('o').innerHTML='<div class="card">Please enter at least one valid item line.</div>';return}
+var sub=0,gst=0,h='';rows.forEach(function(x,i){var a=x.q*x.r,t=a*x.g/100;sub+=a;gst+=t;h+='<tr><td>'+esc(x.n)+'</td><td>'+x.q+'</td><td>'+x.r.toFixed(2)+'</td><td>'+a.toFixed(2)+'</td><td>'+x.g+'%</td><td>'+(a+t).toFixed(2)+'</td></tr>'});
+var tot=sub+gst,d=new Date().toLocaleDateString('en-IN'),cn=document.getElementById('cn').value,bn=document.getElementById('bn').value,gs=document.getElementById('gs').value,num='INV-'+(no++);
+var wa='Hello '+cn+', your invoice '+num+' dated '+d+' from '+bn+': total Rs '+tot.toFixed(2)+' (GST Rs '+gst.toFixed(2)+'). Thank you!';
+document.getElementById('o').innerHTML='<div class="card"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><div><b style="font-size:18px">'+esc(bn)+'</b><br>GSTIN: '+esc(gs)+'</div><div style="text-align:right"><b>TAX INVOICE</b><br>'+num+'<br>'+d+'</div></div><p>Bill to: <b>'+esc(cn)+'</b></p><table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>GST</th><th>Amount</th></tr></thead><tbody>'+h+'</tbody></table><table class="t" style="max-width:300px;margin-left:auto"><tr><td>Subtotal</td><td>'+sub.toFixed(2)+'</td></tr><tr><td>GST (CGST + SGST)</td><td>'+gst.toFixed(2)+'</td></tr><tr><td><b>Total (Rs)</b></td><td><b>'+tot.toFixed(2)+'</b></td></tr></table><div class="no"><button onclick="window.print()">Print / save as PDF</button><a target="_blank" rel="noopener" href="https://wa.me/'+document.getElementById('cp').value.replace(/\D/g,'')+'?text='+encodeURIComponent(wa)+'"><button class="w">Send on WhatsApp</button></a></div></div>'}
+run();
+</script></body></html>
