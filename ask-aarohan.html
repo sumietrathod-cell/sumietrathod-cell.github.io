@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ask Aarohan | Project Scoping Agent</title><meta name="description" content="AI project-scoping agent for Aarohan QA Analytics: describe your reporting need, get a suggested solution, a starting price and a ready brief to send on WhatsApp."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a;--bg:#f5f7fb}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header b{letter-spacing:.08em}header small{display:block;color:var(--gold);font-size:10px;letter-spacing:.2em}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:0 auto;padding:18px 16px 28px}
+.intro{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:16px 18px;margin-bottom:14px;font-size:14px;color:var(--muted)}
+.intro h1{font-size:22px;margin:0 0 6px;color:var(--ink)}
+#log{display:flex;flex-direction:column;gap:10px;min-height:340px}
+.m{max-width:88%;padding:11px 15px;border-radius:16px;font-size:15px;white-space:pre-line}
+.b{background:#fff;border:1px solid #e3e8ef;align-self:flex-start;border-bottom-left-radius:4px}
+.u{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.qr{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0}.qr button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:99px;padding:8px 14px;font-size:14px;cursor:pointer}.qr button:hover{background:var(--navy);color:#fff}
+.brief{background:#fffaf0;border:1px dashed var(--gold);border-radius:12px;padding:12px 14px;font-size:14px;white-space:pre-line;align-self:flex-start;max-width:92%}
+.cta{display:inline-block;margin-top:8px;background:#16a34a;color:#fff;border-radius:99px;padding:10px 18px;font-weight:700;font-size:14px}
+form{display:flex;gap:8px;margin-top:14px;position:sticky;bottom:10px}
+input{flex:1;padding:13px 16px;border:1px solid #cdd6e3;border-radius:99px;font-size:15px;outline:0}input:focus{border-color:var(--navy)}
+form button{background:var(--gold);color:var(--navy);border:0;border-radius:99px;padding:0 22px;font-weight:800;cursor:pointer;font-size:15px}
+.ty{display:flex;gap:4px;padding:6px 2px;align-self:flex-start}.ty i{width:7px;height:7px;background:#9aa8bd;border-radius:50%;animation:t 1s infinite}.ty i:nth-child(2){animation-delay:.2s}.ty i:nth-child(3){animation-delay:.4s}@keyframes t{50%{transform:translateY(-4px)}}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
+</style></head><body>
+<header><div><b>AAROHAN</b><small>QA ANALYTICS</small></div><a href="index.html">&larr; Back to website</a></header>
+<main>
+<div class="intro"><h1>Ask Aarohan: Project Scoping Agent</h1>Tell the agent what you want to measure, automate or visualise. It suggests a solution, a starting price in US$, and writes a ready brief you can send on WhatsApp. Demo agent: it follows fixed rules, no data is stored or sent anywhere until you tap the WhatsApp button.</div>
+<div id="log"></div>
+<form id="f"><input id="q" autocomplete="off" placeholder="Example: I need a deviation and CAPA dashboard in Excel"><button>Send</button></form>
+<div class="foot">Starting prices only. Final quote after scope is agreed. Please share anonymised data only.</div>
+</main>
+<script>
+var PHONE="916357115513",log=document.getElementById('log'),st={svc:null,tool:null,data:null,when:null,step:0};
+var SVC=[
+{k:/deviat|capa|change control|complaint/,n:"Deviation / CAPA tracker with dashboard",p:"US$25 (tracker) to US$50 (tracker + dashboard)"},
+{k:/oos|oot|out of spec|trend/,n:"OOS / OOT tracker with trend charts",p:"US$25 to US$50"},
+{k:/apqr|pqr|product quality review|annual/,n:"APQR / PQR data support with Cpk and trend charts",p:"US$50 to US$90"},
+{k:/power ?bi|dax/,n:"Power BI dashboard",p:"from US$50, depends on data sources"},
+{k:/excel|macro|vba|automat|report/,n:"Excel automation and reporting workflow",p:"from US$25"},
+{k:/stabil|calibrat|clean ?room|cold chain|environment/,n:"Stability / calibration / EM / cold chain tracker",p:"US$50 to US$90"},
+{k:/suite|all|multi|complete/,n:"Multi-product QA Suite (Deviation, CAPA and OOS/OOT together)",p:"from US$90"},
+{k:/app|website|site|chatbot|bot|agent|ai\b/,n:"Small custom app, website or AI agent demo",p:"quote after scope, usually from US$50"},
+{k:/dashboard|kpi|sales|hr|inventory|finance/,n:"Custom Excel or Power BI dashboard (any industry)",p:"from US$50"}];
+function add(t,c){var d=document.createElement('div');d.className='m '+c;d.textContent=t;log.appendChild(d);d.scrollIntoView({block:'end',behavior:'smooth'});return d}
+function chips(a){var d=document.createElement('div');d.className='qr';a.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x;b.onclick=function(){send(x)};d.appendChild(b)});log.appendChild(d);d.scrollIntoView({block:'end',behavior:'smooth'})}
+function bot(t,ch){var ty=document.createElement('div');ty.className='ty';ty.innerHTML='<i></i><i></i><i></i>';log.appendChild(ty);setTimeout(function(){ty.remove();add(t,'b');if(ch)chips(ch)},650)}
+function find(t){t=t.toLowerCase();for(var i=0;i<SVC.length;i++)if(SVC[i].k.test(t))return SVC[i];return null}
+function brief(){var t="Hello Sumit, I found you through the Aarohan website.\nWhat I need: "+st.svc.n+"\nTool: "+(st.tool||"not sure")+"\nMy data: "+(st.data||"not shared yet")+"\nNeeded by: "+(st.when||"flexible")+"\nPlease share an exact quote.";
+ var d=document.createElement('div');d.className='brief';d.textContent=t;var a=document.createElement('a');a.className='cta';a.target='_blank';a.rel='noopener';a.href='https://wa.me/'+PHONE+'?text='+encodeURIComponent(t);a.textContent='Send this brief on WhatsApp';d.appendChild(document.createElement('br'));d.appendChild(a);log.appendChild(d);d.scrollIntoView({block:'end',behavior:'smooth'})}
+function reply(t){
+ if(/price|cost|charge|rate|how much/i.test(t)&&!st.svc){return bot("Starting prices: QA Tracker from US$25, Tracker + Dashboard from US$50, Multi-product QA Suite from US$90. Custom Power BI or app work is quoted after scope. What do you want to build?",["Deviation and CAPA","APQR support","Power BI dashboard","Small app or AI agent"])}
+ if(/^(hi|hello|hey|namaste|hii)\b/i.test(t)&&!st.svc){return bot("Hello! I am the Aarohan scoping agent. What reporting or dashboard problem can I help you with?",["Deviation and CAPA","APQR support","Power BI dashboard","Small app or AI agent"])}
+ if(st.step===0){var s=find(t);if(!s)return bot("I could not match that to a service yet. Try words like deviation, CAPA, OOS, APQR, Excel, Power BI, dashboard or app. Or tap one:",["Deviation and CAPA","APQR support","Power BI dashboard","Small app or AI agent"]);
+  st.svc=s;st.step=1;return bot("Good fit: "+s.n+".\nStarting price: "+s.p+".\n\nWhich tool do you want it in?",["Excel","Power BI","Web page","Not sure"])}
+ if(st.step===1){st.tool=t;st.step=2;return bot("Noted: "+t+".\nWhat data do you have? For example: Excel tracker, ERP export, paper records, nothing yet.",["Excel tracker","ERP / CSV export","Paper records","Nothing yet"])}
+ if(st.step===2){st.data=t;st.step=3;return bot("Thanks. When do you need it?",["This week","Within 2 weeks","This month","Flexible"])}
+ if(st.step===3){st.when=t;st.step=4;bot("Here is your project brief. Tap the button to send it to Sumit on WhatsApp for an exact quote.");setTimeout(brief,900);setTimeout(function(){chips(["Start a new request"])},1000);return}
+ if(/new/i.test(t)){st={svc:null,tool:null,data:null,when:null,step:0};return bot("Sure. What do you want to build?",["Deviation and CAPA","APQR support","Power BI dashboard","Small app or AI agent"])}
+ bot("Your brief is ready above. For a different request, start again.",["Start a new request"])}
+function send(t){t=t.trim();if(!t)return;add(t,'u');reply(t)}
+document.getElementById('f').onsubmit=function(e){e.preventDefault();var i=document.getElementById('q');send(i.value);i.value=''};
+bot("Hello! I am the Aarohan scoping agent. Tell me what you want to measure, automate or visualise, and I will suggest a solution and a starting price.",["Deviation and CAPA","APQR support","Power BI dashboard","Small app or AI agent"]);
+</script></body></html>

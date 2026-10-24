@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Batch Release Readiness Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: tick what is complete for a batch and get a release-readiness score, blockers and a draft QA status note."><style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.it{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #eef1f6;font-size:15px}.it input{margin-top:5px;width:18px;height:18px}.it small{display:block;color:var(--muted)}
+.bar{height:16px;background:#e5e9f0;border-radius:99px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;transition:width .4s}
+.v{font-weight:800;font-size:20px}pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.5 system-ui}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:11px 20px;font-weight:700;cursor:pointer}.f{font-size:12px;color:var(--muted)}
+</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+<div class="card"><h1>Batch Release Readiness Agent</h1><p class="s">Tick what is complete for batch PT25-017 (fictitious). The agent scores readiness, lists blockers and drafts a QA status note.</p><div id="l"></div></div>
+<div class="card"><div class="v" id="v"></div><div class="bar"><i id="b"></i></div><div id="bl"></div><h3>Draft QA status note</h3><pre id="n"></pre><button onclick="navigator.clipboard.writeText(document.getElementById('n').innerText);this.textContent='Copied'">Copy note</button></div>
+<p class="f">Demonstration only. It does not replace batch record review, QA approval or Qualified Person certification. Nothing is stored or sent anywhere.</p></main>
+<script>
+var I=[["Batch manufacturing record reviewed and complete","c",1],["Batch packaging record reviewed","c",1],["All QC tests complete and within specification","c",1],["No open OOS / OOT investigation","c",1],["All deviations closed or assessed as not impacting quality","c",1],["Critical equipment calibration in date","c",1],["Environmental monitoring within limits","m",0],["Raw and packing material released","c",1],["Stability commitment and retention samples placed","m",0],["Change controls impacting the batch approved","c",1]];
+var done=[1,1,1,0,1,1,1,1,0,1];
+var L=document.getElementById('l');I.forEach(function(x,i){var d=document.createElement('label');d.className='it';d.innerHTML='<input type="checkbox" '+(done[i]?'checked':'')+' data-i="'+i+'"><span>'+x[0]+'<small>'+(x[2]?'Critical for release':'Supporting item')+'</small></span>';L.appendChild(d);d.firstChild.onchange=calc});
+function calc(){var c=document.querySelectorAll('input'),w=0,t=0,bl=[],ms=[];
+c.forEach(function(e,i){var wt=I[i][2]?2:1;t+=wt;if(e.checked)w+=wt;else (I[i][2]?bl:ms).push(I[i][0])});
+var p=Math.round(w/t*100),r=bl.length===0;
+document.getElementById('v').textContent='Readiness '+p+'% : '+(r?(ms.length?'Ready, close supporting items':'Ready for QA release decision'):'Not ready for release');
+var b=document.getElementById('b');b.style.width=p+'%';b.style.background=r?'#16a34a':p>70?'#f59e0b':'#dc2626';
+document.getElementById('bl').innerHTML=(bl.length?'<b>Blockers (critical)</b><ul>'+bl.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':'')+(ms.length?'<b>Supporting items pending</b><ul>'+ms.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':'');
+document.getElementById('n').textContent='Batch PT25-017, Paracetamol Tablets IP 500 mg\nReadiness: '+p+'%\nStatus: '+(r?'No critical blockers. QA release decision can proceed.':'HOLD. Critical items pending: '+bl.join('; ')+'.')+(ms.length?'\nSupporting items to close: '+ms.join('; ')+'.':'')+'\nNext review: after pending items are closed.'}
+calc();
+</script></body></html>
