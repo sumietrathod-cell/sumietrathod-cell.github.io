@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Penalty Football | Kids Games</title><meta name="description" content="Free kids football game. Tap to shoot when the aim target is on the goal and beat the keeper."><style>
+html,body{margin:0;height:100%;background:#0b1b33;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;font-family:system-ui,Arial,sans-serif}
+#w{height:100%;display:flex;align-items:center;justify-content:center}
+canvas{width:min(100vw,56.25vh);aspect-ratio:9/16;border-radius:12px;box-shadow:0 0 30px #0008;display:block}
+a.b{position:fixed;top:8px;left:8px;color:#fff;background:#0007;padding:6px 12px;border-radius:99px;text-decoration:none;font-size:14px;z-index:5}
+</style></head><body><a class="b" href="games.html">&larr; Games</a><div id="w"><canvas id="c"></canvas></div><script>
+var c=document.getElementById('c'),x=c.getContext('2d'),W=360,H=640;c.width=W;c.height=H;
+var best=0;try{best=+(localStorage.getItem('kg_football')||0)}catch(e){}
+var GX=50,GY=130,GW=260,GH=110,SHOTS=5;
+var st='menu',shot,goals,res,t=0,aim,phase,ball,kx,ky,kTarget,msg,msgT,msgC='#fff';
+function reset(){shot=0;goals=0;res=[];st='play';nextShot()}
+function nextShot(){if(shot>=SHOTS){st='over';if(goals>best){best=goals;try{localStorage.setItem('kg_football',best)}catch(e){}}return}phase='aim';ball={x:180,y:540,r:16};kx=180;ky=GY+GH-34;kTarget=null;msgT=0}
+function shoot(){if(st!=='play'||phase!=='aim')return;phase='fly';var tx=aim.x,ty=aim.y;ball.tx=tx;ball.ty=ty;ball.t=0;var zones=[GX+55,180,GX+GW-55];kTarget=zones[Math.floor(Math.random()*3)];ball.out=tx<GX||tx>GX+GW||ty<GY||ty>GY+GH}
+c.addEventListener('pointerdown',function(e){e.preventDefault();if(st!=='play'){reset();return}shoot()});addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){if(st!=='play')reset();else shoot()}});
+function say(s,col){msg=s;msgT=1.3;msgC=col||'#fff'}
+function upd(dt){t+=dt;if(msgT>0)msgT-=dt;if(st!=='play')return;var sp=1.4+shot*.28;aim={x:180+125*Math.sin(t*sp*2),y:GY+GH/2+52*Math.sin(t*sp*2.7+1)};
+if(phase==='fly'){ball.t+=dt/.55;var k=Math.min(1,ball.t);ball.x=180+(ball.tx-180)*k;ball.y=540+(ball.ty-540)*k;ball.r=16-6*k;kx+=(kTarget-kx)*Math.min(1,dt*7);
+if(k>=1){phase='done';var saved=!ball.out&&Math.abs(ball.tx-kTarget)<44;var ok=!ball.out&&!saved;if(ok){goals++;say('GOAL! ⚽','#7CFF8A')}else say(ball.out?'Missed the goal!':'Saved!','#ff9d9d');res.push(ok);shot++;setTimeout(nextShot,1300)}}}
+function T(s,X,Y,sz,col,al){x.font='bold '+sz+'px system-ui,Arial';x.fillStyle=col||'#fff';x.textAlign=al||'center';x.fillText(s,X,Y)}
+function draw(){var g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#6dc8ff');g.addColorStop(.2,'#bfe9ff');g.addColorStop(.2,'#2f8f3f');g.addColorStop(1,'#256f31');x.fillStyle=g;x.fillRect(0,0,W,H);
+for(var i=0;i<8;i++){x.fillStyle=i%2?'#ffffff10':'#00000010';x.fillRect(0,128+i*64,W,64)}
+x.fillStyle='#fff3';x.fillRect(GX,GY,GW,GH);x.strokeStyle='#fff6';x.lineWidth=1;for(var a=GX;a<=GX+GW;a+=16){x.beginPath();x.moveTo(a,GY);x.lineTo(a,GY+GH);x.stroke()}for(var b=GY;b<=GY+GH;b+=16){x.beginPath();x.moveTo(GX,b);x.lineTo(GX+GW,b);x.stroke()}
+x.strokeStyle='#fff';x.lineWidth=7;x.strokeRect(GX,GY,GW,GH);
+if(st==='play'){x.fillStyle='#ffd23f';x.fillRect(kx-17,ky-34,34,50);x.fillStyle='#f2c9a0';x.beginPath();x.arc(kx,ky-42,11,0,7);x.fill();x.fillStyle='#ffd23f';x.fillRect(kx-44,ky-26,28,9);x.fillRect(kx+16,ky-26,28,9);x.fillStyle='#fff';x.beginPath();x.arc(kx-44,ky-22,6,0,7);x.arc(kx+44,ky-22,6,0,7);x.fill()}
+x.fillStyle='#fff';x.beginPath();x.arc(180,540,3,0,7);x.fill();
+if(ball){x.fillStyle='#0003';x.beginPath();x.ellipse(ball.x,ball.y+ball.r*.8,ball.r,ball.r*.35,0,0,7);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(ball.x,ball.y,ball.r,0,7);x.fill();x.strokeStyle='#222';x.lineWidth=2;x.stroke();x.fillStyle='#222';x.beginPath();x.arc(ball.x,ball.y,ball.r*.38,0,7);x.fill()}
+if(st==='play'&&phase==='aim'){x.strokeStyle='#ff3b3b';x.lineWidth=4;x.beginPath();x.arc(aim.x,aim.y,16,0,7);x.moveTo(aim.x-24,aim.y);x.lineTo(aim.x+24,aim.y);x.moveTo(aim.x,aim.y-24);x.lineTo(aim.x,aim.y+24);x.stroke();T('TAP to shoot!',W/2,610,22,'#fff')}
+T('Goals '+goals,12,34,24,'#fff','left');T('Best '+best,W-12,32,16,'#17324d','right');
+for(var s=0;s<SHOTS;s++){x.fillStyle=s<res.length?(res[s]?'#2ecc71':'#e74c3c'):'#ffffff55';x.beginPath();x.arc(W/2-48+s*24,64,8,0,7);x.fill()}
+if(msgT>0&&st==='play')T(msg,W/2,360,40,msgC);
+if(st!=='play'){x.fillStyle='#000b';x.fillRect(0,0,W,H);T('PENALTY KICKS',W/2,220,36,'#ffd23f');if(st==='over'){T('You scored '+goals+' / '+SHOTS,W/2,290,28,'#7CFF8A');T(goals>=4?'Superstar!':goals>=2?'Well played!':'Try again!',W/2,330,22);T('Best '+best,W/2,362,20,'#ffe08a')}else{T('The red target moves.',W/2,290,20);T('Tap to shoot when it is',W/2,316,20);T('inside the goal, away',W/2,342,20);T('from the keeper!',W/2,368,20)}T(st==='over'?'Tap to play again':'Tap to start',W/2,440,24,'#7CFF8A')}}
+var last=performance.now();function loop(n){var dt=Math.min(.05,(n-last)/1000);last=n;upd(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+</script></body></html>

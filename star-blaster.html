@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Star Blaster Arena | Kids Games</title><meta name="description" content="Free kids shooting game. Pop balloons, robots and golden stars with your star blaster. No violence."><style>
+html,body{margin:0;height:100%;background:#0b1b33;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;font-family:system-ui,Arial,sans-serif}
+#w{height:100%;display:flex;align-items:center;justify-content:center}
+canvas{width:min(100vw,56.25vh);aspect-ratio:9/16;border-radius:12px;box-shadow:0 0 30px #0008;display:block;cursor:crosshair}
+a.b{position:fixed;top:8px;left:8px;color:#fff;background:#0007;padding:6px 12px;border-radius:99px;text-decoration:none;font-size:14px;z-index:5}
+</style></head><body><a class="b" href="games.html">&larr; Games</a><div id="w"><canvas id="c"></canvas></div><script>
+var c=document.getElementById('c'),x=c.getContext('2d'),W=360,H=640;c.width=W;c.height=H;
+var best=0;try{best=+(localStorage.getItem('kg_blaster')||0)}catch(e){}
+var st='menu',score,timeLeft,ammo,MAXAMMO=8,reload,combo,tg,parts,spawnT,t=0,cur={x:180,y:300},flash=0,popText=[],hits,shots;
+function reset(){score=0;timeLeft=60;ammo=MAXAMMO;reload=0;combo=0;tg=[];parts=[];spawnT=0;popText=[];hits=0;shots=0;st='play'}
+function pos(e){var r=c.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+c.addEventListener('pointermove',function(e){cur=pos(e)});
+c.addEventListener('pointerdown',function(e){e.preventDefault();var p=pos(e);cur=p;if(st!=='play'){reset();return}fire(p)});
+addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&st!=='play')reset()});
+function fire(p){if(reload>0)return;ammo--;shots++;flash=.08;var hit=null;for(var i=tg.length-1;i>=0;i--){var o=tg[i];if(Math.hypot(o.x-p.x,o.y-p.y)<o.r+6){hit=o;break}}
+if(hit){hits++;combo=Math.min(5,combo+1);var pts=hit.pts*combo;score+=pts;popText.push({s:'+'+pts,x:hit.x,y:hit.y,t:.8});for(var k=0;k<14;k++)parts.push({x:hit.x,y:hit.y,vx:Math.random()*240-120,vy:Math.random()*240-160,t:.7,c:hit.col});tg.splice(tg.indexOf(hit),1)}else combo=0;
+if(ammo<=0)reload=1.1}
+function spawn(){var r=Math.random(),y=120+Math.random()*340,dir=Math.random()<.5?1:-1;var o={x:dir>0?-30:W+30,y:y,vx:dir*(60+Math.random()*60+(60-timeLeft)),ph:Math.random()*6};
+if(r<.12){o.type='star';o.r=15;o.pts=50;o.col='#ffd23f';o.vx*=1.8}else if(r<.45){o.type='robot';o.r=22;o.pts=20;o.col='#46d17a'}else{o.type='balloon';o.r=24;o.pts=10;o.col=['#ff5a6e','#4aa3ff','#ffb347','#b36bff'][Math.floor(Math.random()*4)]}tg.push(o)}
+function upd(dt){t+=dt;if(flash>0)flash-=dt;if(st!=='play')return;timeLeft-=dt;if(timeLeft<=0){st='over';if(score>best){best=score;try{localStorage.setItem('kg_blaster',best)}catch(e){}}}
+if(reload>0){reload-=dt;if(reload<=0){ammo=MAXAMMO}}
+spawnT-=dt;if(spawnT<=0){spawnT=.55+Math.random()*.5;spawn()}
+tg.forEach(function(o){o.x+=o.vx*dt;o.y+=Math.sin(t*2+o.ph)*(o.type==='balloon'?30:o.type==='robot'?60:20)*dt});tg=tg.filter(function(o){return o.x>-60&&o.x<W+60});
+parts.forEach(function(p){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;p.t-=dt});parts=parts.filter(function(p){return p.t>0});popText.forEach(function(p){p.y-=40*dt;p.t-=dt});popText=popText.filter(function(p){return p.t>0})}
+function T(s,X,Y,sz,col,al){x.font='bold '+sz+'px system-ui,Arial';x.fillStyle=col||'#fff';x.textAlign=al||'center';x.fillText(s,X,Y)}
+function drawT(o){if(o.type==='balloon'){x.fillStyle=o.col;x.beginPath();x.ellipse(o.x,o.y,o.r*.85,o.r,0,0,7);x.fill();x.fillStyle='#fff6';x.beginPath();x.ellipse(o.x-8,o.y-9,5,8,.5,0,7);x.fill();x.strokeStyle='#fff8';x.beginPath();x.moveTo(o.x,o.y+o.r);x.lineTo(o.x-4,o.y+o.r+16);x.stroke()}
+else if(o.type==='robot'){x.fillStyle=o.col;x.fillRect(o.x-o.r,o.y-o.r*.8,o.r*2,o.r*1.6);x.fillStyle='#fff';x.fillRect(o.x-12,o.y-8,9,9);x.fillRect(o.x+3,o.y-8,9,9);x.fillStyle='#123';x.fillRect(o.x-9,o.y-5,4,4);x.fillRect(o.x+6,o.y-5,4,4);x.fillRect(o.x-9,o.y+9,18,4);x.fillStyle='#2a8f55';x.fillRect(o.x-2,o.y-o.r*.8-8,4,8);x.beginPath();x.arc(o.x,o.y-o.r*.8-9,4,0,7);x.fill()}
+else{x.fillStyle=o.col;x.beginPath();for(var i=0;i<10;i++){var a=i*Math.PI/5-Math.PI/2,r=i%2?o.r*.45:o.r;x.lineTo(o.x+Math.cos(a)*r,o.y+Math.sin(a)*r)}x.closePath();x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke()}}
+function draw(){var g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1b2a6b');g.addColorStop(1,'#7b3fa0');x.fillStyle=g;x.fillRect(0,0,W,H);x.fillStyle='#fff8';for(var i=0;i<30;i++)x.fillRect((i*97)%W,(i*53)%H,2,2);
+x.fillStyle='#2b1b4f';x.fillRect(0,560,W,80);
+if(tg)tg.forEach(drawT);if(parts)parts.forEach(function(p){x.globalAlpha=Math.max(0,p.t);x.fillStyle=p.c;x.fillRect(p.x,p.y,6,6);x.globalAlpha=1});
+if(popText)popText.forEach(function(p){x.globalAlpha=Math.max(0,p.t);T(p.s,p.x,p.y,22,'#fff');x.globalAlpha=1});
+x.fillStyle='#ffd23f';x.beginPath();x.moveTo(180,H-10);x.lineTo(168,H-50);x.lineTo(192,H-50);x.fill();
+if(flash>0){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(180,H-50);x.lineTo(cur.x,cur.y);x.stroke()}
+if(st==='play'){x.strokeStyle='#fff';x.lineWidth=2.5;x.beginPath();x.arc(cur.x,cur.y,18,0,7);x.moveTo(cur.x-26,cur.y);x.lineTo(cur.x-8,cur.y);x.moveTo(cur.x+8,cur.y);x.lineTo(cur.x+26,cur.y);x.moveTo(cur.x,cur.y-26);x.lineTo(cur.x,cur.y-8);x.moveTo(cur.x,cur.y+8);x.lineTo(cur.x,cur.y+26);x.stroke();
+T('Score '+score,12,34,24,'#fff','left');T('Time '+Math.ceil(timeLeft),W-12,34,24,timeLeft<10?'#ff7b7b':'#fff','right');T('Best '+best,W-12,58,15,'#ffe08a','right');if(combo>1)T('Combo x'+combo+'!',12,58,18,'#ffd23f','left');
+for(var a=0;a<MAXAMMO;a++){x.fillStyle=a<ammo?'#ffd23f':'#ffffff33';x.fillRect(12+a*16,H-24,10,14)}if(reload>0)T('Reloading...',W/2,H-90,20,'#fff')}
+if(st!=='play'){x.fillStyle='#000b';x.fillRect(0,0,W,H);T('STAR BLASTER',W/2,200,38,'#ffd23f');T('ARENA',W/2,240,28,'#fff');if(st==='over'){T('Time up!',W/2,300,28);T('Score '+score,W/2,340,30,'#7CFF8A');T('Best '+best,W/2,372,20,'#ffe08a');T('Hit '+hits+' of '+shots+' shots',W/2,400,16,'#bfe8ff')}else{T('Tap to blast balloons,',W/2,300,20);T('robots and golden stars!',W/2,326,20);T('Hit many in a row for combos.',W/2,360,16,'#bfe8ff');T('8 shots, then it reloads.',W/2,382,16,'#bfe8ff')}T(st==='over'?'Tap to play again':'Tap to start',W/2,450,24,'#7CFF8A')}}
+reset();st='menu';var last=performance.now();function loop(n){var dt=Math.min(.05,(n-last)/1000);last=n;upd(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+</script></body></html>
