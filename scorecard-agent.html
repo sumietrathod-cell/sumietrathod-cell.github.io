@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Site Quality Scorecard Agent | Aarohan QA Analytics</title>
+<meta name="description" content="Monthly site quality scorecard in the format global pharma companies use: lot acceptance rate, right first time, invalidated OOS rate, complaint rate, CAPA and training KPIs with RAG status, trends and a management review summary.">
+<style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#5d6b82;--line:#e3e8ef}*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header b{letter-spacing:.08em}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px;text-decoration:none}
+main{max-width:1080px;margin:auto;padding:18px 16px 90px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:23px;margin:0 0 4px}h2{font-size:17px;margin:0 0 10px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}label{font-size:13px;font-weight:600;display:block}input{width:100%;padding:8px;border:1px solid #cdd6e3;border-radius:8px;font-size:14px;margin-top:3px;font-family:inherit}
+.tw{overflow-x:auto}table{border-collapse:collapse;font-size:13px;width:100%}th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:6px 4px;border-bottom:2px solid var(--line);vertical-align:bottom;min-width:74px}td{padding:3px;border-bottom:1px solid #eef1f6}td input{margin:0;padding:6px;min-width:66px;text-align:right}td.m{font-weight:700;white-space:nowrap;padding-right:8px}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin:12px 8px 0 0}button.g2{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.v{font-weight:800;font-size:19px;padding:10px 14px;border-radius:10px;margin-bottom:12px}.okb{background:#dcfce7;color:#166534}.badb{background:#fee2e2;color:#991b1b}.warnb{background:#fef3c7;color:#92400e}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tile{border:1px solid var(--line);border-radius:12px;padding:12px;border-top:5px solid #cbd5e1}.tile.G{border-top-color:#16a34a}.tile.A{border-top-color:#d97706}.tile.R{border-top-color:#dc2626}
+.tile .k{font-size:12px;color:var(--muted);font-weight:600}.tile .val{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}.tile .t{font-size:12px;color:var(--muted)}.tile svg{width:100%;height:34px;display:block;margin-top:6px}
+.rag{display:inline-block;font-size:11px;font-weight:800;border-radius:99px;padding:1px 8px;margin-left:6px}.rag.G{background:#dcfce7;color:#166534}.rag.A{background:#fef3c7;color:#92400e}.rag.R{background:#fee2e2;color:#991b1b}
+.tg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tg label{font-weight:500}
+pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.55 system-ui}.f{font-size:12px;color:var(--muted)}
+details summary{cursor:pointer;font-weight:700}
+@media(max-width:820px){.tiles{grid-template-columns:1fr 1fr}.g,.tg{grid-template-columns:1fr 1fr}}
+@media print{header,.noprint,.at-bk,.at-lic,.at-bar{display:none!important}body{background:#fff}main{padding:0}.card{border:0}}
+</style>
+</head>
+<body>
+<header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header>
+<main>
+<div class="card noprint">
+<h1>Site Quality Scorecard Agent</h1>
+<p class="s">The monthly quality scorecard global pharma companies use for site reviews and ICH Q10 management review. Enter the monthly counts; the agent calculates each KPI, rates it Green, Amber or Red against your targets, shows the 12-month trend and drafts the management review summary. Includes the FDA quality metrics (lot acceptance rate, invalidated OOS rate, product quality complaint rate). Sample data for 12 months is pre-filled (fictitious).</p>
+<div class="g">
+<label for="site">Site<input id="site" value="Sample Pharma, Unit-3 (OSD)"></label>
+<label for="yr">Period<input id="yr" value="Nov 2025 to Oct 2026"></label>
+<label for="own">Prepared by<input id="own" value="Site Quality"></label>
+</div>
+</div>
+<div class="card noprint">
+<h2>Monthly inputs</h2>
+<div class="tw"><table><thead><tr id="hd"></tr></thead><tbody id="rows"></tbody></table></div>
+<details style="margin-top:14px"><summary>Targets (Green at or better, Amber within the margin, Red beyond)</summary><div class="tg" id="tg" style="margin-top:10px"></div></details>
+<button type="button" onclick="run()">Build scorecard</button><button type="button" class="g2" onclick="load();run()">Reload sample</button>
+</div>
+<div id="out"></div>
+<p class="f">KPI definitions follow common industry practice and FDA's draft quality metrics guidance; align them with your company's own definitions. Planning aid only; nothing is stored or sent anywhere.</p>
+</main>
+<script>
+var C=[['mon','Month'],['att','Lots attempted'],['acc','Lots accepted'],['rft','Lots right first time'],['oos','OOS results'],['ioos','OOS invalidated'],['cmp','Quality complaints'],['units','Units distributed (millions)'],['dev','Deviations opened'],['rdev','Repeat deviations'],['dcl','Deviations closed'],['dot','Closed on time'],['cdue','CAPAs due'],['cot','CAPAs closed on time'],['cver','CAPAs checked for effectiveness'],['ceff','CAPAs effective'],['tdue','Training due'],['tok','Training on time']];
+var K=[
+ {id:'lar',n:'Lot acceptance rate',u:'%',hi:true,t:99,m:1,f:function(r){return pct(r.acc,r.att)}},
+ {id:'rft',n:'Right first time',u:'%',hi:true,t:95,m:3,f:function(r){return pct(r.rft,r.att)}},
+ {id:'ioos',n:'Invalidated OOS rate',u:'%',hi:false,t:20,m:10,f:function(r){return r.oos?pct(r.ioos,r.oos):null}},
+ {id:'pqcr',n:'Complaints per million units',u:'',hi:false,t:2,m:1,f:function(r){return r.units?r.cmp/r.units:null}},
+ {id:'rdev',n:'Repeat deviation rate',u:'%',hi:false,t:10,m:5,f:function(r){return r.dev?pct(r.rdev,r.dev):null}},
+ {id:'dot',n:'Deviations closed on time',u:'%',hi:true,t:90,m:5,f:function(r){return r.dcl?pct(r.dot,r.dcl):null}},
+ {id:'cot',n:'CAPA on-time closure',u:'%',hi:true,t:90,m:5,f:function(r){return r.cdue?pct(r.cot,r.cdue):null}},
+ {id:'ceff',n:'CAPA effectiveness',u:'%',hi:true,t:90,m:5,f:function(r){return r.cver?pct(r.ceff,r.cver):null}},
+ {id:'trn',n:'Training compliance',u:'%',hi:true,t:98,m:3,f:function(r){return pct(r.tok,r.tdue)}}];
+function pct(a,b){return b?a/b*100:null}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var MON=['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+var S=[[42, 42, 40, 3, 0, 2, 3.0, 12, 2, 11, 10, 8, 7, 4, 3, 100, 99], [38, 38, 37, 4, 1, 3, 3.05, 13, 1, 12, 11, 9, 9, 5, 5, 105, 103], [44, 44, 43, 5, 1, 2, 3.1, 14, 1, 13, 12, 10, 10, 4, 4, 110, 109], [40, 40, 39, 3, 0, 3, 3.15, 15, 1, 14, 13, 8, 7, 5, 5, 115, 113], [46, 45, 44, 4, 1, 2, 3.2, 12, 1, 11, 10, 9, 9, 4, 3, 120, 119], [43, 43, 42, 5, 1, 3, 3.25, 13, 2, 12, 11, 10, 10, 5, 5, 125, 123], [45, 45, 44, 3, 0, 2, 3.3, 14, 1, 13, 12, 8, 7, 4, 4, 130, 129], [41, 41, 40, 4, 1, 3, 3.35, 15, 1, 14, 13, 9, 9, 5, 5, 135, 133], [47, 46, 45, 5, 1, 2, 3.4, 12, 1, 11, 10, 10, 10, 4, 3, 140, 139], [44, 44, 41, 3, 1, 4, 3.45, 15, 2, 14, 11, 8, 7, 5, 5, 145, 143], [45, 44, 42, 4, 2, 3, 3.5, 16, 3, 15, 12, 9, 9, 4, 4, 150, 149], [46, 46, 43, 5, 2, 4, 3.55, 17, 2, 16, 13, 10, 10, 5, 5, 155, 153]];
+function head(){document.getElementById('hd').innerHTML=C.map(function(c){return '<th>'+c[1]+'</th>'}).join('')}
+function load(){document.getElementById('rows').innerHTML=S.map(function(r,i){return '<tr><td class="m">'+MON[i]+'</td>'+r.map(function(v,j){return '<td><input type="number" step="any" aria-label="'+MON[i]+' '+C[j+1][1]+'" value="'+v+'"></td>'}).join('')+'</tr>'}).join('');
+ document.getElementById('tg').innerHTML=K.map(function(k){return '<label>'+k.n+' target ('+(k.hi?'≥':'≤')+')<input type="number" step="any" id="t_'+k.id+'" value="'+k.t+'"></label>'}).join('')}
+function data(){return [].slice.call(document.querySelectorAll('#rows tr')).map(function(tr,i){var o={mon:tr.querySelector('.m').textContent};[].slice.call(tr.querySelectorAll('input')).forEach(function(e,j){o[C[j+1][0]]=parseFloat(e.value)||0});return o})}
+function sum(D,f){return D.reduce(function(s,r){return s+(r[f]||0)},0)}
+function rag(k,v){if(v==null)return '';var t=parseFloat(document.getElementById('t_'+k.id).value);if(k.hi)return v>=t?'G':(v>=t-k.m?'A':'R');return v<=t?'G':(v<=t+k.m?'A':'R')}
+function fmt(k,v){return v==null?'-':(k.u==='%'?v.toFixed(1)+'%':v.toFixed(2))}
+function spark(vals,k){var v=vals.map(function(x){return x==null?NaN:x}),ok=v.filter(isFinite);if(ok.length<2)return '';var mn=Math.min.apply(null,ok),mx=Math.max.apply(null,ok),r=mx-mn||1,W=200,H=34;
+ var pts=v.map(function(x,i){return isFinite(x)?(i*(W-6)/(v.length-1)+3)+','+(H-4-(x-mn)/r*(H-8)):null}).filter(Boolean);var last=pts[pts.length-1].split(',');
+ return '<svg viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline fill="none" stroke="#081a32" stroke-width="1.6" points="'+pts.join(' ')+'"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="3" fill="#d5b46d"/></svg>'}
+function run(){
+ var D=data(),tot={};C.slice(1).forEach(function(c){tot[c[0]]=sum(D,c[0])});
+ var last3=D.slice(-3),l3={},f3=D.slice(0,3),p3={};C.slice(1).forEach(function(c){l3[c[0]]=sum(last3,c[0]);p3[c[0]]=sum(f3,c[0])});
+ var R=K.map(function(k){var y=k.f(tot),q=k.f(l3),q0=k.f(p3),series=D.map(k.f),r=rag(k,y),rq=rag(k,q);var worse=q!=null&&q0!=null&&(k.hi?q<q0:q>q0)&&Math.abs(q-q0)>=(k.u==='%'?2:0.3);return {k:k,y:y,q:q,q0:q0,series:series,r:r,rq:rq,worse:worse}});
+ var reds=R.filter(function(x){return x.r==='R'}),ambers=R.filter(function(x){return x.r==='A'}),worse=R.filter(function(x){return x.worse});
+ var pts=R.reduce(function(s,x){return s+({G:2,A:1,R:0}[x.r]||0)},0),idx=Math.round(pts/(R.length*2)*100);
+ var vc=reds.length?'badb':(ambers.length?'warnb':'okb');
+ var verdict='<div class="v '+vc+'">Site quality index '+idx+'/100 · '+R.filter(function(x){return x.r==='G'}).length+' green, '+ambers.length+' amber, '+reds.length+' red'+(worse.length?' · '+worse.length+' KPI'+(worse.length>1?'s':'')+' getting worse':'')+'</div>';
+ var tiles=R.map(function(x){return '<div class="tile '+x.r+'"><div class="k">'+x.k.n+'<span class="rag '+x.r+'">'+({G:'GREEN',A:'AMBER',R:'RED'}[x.r]||'')+'</span></div><div class="val">'+fmt(x.k,x.y)+'</div><div class="t">12-month · target '+(x.k.hi?'≥ ':'≤ ')+document.getElementById('t_'+x.k.id).value+x.k.u+' · last 3 months '+fmt(x.k,x.q)+(x.worse?' <b style="color:#b91c1c">worse</b>':'')+'</div>'+spark(x.series,x.k)+'</div>'}).join('');
+ var tbl='<div class="tw"><table><thead><tr><th>KPI</th>'+D.map(function(r){return '<th style="text-align:right">'+r.mon+'</th>'}).join('')+'<th style="text-align:right">12 months</th></tr></thead><tbody>'+R.map(function(x){return '<tr><td class="m">'+x.k.n+'</td>'+x.series.map(function(v){var c=rag(x.k,v);return '<td style="text-align:right;color:'+({R:'#b91c1c',A:'#92400e',G:'#166534'}[c]||'#17273c')+'">'+fmt(x.k,v)+'</td>'}).join('')+'<td style="text-align:right;font-weight:700">'+fmt(x.k,x.y)+'</td></tr>'}).join('')+'</tbody></table></div>';
+ var g=function(id){return document.getElementById(id).value};
+ var act=function(x){var n=x.k.id;return {lar:'Review rejected and reprocessed lots for common causes; confirm process capability of key steps.',rft:'Pareto the first-time failures by step and owner; target the top two causes.',ioos:'High invalidation suggests weak laboratory investigations or method issues; review Phase I investigations and analyst training.',pqcr:'Trend complaints by defect type and batch; check packaging and transport-related causes.',rdev:'Repeat deviations show root causes not fixed; reopen the related CAPAs and check effectiveness.',dot:'Add weekly deviation ageing review; escalate items above 30 days.',cot:'Review CAPA due-date setting and resourcing; escalate overdue CAPAs to the site head.',ceff:'Strengthen effectiveness criteria at CAPA approval; define measurable checks.',trn:'Chase overdue training before SOPs go effective; link access to training status.'}[n]};
+ var lines=['Management review summary: '+g('site')+', '+g('yr'),'Prepared by '+g('own')+' on '+new Date().toLocaleDateString(),'','Site quality index: '+idx+'/100 ('+R.filter(function(x){return x.r==='G'}).length+' green, '+ambers.length+' amber, '+reds.length+' red).','Lots: '+tot.att+' attempted, '+tot.acc+' accepted (LAR '+fmt(K[0],R[0].y)+'), right first time '+fmt(K[1],R[1].y)+'.','OOS: '+tot.oos+' results, '+tot.ioos+' invalidated ('+fmt(K[2],R[2].y)+'). Complaints: '+tot.cmp+' ('+fmt(K[3],R[3].y)+' per million units).',''];
+ if(reds.length||worse.length){lines.push('Areas needing management attention:');reds.concat(worse.filter(function(w){return reds.indexOf(w)<0})).forEach(function(x,i){lines.push((i+1)+'. '+x.k.n+': '+fmt(x.k,x.y)+' for the year, '+fmt(x.k,x.q)+' in the last 3 months (target '+(x.k.hi?'≥ ':'≤ ')+g('t_'+x.k.id)+x.k.u+'). Action: '+act(x))})}
+ else lines.push('All KPIs are on target with no worsening trend. Continue current monitoring.');
+ lines.push('','Decisions and resources requested: ________','Approved by Site Head and Head of Quality: ________');
+ document.getElementById('out').innerHTML='<div class="card"><div class="noprint" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center"><h2 style="margin:0">Site quality scorecard</h2><button type="button" style="margin:0" onclick="window.print()">Print / save PDF</button></div><p class="s" style="margin-top:6px">'+esc(g('site'))+' · '+esc(g('yr'))+'</p>'+verdict+'<div class="tiles">'+tiles+'</div><h2 style="margin-top:18px">Month by month</h2>'+tbl+'</div><div class="card"><h2>Management review summary (ICH Q10)</h2><pre id="sum">'+esc(lines.join('\n'))+'</pre><button type="button" class="noprint" onclick="try{navigator.clipboard.writeText(document.getElementById(\'sum\').innerText)}catch(e){}">Copy summary</button></div>';
+}
+head();load();run();
+</script>
+<script src="trial.js"></script>
+</body>
+</html>
