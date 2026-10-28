@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FMEA Risk Assessment Agent | Aarohan QA Analytics</title>
+<meta name="description" content="Pharma QA agent: list failure modes, score severity, occurrence and detection, get RPN, risk ranking, a priority chart and a draft risk assessment summary (ICH Q9).">
+<style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header b{letter-spacing:.08em}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
+main{max-width:980px;margin:auto;padding:18px 16px 90px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:0 0 10px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}label{font-size:13px;font-weight:600;display:block}input,select{width:100%;padding:9px;border:1px solid #cdd6e3;border-radius:9px;font-size:14px;margin-top:3px;font-family:inherit}
+.tw{overflow-x:auto;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:820px;font-size:14px}th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:8px 6px;border-bottom:2px solid #e3e8ef}td{padding:5px 4px;border-bottom:1px solid #eef1f6;vertical-align:top}td input{margin:0;padding:7px}td.n input{width:58px;text-align:center}td.rpn{font-weight:800;text-align:center;padding-top:12px;min-width:56px}td.x button{background:none;color:#991b1b;border:0;font-size:18px;padding:6px 8px;margin:0}
+button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer;margin-top:12px}button.g2{background:#fff;color:var(--navy);border:1.5px solid var(--navy);margin-left:8px}
+.v{font-weight:800;font-size:19px;padding:10px 14px;border-radius:10px;margin-bottom:10px}.ok{background:#dcfce7;color:#166534}.bad{background:#fee2e2;color:#991b1b}.warn{background:#fef3c7;color:#92400e}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.kp div{background:#f7f9fc;border:1px solid #e3e8ef;border-radius:10px;padding:10px 12px}.kp b{display:block;font-size:24px}.kp span{font-size:12px;color:var(--muted)}
+.bar{display:grid;grid-template-columns:minmax(120px,38%) 1fr 48px;gap:8px;align-items:center;font-size:13px;margin:5px 0}.bar i{display:block;height:14px;border-radius:7px}.bar em{font-style:normal;font-weight:700;text-align:right}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px}.H{background:#fee2e2;color:#991b1b}.M{background:#fef3c7;color:#92400e}.L{background:#dcfce7;color:#166534}
+pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.5 system-ui}.f{font-size:12px;color:var(--muted)}
+.legend{font-size:13px;color:var(--muted);margin-top:8px}
+@media(max-width:620px){.g{grid-template-columns:1fr}.kp{grid-template-columns:1fr 1fr}button.g2{margin-left:0}}
+</style>
+</head>
+<body>
+<header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header>
+<main>
+<div class="card">
+<h1>FMEA Risk Assessment Agent</h1>
+<p class="s">List what can go wrong in a process step, score Severity, Occurrence and Detection from 1 to 10, and get the Risk Priority Number (RPN = S × O × D), the risk ranking, a priority chart and a draft summary. Sample values are pre-filled (fictitious).</p>
+<div class="g">
+<label for="proc">Process or system<input id="proc" value="Tablet compression, Line 2"></label>
+<label for="prod">Product<input id="prod" value="Metformin HCl Tablets 500 mg"></label>
+<label for="team">Team<input id="team" value="QA, Production, Engineering, QC"></label>
+<label for="hi">High risk if RPN at least<input id="hi" type="number" value="200"></label>
+<label for="mid">Medium risk if RPN at least<input id="mid" type="number" value="100"></label>
+<label for="sev">Always high if Severity at least<input id="sev" type="number" value="9"></label>
+</div>
+<div class="tw"><table><thead><tr><th>#</th><th>Process step</th><th>Failure mode</th><th>Effect</th><th>Current control</th><th>S</th><th>O</th><th>D</th><th>RPN</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="legend">S = how serious the effect is for the patient or product. O = how often it happens. D = how hard it is to detect before release (10 = very hard).</p>
+<button type="button" onclick="run()">Assess risk</button>
+<button type="button" class="g2" onclick="addRow()">Add a failure mode</button>
+</div>
+<div id="out"></div>
+<p class="f">Demonstration only. It supports a risk assessment under ICH Q9 but does not replace your SOP, a validated system or QA approval. Nothing is stored or sent anywhere.</p>
+</main>
+<script>
+var D=[
+["Granule feeding","Weight variation from uneven feed","Assay and content uniformity failure","In-process weight check every 30 min",8,4,4],
+["Compression","Low hardness","Tablet breakage, friability failure","Hardness check every hour",6,3,3],
+["Compression","Capping and lamination","Rejected batch, possible dose loss","Visual check by operator",7,4,6],
+["Punch and die","Punch tip wear","Embossing defect, weight variation","Tooling inspection per SOP",5,3,5],
+["Metal detection","Metal particle not rejected","Patient safety risk","Metal detector challenge at start",10,2,3],
+["Line clearance","Mix-up with previous product","Wrong product in pack","Line clearance checklist",10,2,4]
+];
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function rowHtml(r,i){var n=i+1;return '<tr><td style="padding-top:12px">'+n+'</td>'+
+['Process step','Failure mode','Effect','Current control'].map(function(l,j){return '<td><input aria-label="Row '+n+' '+l+'" value="'+esc(r[j])+'"></td>'}).join('')+
+['Severity','Occurrence','Detection'].map(function(l,j){return '<td class="n"><input type="number" min="1" max="10" aria-label="Row '+n+' '+l+'" value="'+r[4+j]+'" oninput="live()"></td>'}).join('')+
+'<td class="rpn">-</td><td class="x"><button type="button" aria-label="Remove row '+n+'" onclick="delRow('+i+')">&times;</button></td></tr>'}
+function read(){return [].slice.call(document.querySelectorAll('#rows tr')).map(function(tr){var v=[].slice.call(tr.querySelectorAll('input')).map(function(x){return x.value});return [v[0],v[1],v[2],v[3],clamp(v[4]),clamp(v[5]),clamp(v[6])]})}
+function clamp(x){x=parseInt(x,10);return isNaN(x)?1:Math.max(1,Math.min(10,x))}
+function draw(d){document.getElementById('rows').innerHTML=d.map(rowHtml).join('');live()}
+function addRow(){var d=read();d.push(['','','','',5,5,5]);draw(d);var ins=document.querySelectorAll('#rows tr:last-child input');ins[0].focus()}
+function delRow(i){var d=read();d.splice(i,1);draw(d)}
+function num(id){return parseFloat(document.getElementById(id).value)||0}
+function cls(r){var rp=r[4]*r[5]*r[6];if(rp>=num('hi')||r[4]>=num('sev'))return 'H';if(rp>=num('mid'))return 'M';return 'L'}
+function live(){var trs=document.querySelectorAll('#rows tr');read().forEach(function(r,i){var c=trs[i].querySelector('.rpn'),rp=r[4]*r[5]*r[6],k=cls(r);c.innerHTML=rp+'<br><span class="pill '+k+'">'+{H:'High',M:'Med',L:'Low'}[k]+'</span>'})}
+function act(r){var a=[];if(r[6]>=5)a.push('improve detection (automated check, 100% inspection or alarm)');if(r[5]>=4)a.push('reduce occurrence (root cause fix, preventive maintenance, tighter parameters)');if(r[4]>=9)a.push('add an independent second control because severity is critical');if(!a.length)a.push('keep current control and review at the next periodic review');return a.join('; ')}
+function run(){
+ var d=read().filter(function(r){return r[1].trim()});if(!d.length){document.getElementById('out').innerHTML='<div class="card"><div class="v warn">Add at least one failure mode.</div></div>';return}
+ var L=d.map(function(r){return {r:r,rpn:r[4]*r[5]*r[6],k:cls(r)}}).sort(function(a,b){var o={H:0,M:1,L:2};return o[a.k]-o[b.k]||b.rpn-a.rpn});
+ var H=L.filter(function(x){return x.k==='H'}).length,M=L.filter(function(x){return x.k==='M'}).length,mx=Math.max.apply(null,L.map(function(x){return x.rpn}));
+ var verdict=H?'<div class="v bad">'+H+' high-risk failure mode'+(H>1?'s':'')+': action needed before routine use</div>':(M?'<div class="v warn">No high risk. '+M+' medium-risk item'+(M>1?'s':'')+' to improve</div>':'<div class="v ok">All risks low. Keep current controls</div>');
+ var col={H:'#dc2626',M:'#d97706',L:'#16a34a'};
+ var bars=L.map(function(x){return '<div class="bar"><span>'+esc(x.r[1])+'</span><i style="width:'+Math.max(4,Math.round(x.rpn/mx*100))+'%;background:'+col[x.k]+'"></i><em>'+x.rpn+'</em></div>'}).join('');
+ var plan=L.filter(function(x){return x.k!=='L'}).map(function(x,i){return (i+1)+'. '+x.r[1]+' ('+x.r[0]+') - RPN '+x.rpn+', S'+x.r[4]+' O'+x.r[5]+' D'+x.r[6]+': '+act(x.r)+'.'}).join('\n');
+ var g=function(id){return document.getElementById(id).value};
+ var sum='Risk assessment summary (FMEA)\nProcess: '+g('proc')+'\nProduct: '+g('prod')+'\nTeam: '+g('team')+'\nDate: '+new Date().toLocaleDateString()+'\n\nFailure modes assessed: '+L.length+'. High: '+H+', Medium: '+M+', Low: '+(L.length-H-M)+'. Highest RPN: '+mx+'.\nRisk criteria: High if RPN >= '+g('hi')+' or Severity >= '+g('sev')+'; Medium if RPN >= '+g('mid')+'.\n\nRecommended actions:\n'+(plan||'No medium or high risks. Keep current controls.')+'\n\nAfter actions are complete, re-score S, O and D and confirm the residual risk is acceptable. Approval: QA Head.';
+ document.getElementById('out').innerHTML='<div class="card"><h2>Result</h2>'+verdict+
+ '<div class="kp"><div><b>'+L.length+'</b><span>Failure modes</span></div><div><b style="color:#dc2626">'+H+'</b><span>High risk</span></div><div><b style="color:#d97706">'+M+'</b><span>Medium risk</span></div><div><b>'+mx+'</b><span>Highest RPN (max 1000)</span></div></div>'+
+ '<h2>Priority: high risk first, then by RPN</h2>'+bars+'</div><div class="card"><h2>Draft summary</h2><pre id="sum">'+esc(sum)+'</pre><button type="button" onclick="cp()">Copy summary</button></div>';
+}
+function cp(){var t=document.getElementById('sum').innerText;try{navigator.clipboard.writeText(t)}catch(e){}}
+draw(D);run();
+</script>
+<script src="trial.js"></script>
+</body>
+</html>
