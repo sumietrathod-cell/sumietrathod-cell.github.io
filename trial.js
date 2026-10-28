@@ -5,6 +5,15 @@
 var KEY='aarohan_trial_v1',LIC='aarohan_license_v1',DAYS=7,EP='https://formspree.io/f/xrpervae',WA='916357115513';
 var PUB={kty:'EC',crv:'P-256',x:'Ji_1Rd4Fw-9d-o-E2kazdMl-HQ0O-QXoEyNxiu6sVgk',y:'h2m8EkJ_cU9szuu6WkpufPA39YjEcg9Qj6amfhMJkG4',ext:true};
 var agent=(document.title||'Agent').split('|')[0].trim();
+var PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
+var GROUPS={pharma:'apqr-agent audit-agent batchrecord-agent calibration-agent change-agent coldchain-agent complaint-agent cpk-agent doccontrol-agent equipment-agent oos-agent qa-agent rca-agent release-agent sop-agent stability-agent training-agent vendor-agent water-agent deviation-dashboard-agent',
+ business:'booking-agent cleaner-agent crm-agent emi-agent expense-agent expense-agent-tracker fee-agent feedback-agent festival-agent inventory-agent invoice-agent invoice-followup-agent khata-agent lead-tracker-agent linkedin-agent patient-agent proposal-agent quote-agent resume-agent sales-agent',
+ studio:'ai-agent-studio ask-aarohan'};
+var GNAME={pharma:'Pharma QA bundle',business:'Business bundle',studio:'AI Agent Studio',all:'All agents'};
+function groupOf(p){if(/^prompt-/.test(p))return 'studio';for(var g in GROUPS){if((' '+GROUPS[g]+' ').indexOf(' '+p+' ')>=0)return g}return 'all'}
+var GROUP=groupOf(PAGE);
+function covers(info){var s=info.s;if(!s||!s.length)return true;return s.indexOf('all')>=0||s.indexOf(GROUP)>=0||s.indexOf(PAGE)>=0}
+function scopeText(info){var s=info.s;if(!s||!s.length)return GNAME.all;return s.map(function(x){return GNAME[x]||x.replace(/-agent$/,'').replace(/-/g,' ')+' agent'}).join(', ')}
 function get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
 function set(k,o){try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -47,12 +56,16 @@ function keyBox(msg){
     var b=this,e=o.querySelector('#at-e');b.disabled=true;b.textContent='Checking...';
     verify(o.querySelector('#at-k').value).then(function(r){
       b.disabled=false;b.textContent='Activate';
-      if(r.ok){set(LIC,{key:r.key});licensed(r.info);return}
+      if(r.ok){addKey(r.key);if(covers(r.info)){licensed(r.info);return}e.textContent='Saved. This key covers '+scopeText(r.info)+', not this agent ('+GNAME[GROUP]+').';return}
       e.textContent=r.why==='expired'?'This key expired on '+r.info.e+'. Please renew on WhatsApp.':'This key is not valid. Please check and paste it again.';
     });
   };
 }
 window.aarohanEnterKey=keyBox;
+function savedKeys(){var o=get(LIC);if(!o)return[];if(o.key)return[o.key];return o.keys||[]}
+function addKey(k){var a=savedKeys().filter(function(x){return x!==k});a.unshift(k);set(LIC,{keys:a.slice(0,10)})}
+function dropKey(k){set(LIC,{keys:savedKeys().filter(function(x){return x!==k})})}
+function notCovered(info){var o=overlay('<h2>This agent is not in your license</h2><p>Your license for '+esc(info.n)+' covers: <b>'+esc(scopeText(info))+'</b>. '+esc(agent)+' is part of the '+esc(GNAME[GROUP])+'.</p><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I have a license ('+scopeText(info)+') and want to add the '+agent+'.')+'">Upgrade on WhatsApp</a><button id="at-have">Enter another key</button>');o.querySelector('#at-have').onclick=function(){o.remove();keyBox()}}
 
 /* ---------- 7-day demo ---------- */
 function bar(left){var b=document.createElement('div');b.className='at-bar';b.innerHTML='Free demo: '+left+' day'+(left===1?'':'s')+' left <a id="at-key">Enter key</a><a target="_blank" rel="noopener" href="'+wa('Hello Sumit, I tried the '+agent+' demo and want a license.')+'">Buy license</a>';document.body.appendChild(b);b.querySelector('#at-key').onclick=function(){keyBox()}}
@@ -70,12 +83,18 @@ function init(skipLicense){
   if(skipLicense){trial();return}
   var fromUrl=null;try{fromUrl=new URLSearchParams(location.search).get('key')}catch(e){}
   if(fromUrl){try{var u=new URL(location.href);u.searchParams.delete('key');history.replaceState(null,'',u.toString())}catch(e){}}
-  var saved=get(LIC),k=fromUrl||(saved&&saved.key);
-  if(!k){trial();return}
-  verify(k).then(function(r){
-    if(r.ok){set(LIC,{key:r.key});licensed(r.info);return}
-    if(saved&&!fromUrl){try{localStorage.removeItem(LIC)}catch(e){}}
-    if(r.why==='expired'){keyBox('Your license expired on '+esc(r.info.e)+'. Please renew on WhatsApp and paste the new key.');return}
+  var keys=savedKeys();if(fromUrl)keys=[fromUrl].concat(keys.filter(function(x){return x!==fromUrl}));
+  if(!keys.length){trial();return}
+  Promise.all(keys.map(verify)).then(function(rs){
+    var hit=null,other=null,exp=null;
+    rs.forEach(function(r,i){
+      if(r.ok){if(!hit&&covers(r.info))hit=r;else if(!other)other=r}
+      else{if(r.why==='expired'&&!exp)exp=r;if(!(fromUrl&&keys[i]===fromUrl))dropKey(keys[i])}
+    });
+    if(fromUrl&&rs[0].ok)addKey(fromUrl);
+    if(hit){licensed(hit.info);return}
+    if(other){notCovered(other.info);return}
+    if(exp){keyBox('Your license expired on '+esc(exp.info.e)+'. Please renew on WhatsApp and paste the new key.');return}
     trial();
   });
 }
