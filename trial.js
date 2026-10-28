@@ -8,11 +8,12 @@ var agent=(document.title||'Agent').split('|')[0].trim();
 var PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
 var GROUPS={pharma:'apqr-agent audit-agent batchrecord-agent calibration-agent change-agent coldchain-agent complaint-agent cpk-agent doccontrol-agent equipment-agent oos-agent qa-agent rca-agent release-agent sop-agent stability-agent training-agent vendor-agent water-agent deviation-dashboard-agent fmea-agent em-agent',
  business:'booking-agent cleaner-agent crm-agent emi-agent expense-agent expense-agent-tracker fee-agent feedback-agent festival-agent inventory-agent invoice-agent invoice-followup-agent khata-agent lead-tracker-agent linkedin-agent patient-agent proposal-agent quote-agent resume-agent sales-agent',
+ premium:'apqr-pro-agent',
  studio:'ai-agent-studio ask-aarohan salary-slip-agent budget-agent split-agent sip-agent'};
-var GNAME={pharma:'Pharma QA bundle',business:'Business bundle',studio:'AI Agent Studio',all:'All agents'};
+var GNAME={premium:'APQR Pro',pharma:'Pharma QA bundle',business:'Business bundle',studio:'AI Agent Studio',all:'All agents'};
 function groupOf(p){if(/^prompt-/.test(p))return 'studio';for(var g in GROUPS){if((' '+GROUPS[g]+' ').indexOf(' '+p+' ')>=0)return g}return 'all'}
 var GROUP=groupOf(PAGE);
-function covers(info){var s=info.s;if(!s||!s.length)return true;return s.indexOf('all')>=0||s.indexOf(GROUP)>=0||s.indexOf(PAGE)>=0}
+function covers(info){var s=info.s;if(GROUP==='premium')return !!(s&&(s.indexOf('premium')>=0||s.indexOf(PAGE)>=0));if(!s||!s.length)return true;return s.indexOf('all')>=0||s.indexOf(GROUP)>=0||s.indexOf(PAGE)>=0}
 function scopeText(info){var s=info.s;if(!s||!s.length)return GNAME.all;return s.map(function(x){return GNAME[x]||x.replace(/-agent$/,'').replace(/-/g,' ')+' agent'}).join(', ')}
 function get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
 function set(k,o){try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}}

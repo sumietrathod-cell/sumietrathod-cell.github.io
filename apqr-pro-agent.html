@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APQR Pro Agent | Aarohan QA Analytics</title>
+<meta name="description" content="APQR Pro: upload one Excel file of batch results and quality events, get Cpk and trend for every test, control charts and a complete Annual Product Quality Review draft in Word or PDF.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#5d6b82;--line:#e3e8ef}*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px}header b{letter-spacing:.08em}header .pro{background:var(--gold);color:var(--navy);font-weight:800;font-size:12px;border-radius:99px;padding:3px 10px;margin-left:8px;letter-spacing:.06em}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px;text-decoration:none}
+main{max-width:1040px;margin:auto;padding:18px 16px 90px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:0 0 10px}h3{font-size:15px;margin:14px 0 6px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 4px}.steps div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}.steps b{display:block;color:var(--navy)}
+.g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}label{font-size:13px;font-weight:600;display:block}input,select,textarea{width:100%;padding:9px;border:1px solid #cdd6e3;border-radius:9px;font-size:14px;margin-top:3px;font-family:inherit}
+button,.btn{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:11px 20px;font-weight:700;font-size:14px;cursor:pointer;margin:10px 8px 0 0;display:inline-block;text-decoration:none}button.g2,.btn.g2{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}button.gold{background:var(--gold);color:var(--navy)}
+.drop{border:2px dashed #b9c4d4;border-radius:12px;padding:18px;text-align:center;color:var(--muted);background:#fafbfd;margin-top:10px}.drop.on{border-color:var(--navy);background:#eef3fb}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13.5px}th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:7px 6px;border-bottom:2px solid var(--line);white-space:nowrap}td{padding:6px;border-bottom:1px solid #eef1f6;vertical-align:top}td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}td input{margin:0;padding:6px;min-width:70px}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;white-space:nowrap}.ok{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}
+.kp{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}.kp div{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kp b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.kp span{font-size:12px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ch{border:1px solid var(--line);border-radius:10px;padding:10px}.ch b{font-size:13px}svg{width:100%;height:auto;display:block}
+#rep{font-size:14px}#rep h2{border-bottom:2px solid var(--navy);padding-bottom:6px;margin-top:22px}#rep h2:first-child{margin-top:0}#rep p{margin:0 0 8px}.sig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.sig div{border-top:1px solid var(--ink);padding-top:6px;font-size:13px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}.err{color:#991b1b;font-weight:600}
+@media(max-width:760px){.g{grid-template-columns:1fr 1fr}.kp{grid-template-columns:repeat(3,1fr)}.charts{grid-template-columns:1fr}.steps{grid-template-columns:1fr}}
+@media print{header,.noprint,.at-bk,.at-lic,.at-bar{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{border:0;padding:0}.ch{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header><div><b>AAROHAN</b> QA ANALYTICS <span class="pro">PRO</span></div><a href="index.html#pricing">&larr; Plans</a></header>
+<main>
+<div class="card noprint">
+<h1>APQR Pro Agent</h1>
+<p class="s">Turn a year of batch data into an Annual Product Quality Review draft in minutes. Upload one Excel file, check the limits, and get Cpk, trends, charts and a complete report in the format of 21 CFR 211.180(e), EU GMP Chapter 1.10 and ICH Q7. Sample data for 36 batches is loaded so you can see the result.</p>
+<div class="steps"><div><b>1. Upload</b>Excel with a "Batches" sheet and an "Events" sheet. Download the template below.</div><div><b>2. Check limits</b>Tests are detected from your columns. Enter or confirm the specification limits.</div><div><b>3. Get the report</b>Statistics, control charts and the APQR draft. Print to PDF or download for Word.</div></div>
+<div class="g">
+<label for="prod">Product<input id="prod" value="Metformin HCl Tablets IP 500 mg"></label>
+<label for="code">Product code<input id="code" value="MET-500"></label>
+<label for="site">Site<input id="site" value="Unit-1, Oral Solid Dosage"></label>
+<label for="per">Review period<input id="per" value="Jan 2026 to Dec 2026"></label>
+</div>
+<div class="drop" id="drop">Drop your Excel file here, or <label for="file" style="display:inline;color:#1d4ed8;text-decoration:underline;cursor:pointer">choose a file</label><input id="file" type="file" accept=".xlsx,.xls,.csv" style="display:none"><div class="note" style="margin-top:6px">The file is read inside your browser. Nothing is uploaded to any server.</div><div id="fmsg"></div></div>
+<button type="button" class="g2" onclick="tmpl()">Download Excel template</button><button type="button" class="g2" onclick="sample();analyse()">Reload sample data</button>
+</div>
+
+<div class="card noprint" id="limCard">
+<h2>Specification limits</h2>
+<p class="s">Leave a limit empty if the test has only one side (for example dissolution has only a lower limit, water content only an upper limit).</p>
+<div class="tw"><table><thead><tr><th>Test (column)</th><th>Unit</th><th>Lower limit</th><th>Upper limit</th><th class="r">Results</th></tr></thead><tbody id="lims"></tbody></table></div>
+<button type="button" onclick="analyse()">Analyse and build report</button>
+</div>
+
+<div id="res"></div>
+<p class="note noprint">Statistical summary and draft for QA review. APQR Pro is a planning and drafting aid, not a validated computerised system; the final review must be verified against source records and approved by the Quality Unit. Data stays in your browser.</p>
+</main>
+<script>
+var B=[],EV=[],TESTS=[],LIM={};
+var KNOWN={'assay':['%',95,105],'dissolution':['%',80,null],'hardness':['N',60,120],'water':['%',null,3],'friability':['%',null,1],'uniformity':['AV',null,15],'av':['AV',null,15],'disintegration':['min',null,15],'yield':['%',97,null],'related':['%',null,0.5],'impurity':['%',null,0.5],'weight':['mg',null,null]};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function rnd(seed){return function(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}}
+function gauss(r){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function sample(){
+ var r=rnd(20261028);B=[];
+ for(var i=0;i<36;i++){var d=new Date(2026,0,6+i*10),drift=i>27?-(i-27)*0.18:0;
+  var b={'Batch No':'MT6'+String(101+i),'Mfg Date':d.toISOString().slice(0,10),'Status':'Released','Assay (%)':+(100.2+drift+gauss(r)*0.8).toFixed(1),'Dissolution (%)':+(91+gauss(r)*2.6).toFixed(0),'Hardness (N)':+(88+gauss(r)*7).toFixed(0),'Water content (%)':+(1.6+gauss(r)*0.22).toFixed(2),'Uniformity AV':+(4.2+Math.abs(gauss(r))*1.6).toFixed(1),'Yield (%)':+(98.6+gauss(r)*0.5).toFixed(1)};
+  B.push(b)}
+ B[17]['Dissolution (%)']=76;B[17]['Status']='Rejected';B[30]['Status']='Reprocessed';
+ EV=[['Deviation','DEV-26-014','Equipment breakdown','Minor','Closed'],['Deviation','DEV-26-022','Documentation error','Minor','Closed'],['Deviation','DEV-26-031','Process parameter excursion','Major','Closed'],['Deviation','DEV-26-040','Documentation error','Minor','Closed'],['Deviation','DEV-26-047','Material handling','Minor','Closed'],['Deviation','DEV-26-058','OOS dissolution, batch MT6118','Major','Closed'],['Deviation','DEV-26-063','Equipment breakdown','Minor','Closed'],['Deviation','DEV-26-071','Environmental excursion','Minor','Open'],['Deviation','DEV-26-079','Documentation error','Minor','Closed'],
+  ['CAPA','CAPA-26-009','Punch inspection frequency increased','','Closed'],['CAPA','CAPA-26-015','Granulation end-point by torque','','Closed'],['CAPA','CAPA-26-021','BMR format revised','','Closed'],['CAPA','CAPA-26-027','Assay trend investigation','','Open'],
+  ['Change control','CC-26-004','New API vendor qualified','Major','Closed'],['Change control','CC-26-011','Compression machine replaced','Major','Closed'],['Change control','CC-26-019','BMR revision','Minor','Closed'],
+  ['Complaint','MC-26-002','Broken tablets in strip','Minor','Closed'],['Complaint','MC-26-006','Discoloured tablet','Minor','Closed'],
+  ['OOS','OOS-26-003','Dissolution 76% batch MT6118, confirmed','','Closed'],
+  ['Return','RT-26-001','Expiry return, 2 shippers','','Closed'],
+  ['Stability','STB-26','12M long-term: all within limits','','Ongoing']].map(function(e){return {'Type':e[0],'Ref':e[1],'Description':e[2],'Class':e[3],'Status':e[4]}});
+ setup();
+}
+function setup(){
+ if(!B.length){TESTS=[];drawLims();return}
+ var keys=Object.keys(B[0]);TESTS=keys.filter(function(k){if(/batch|date|status|remark|lot/i.test(k))return false;var n=B.filter(function(b){return isFinite(parseFloat(b[k]))}).length;return n>=Math.max(3,B.length*0.5)});
+ TESTS.forEach(function(t){if(LIM[t])return;var k=Object.keys(KNOWN).filter(function(x){return t.toLowerCase().indexOf(x)>=0})[0],u=(t.match(/\(([^)]+)\)/)||[])[1]||'';LIM[t]=k?{u:u||KNOWN[k][0],lo:KNOWN[k][1],hi:KNOWN[k][2]}:{u:u,lo:null,hi:null}});
+ drawLims();
+}
+function drawLims(){document.getElementById('lims').innerHTML=TESTS.map(function(t,i){var L=LIM[t],n=B.filter(function(b){return isFinite(parseFloat(b[t]))}).length;return '<tr><td>'+esc(t)+'</td><td><input aria-label="'+esc(t)+' unit" data-i="'+i+'" data-f="u" value="'+esc(L.u)+'"></td><td><input aria-label="'+esc(t)+' lower limit" type="number" step="any" data-i="'+i+'" data-f="lo" value="'+(L.lo==null?'':L.lo)+'"></td><td><input aria-label="'+esc(t)+' upper limit" type="number" step="any" data-i="'+i+'" data-f="hi" value="'+(L.hi==null?'':L.hi)+'"></td><td class="r">'+n+'</td></tr>'}).join('')||'<tr><td colspan="5">No numeric test columns found.</td></tr>'}
+function readLims(){document.querySelectorAll('#lims input').forEach(function(e){var t=TESTS[+e.getAttribute('data-i')],f=e.getAttribute('data-f');LIM[t][f]=f==='u'?e.value:(e.value===''?null:parseFloat(e.value))})}
+function stats(t){var L=LIM[t],v=B.map(function(b){return parseFloat(b[t])}).filter(isFinite),n=v.length,m=v.reduce(function(s,x){return s+x},0)/n,sd=Math.sqrt(v.reduce(function(s,x){return s+(x-m)*(x-m)},0)/Math.max(1,n-1));
+ var cu=L.hi!=null&&sd>0?(L.hi-m)/(3*sd):null,cl=L.lo!=null&&sd>0?(m-L.lo)/(3*sd):null,cpk=cu==null?cl:(cl==null?cu:Math.min(cu,cl));
+ var oos=v.filter(function(x){return (L.lo!=null&&x<L.lo)||(L.hi!=null&&x>L.hi)}).length;
+ var third=Math.max(3,Math.floor(n/3)),m1=avg(v.slice(0,third)),m3=avg(v.slice(-third)),range=(L.hi!=null&&L.lo!=null)?L.hi-L.lo:(sd*6||1),shift=(m3-m1)/range;
+ var run=0,maxRun=0,dir=0,side=0,sideRun=0,maxSide=0;for(var i=1;i<n;i++){var d=Math.sign(v[i]-v[i-1]);if(d!==0&&d===dir)run++;else{run=1;dir=d}maxRun=Math.max(maxRun,run)}
+ v.forEach(function(x){var s=Math.sign(x-m);if(s!==0&&s===side)sideRun++;else{sideRun=1;side=s}maxSide=Math.max(maxSide,sideRun)});
+ var flags=[];if(Math.abs(shift)>=0.1)flags.push('mean of the last '+third+' results '+(shift<0?'lower':'higher')+' than the first '+third+' by '+Math.abs(m3-m1).toFixed(2));if(maxRun>=6)flags.push(maxRun+' results in a row moving one way');if(maxSide>=8)flags.push(maxSide+' results in a row on one side of the mean');
+ var verdict=oos?'bad':(cpk==null?'warn':(cpk>=1.33&&!flags.length?'ok':(cpk>=1?'warn':'bad')));
+ return {t:t,L:L,v:v,n:n,m:m,sd:sd,min:Math.min.apply(null,v),max:Math.max.apply(null,v),cpk:cpk,oos:oos,flags:flags,verdict:verdict}}
+function avg(a){return a.reduce(function(s,x){return s+x},0)/a.length}
+function f2(x,d){return x==null||!isFinite(x)?'-':x.toFixed(d==null?2:d)}
+function lims(L){return (L.lo!=null&&L.hi!=null)?L.lo+' to '+L.hi:(L.lo!=null?'NLT '+L.lo:(L.hi!=null?'NMT '+L.hi:'not set'))}
+function chart(S){var W=460,H=170,p={l:40,r:8,t:10,b:20},v=S.v,lo=Math.min(S.min,S.L.lo!=null?S.L.lo:S.min),hi=Math.max(S.max,S.L.hi!=null?S.L.hi:S.max),pad=(hi-lo)*0.12||1;lo-=pad;hi+=pad;
+ var x=function(i){return p.l+i*(W-p.l-p.r)/Math.max(1,v.length-1)},y=function(val){return H-p.b-(val-lo)/(hi-lo)*(H-p.t-p.b)};
+ var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(S.t)+' by batch">';
+ [lo+pad,(lo+hi)/2,hi-pad].forEach(function(val){s+='<line x1="'+p.l+'" x2="'+(W-p.r)+'" y1="'+y(val)+'" y2="'+y(val)+'" stroke="#eef1f6"/><text x="'+(p.l-4)+'" y="'+(y(val)+4)+'" font-size="10" text-anchor="end" fill="#5d6b82">'+(+val.toFixed(2))+'</text>'});
+ [['lo','LSL'],['hi','USL']].forEach(function(k){var L=S.L[k[0]];if(L!=null)s+='<line x1="'+p.l+'" x2="'+(W-p.r)+'" y1="'+y(L)+'" y2="'+y(L)+'" stroke="#dc2626" stroke-dasharray="5 4"/><text x="'+(W-p.r)+'" y="'+(y(L)-3)+'" font-size="10" text-anchor="end" fill="#dc2626">'+k[1]+' '+L+'</text>'});
+ s+='<line x1="'+p.l+'" x2="'+(W-p.r)+'" y1="'+y(S.m)+'" y2="'+y(S.m)+'" stroke="#d5b46d" stroke-width="1.5"/>';
+ s+='<polyline fill="none" stroke="#081a32" stroke-width="1.5" points="'+v.map(function(val,i){return x(i)+','+y(val)}).join(' ')+'"/>';
+ v.forEach(function(val,i){var o=(S.L.lo!=null&&val<S.L.lo)||(S.L.hi!=null&&val>S.L.hi);s+='<circle cx="'+x(i)+'" cy="'+y(val)+'" r="'+(o?4:2.5)+'" fill="'+(o?'#dc2626':'#081a32')+'"/>'});
+ return s+'<text x="'+p.l+'" y="'+(H-4)+'" font-size="10" fill="#5d6b82">Batch 1</text><text x="'+(W-p.r)+'" y="'+(H-4)+'" font-size="10" text-anchor="end" fill="#5d6b82">Batch '+v.length+'</text></svg>'}
+function g(id){return document.getElementById(id).value}
+function analyse(){
+ readLims();if(!B.length){document.getElementById('res').innerHTML='<div class="card"><p class="err">No batch data. Upload a file or reload the sample.</p></div>';return}
+ var S=TESTS.map(stats),st=function(x){return B.filter(function(b){return String(b['Status']||'').toLowerCase().indexOf(x)>=0}).length};
+ var rel=st('release'),rej=st('reject'),rep=st('reprocess')+st('rework'),tot=B.length;
+ var by=function(t){return EV.filter(function(e){return String(e['Type']).toLowerCase()===t.toLowerCase()})};
+ var dev=by('Deviation'),capa=by('CAPA'),cc=by('Change control'),mc=by('Complaint'),oos=by('OOS'),ret=by('Return'),rec=by('Recall'),stb=by('Stability');
+ var open=function(a){return a.filter(function(e){return !/closed/i.test(e['Status'])}).length},cls=function(a,c){return a.filter(function(e){return String(e['Class']).toLowerCase()===c}).length};
+ var cat={};dev.forEach(function(e){var k=e['Description'].split(',')[0];cat[k]=(cat[k]||0)+1});var catS=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a]});
+ var weak=S.filter(function(s){return s.verdict!=='ok'});
+ var row=function(s){return '<tr><td>'+esc(s.t)+'</td><td>'+esc(lims(s.L))+' '+esc(s.L.u)+'</td><td class="r">'+s.n+'</td><td class="r">'+f2(s.m)+'</td><td class="r">'+f2(s.sd,3)+'</td><td class="r">'+f2(s.min)+'</td><td class="r">'+f2(s.max)+'</td><td class="r">'+f2(s.cpk)+'</td><td class="r">'+s.oos+'</td><td><span class="pill '+s.verdict+'">'+{ok:'Capable',warn:'Watch',bad:'Action'}[s.verdict]+'</span></td></tr>'};
+ var evt=function(a,cols){return a.length?'<div class="tw"><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>'}).join('')+'</tr></thead><tbody>'+a.map(function(e){return '<tr>'+cols.map(function(c){return '<td>'+esc(e[c])+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div>':'<p>None reported in the review period.</p>'};
+ var concl=[];concl.push(tot+' batches were manufactured; '+rel+' released, '+rej+' rejected'+(rep?', '+rep+' reprocessed':'')+'.');
+ if(!weak.length)concl.push('All monitored tests are capable (Cpk ≥ 1.33) with no adverse trends. The process remains in a state of control.');
+ else weak.forEach(function(s){concl.push(s.t+': '+(s.oos?s.oos+' result(s) outside specification; ':'')+'Cpk '+f2(s.cpk)+(s.flags.length?'; trend: '+s.flags.join('; '):'')+'. '+(s.verdict==='bad'?'Investigate and define CAPA.':'Monitor in the next review and assess root cause.'))});
+ if(open(dev)+open(capa))concl.push(open(dev)+' deviation(s) and '+open(capa)+' CAPA(s) remain open; track to closure.');
+ var recs=[];weak.forEach(function(s){recs.push((s.verdict==='bad'?'Investigate ':'Review ')+s.t.toLowerCase()+' performance'+(s.flags.length?' and the trend observed':'')+'; consider process or specification review.')});
+ if(catS[0]&&cat[catS[0]]>=3)recs.push('Recurring deviations in "'+catS[0]+'" ('+cat[catS[0]]+'): perform a trend investigation.');
+ if(cc.length)recs.push('Confirm effectiveness of the '+cc.length+' change control(s) implemented during the period.');
+ if(!recs.length)recs.push('No process change recommended. Continue routine monitoring.');
+ var charts=S.map(function(s){return '<div class="ch"><b>'+esc(s.t)+'</b> <span class="pill '+s.verdict+'">Cpk '+f2(s.cpk)+'</span>'+chart(s)+'</div>'}).join('');
+ var rep='<div id="rep">'+
+ '<h2>1. Product and review details</h2><table><tbody><tr><td style="width:30%">Product</td><td>'+esc(g('prod'))+'</td></tr><tr><td>Product code</td><td>'+esc(g('code'))+'</td></tr><tr><td>Site</td><td>'+esc(g('site'))+'</td></tr><tr><td>Review period</td><td>'+esc(g('per'))+'</td></tr><tr><td>Report generated</td><td>'+new Date().toLocaleDateString()+'</td></tr></tbody></table>'+
+ '<h2>2. Batch summary</h2><div class="kp"><div><b>'+tot+'</b><span>Manufactured</span></div><div><b>'+rel+'</b><span>Released</span></div><div><b style="color:#b91c1c">'+rej+'</b><span>Rejected</span></div><div><b>'+rep+'</b><span>Reprocessed</span></div><div><b>'+(tot?Math.round(rel/tot*100):0)+'%</b><span>Right first time</span></div><div><b>'+S.filter(function(s){return s.verdict==='ok'}).length+'/'+S.length+'</b><span>Tests capable</span></div></div>'+
+ '<h2>3. Review of critical quality attributes</h2><div class="tw"><table><thead><tr><th>Test</th><th>Specification</th><th class="r">n</th><th class="r">Mean</th><th class="r">SD</th><th class="r">Min</th><th class="r">Max</th><th class="r">Cpk</th><th class="r">OOS</th><th>Status</th></tr></thead><tbody>'+S.map(row).join('')+'</tbody></table></div><p class="note">Cpk ≥ 1.33 capable; 1.00 to 1.33 watch; below 1.00 or any OOS needs action. One-sided Cpk used where only one limit applies.</p>'+
+ '<h3>Trend charts by batch</h3><div class="charts">'+charts+'</div>'+
+ '<h2>4. Deviations</h2><p>'+dev.length+' deviations: '+cls(dev,'critical')+' critical, '+cls(dev,'major')+' major, '+cls(dev,'minor')+' minor; '+open(dev)+' open.'+(catS.length?' Most frequent category: '+esc(catS[0])+' ('+cat[catS[0]]+').':'')+'</p>'+evt(dev,['Ref','Description','Class','Status'])+
+ '<h2>5. OOS and OOT results</h2>'+evt(oos,['Ref','Description','Status'])+
+ '<h2>6. CAPA</h2><p>'+capa.length+' CAPAs, '+open(capa)+' open.</p>'+evt(capa,['Ref','Description','Status'])+
+ '<h2>7. Change controls</h2>'+evt(cc,['Ref','Description','Class','Status'])+
+ '<h2>8. Market complaints, returns and recalls</h2><p>'+mc.length+' complaints, '+ret.length+' returns, '+rec.length+' recalls.</p>'+evt(mc.concat(ret,rec),['Type','Ref','Description','Status'])+
+ '<h2>9. Stability programme</h2>'+evt(stb,['Ref','Description','Status'])+
+ '<h2>10. Conclusions</h2><ul>'+concl.map(function(c){return '<li>'+esc(c)+'</li>'}).join('')+'</ul>'+
+ '<h2>11. Recommendations and actions</h2><ol>'+recs.map(function(c){return '<li>'+esc(c)+'</li>'}).join('')+'</ol>'+
+ '<div class="sig"><div>Prepared by (QA)</div><div>Reviewed by (Production / QC)</div><div>Approved by (Head QA)</div></div>'+
+ '<p class="note" style="margin-top:14px">Draft generated with APQR Pro by Aarohan QA Analytics. Verify every figure against source records before approval.</p></div>';
+ document.getElementById('res').innerHTML='<div class="card"><div class="noprint" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><h2 style="margin:0">APQR draft: '+esc(g('prod'))+'</h2><div><button type="button" onclick="window.print()">Print / save PDF</button><button type="button" class="gold" onclick="word()">Download for Word</button></div></div>'+rep+'</div>';
+ document.getElementById('res').scrollIntoView({behavior:'smooth'});
+}
+function word(){var css='body{font-family:Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}h2{font-size:14pt;color:#081a32}.pill{font-weight:bold}';
+ var h='<html><head><meta charset="utf-8"><title>APQR '+esc(g('prod'))+'</title><style>'+css+'</style></head><body><h1>Annual Product Quality Review</h1>'+document.getElementById('rep').innerHTML+'</body></html>';
+ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+h],{type:'application/msword'}));a.download='APQR_'+g('code').replace(/[^A-Za-z0-9]+/g,'_')+'.doc';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},1000)}
+function tmpl(){if(!window.XLSX){alert('Template needs an internet connection the first time.');return}
+ var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(B.slice(0,5)),'Batches');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(EV.slice(0,6)),'Events');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['How to fill'],['Batches: one row per batch. Keep columns Batch No, Mfg Date, Status (Released / Rejected / Reprocessed). Add one column per test, unit in brackets, e.g. Assay (%).'],['Events: Type = Deviation, CAPA, Change control, Complaint, OOS, Return, Recall or Stability. Class = Minor / Major / Critical. Status = Open / Closed.'],['Do not include patient names or confidential data you are not allowed to process.']]),'Read me');
+ XLSX.writeFile(wb,'APQR_Pro_template.xlsx')}
+function load(file){var m=document.getElementById('fmsg'),rd=new FileReader();m.textContent='Reading '+file.name+'...';
+ rd.onload=function(e){try{var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});var sh=function(n){var k=wb.SheetNames.filter(function(x){return x.toLowerCase().indexOf(n)>=0})[0];return k?XLSX.utils.sheet_to_json(wb.Sheets[k],{raw:false,defval:''}):null};
+  var b=sh('batch')||XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:''}),ev=sh('event')||[];if(!b.length)throw 0;B=b;EV=ev;LIM={};setup();m.innerHTML='<span style="color:#166534;font-weight:600">Loaded '+B.length+' batches and '+EV.length+' events from '+esc(file.name)+'. Check the limits, then press Analyse.</span>';document.getElementById('limCard').scrollIntoView({behavior:'smooth'})}
+  catch(x){m.innerHTML='<span class="err">Could not read this file. Use the template: a "Batches" sheet with one row per batch.</span>'}};
+ rd.readAsArrayBuffer(file)}
+document.getElementById('file').onchange=function(){if(this.files[0])load(this.files[0])};
+var dz=document.getElementById('drop');['dragover','dragenter'].forEach(function(t){dz.addEventListener(t,function(e){e.preventDefault();dz.classList.add('on')})});['dragleave','drop'].forEach(function(t){dz.addEventListener(t,function(e){e.preventDefault();dz.classList.remove('on')})});dz.addEventListener('drop',function(e){if(e.dataTransfer.files[0])load(e.dataTransfer.files[0])});
+sample();analyse();window.scrollTo(0,0);
+</script>
+<script src="trial.js"></script>
+</body>
+</html>
