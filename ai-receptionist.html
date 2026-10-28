@@ -42,6 +42,8 @@ input:focus{border-color:var(--navy)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .m .go{display:inline-block;margin-top:8px;background:var(--navy);color:#fff;border-radius:99px;padding:8px 16px;font-weight:700;font-size:14px;text-decoration:none}
 .m .go+.go{margin-left:6px}
+.m ol{margin:6px 0 0;padding-left:22px}.m ol li{margin:4px 0}
+.m .tip{margin-top:8px;font-size:14px;color:var(--muted)}
 .note{font-size:13px;color:var(--muted);margin-top:14px}
 .note a{color:var(--navy2)}
 </style>
@@ -66,6 +68,8 @@ input:focus{border-color:var(--navy)}
       <button type="button">CAPA overdue થઈ જાય છે</button>
       <button type="button">ग्राहकों का उधार बाकी है</button>
       <button type="button">How do I find the root cause of a deviation?</button>
+      <button type="button">મેં CAPA નો agent લીધો છે, કેવી રીતે વાપરવો અને dashboard કેવી રીતે બને?</button>
+      <button type="button">मेरी key नहीं चल रही</button>
     </div>
     <form id="f">
       <button class="mic" id="mic" type="button" aria-label="બોલો">🎤</button>
@@ -77,6 +81,7 @@ input:focus{border-color:var(--navy)}
 </main>
 
 <script src="aarohi-agents.js"></script>
+<script src="aarohi-usage.js"></script>
 <script>
 /* ElevenLabs voice agent: paste your Agent ID between the quotes to show the ElevenLabs talk button as well. */
 var ELEVENLABS_AGENT_ID = '';
@@ -85,7 +90,7 @@ var WA = '916357115513';
 (function(){
 var $=function(i){return document.getElementById(i)};
 var log=$('log'),q=$('q'),orb=$('orb'),st=$('st');
-var speakOn=true, lastLang='gu', lead={name:'',phone:'',need:''}, askedLead=false, leadShown=false, turns=0;
+var isCustomer=false,speakOn=true, lastLang='gu', lead={name:'',phone:'',need:''}, askedLead=false, leadShown=false, turns=0;
 try{ if(localStorage.getItem('aarohi_spk')==='0'){speakOn=false;$('spk').textContent='🔇 Off'} }catch(e){}
 
 var T={
@@ -142,9 +147,11 @@ var K={
 function detect(t){
  if(/[઀-૿]/.test(t))return 'gu';
  if(/[ऀ-ॿ]/.test(t))return 'hi';
- var l=' '+t.toLowerCase()+' ';
- if(/\s(che|chhe|shu|su|mare|maru|tame|tamaru|joie|joiye|kem|ketla|nathi)\s/.test(l))return 'gu';
- if(/\s(hai|kya|mujhe|chahiye|kaise|kitna|aap|mera|nahi|hain)\s/.test(l))return 'hi';
+ var l=' '+t.toLowerCase().replace(/[^a-z0-9 ]+/g,' ')+' ';
+ var g=(l.match(/\s(che|chhe|chhu|chu|shu|su|mare|maru|mari|mane|tame|tamaru|tamari|joie|joiye|kem|ketla|ketlu|nathi|kevi|kevu|rite|vaparvu|vaparvo|vapru|banavu|banavvu|banavvi|lidho|lidhu|lidhi|maltu|malse|chalti|chaltu|karvo|karvu|karu|lavu|aavyu|thay|thayu|thai|gayu|gayo|kyare|amare|apo|aapo|nu|ni|no|ma)\s/g)||[]).length;
+ var h=(l.match(/\s(hai|hain|kya|mujhe|mujhko|chahiye|kaise|kitna|kitne|aap|mera|meri|mere|nahi|nahin|karun|karu|raha|rahi|rahe|kyu|kab|hoga|milega|batao|bataiye|kijiye|ka|ki|ke|se|ko)\s/g)||[]).length;
+ if(g>h&&g>0)return 'gu';
+ if(h>g&&h>0)return 'hi';
  return 'en';
 }
 function has(t,list){t=t.toLowerCase();for(var i=0;i<list.length;i++){if(t.indexOf(list[i])>=0)return true}return false}
@@ -207,6 +214,66 @@ function showLead(lang){
  log.appendChild(d);log.scrollTop=log.scrollHeight;
 }
 
+var USE_WORDS=['kevi rite','kem vapar','vaparvu','vaparvo','vapru','use kar','use karvo','use karu','upyog','kaise','istemal','how to','how do i','how can i','how should','how does','chalav','chalau','lidho','lidhu','lidhi','kharidyo','kharidi','kharida','bought','purchased','i have the','setup','set up','start kar','shuru','steps','process','કેવી રીતે','કઈ રીતે','વાપર','ઉપયોગ','ચલાવ','લીધો','લીધું','ખરીદ્યો','ખરીદ્યું','कैसे','इस्तेमाल','उपयोग','चलाऊ','चलाएँ','खरीदा','लिया है'];
+var DASH_LIST=['deviation-dashboard-agent.html','qa-agent.html','scorecard-agent.html','invoice-followup-agent.html','lead-tracker-agent.html','expense-agent-tracker.html'];
+var DASH_INTRO={gu:'Aarohan માં dashboard અલગથી બનાવવું પડતું નથી. આ agents પોતે dashboard બનાવે છે:',hi:'Aarohan में dashboard अलग से नहीं बनाना पड़ता. ये agents खुद dashboard बनाते हैं:',en:'With Aarohan you do not build a dashboard separately. These agents make it for you:'};
+var DASH_NOTE={gu:'કયો agent તમારી પાસે છે તે કહો, હું તેનાં પગલાં સમજાવું.',hi:'आपके पास कौन-सा agent है बताइए, मैं उसके कदम समझाती हूँ.',en:'Tell me which agent you have and I will walk you through it.'};
+var STEP_HEAD={gu:'{n} વાપરવાનાં પગલાં:',hi:'{n} इस्तेमाल करने के कदम:',en:'How to use {n}:'};
+var ALSO={gu:'આ પણ કામ આવી શકે:',hi:'यह भी काम आ सकता है:',en:'Also useful:'};
+var HELP_END={gu:'અટકો તો WhatsApp +91 63571 15513 પર screenshot મોકલો.',hi:'अटकें तो WhatsApp +91 63571 15513 पर screenshot भेजिए.',en:'If you get stuck, send a screenshot to WhatsApp +91 63571 15513.'};
+var WHICH={gu:'જરૂર સમજાવું. કયો agent વાપરો છો? તેનું નામ કે તમારું કામ કહો (જેમ કે CAPA, OOS, invoice, stock). દરેક agent માં શરૂઆત આ રીતે થાય:',hi:'ज़रूर समझाती हूँ. कौन-सा agent इस्तेमाल कर रहे हैं? उसका नाम या अपना काम बताइए (जैसे CAPA, OOS, invoice, stock). हर agent में शुरुआत ऐसे होती है:',en:'Happy to help. Which agent are you using? Tell me its name or your task (for example CAPA, OOS, invoice, stock). Every agent starts like this:'};
+var VIDEO={gu:'વીડિયો જુઓ ↗',hi:'वीडियो देखिए ↗',en:'Watch the video ↗'};
+function usageAsked(t){var l=t.toLowerCase();for(var i=0;i<USE_WORDS.length;i++){if(l.indexOf(USE_WORDS[i])>=0)return true}return false}
+function byPage(p){for(var i=0;i<AAROHI_AGENTS.length;i++){if(AAROHI_AGENTS[i][0]===p)return AAROHI_AGENTS[i]}return null}
+function goBtn(href,label){var g=document.createElement('a');g.className='go';g.href=href;g.target='_blank';g.rel='noopener';g.textContent=label;return g}
+function stepList(a,lang,t){
+ var u=(typeof AAROHI_USAGE!=='undefined'&&AAROHI_USAGE[a[0]])||{t:'prompt'},S=AAROHI_STEPS;
+ var nm0=a[1].replace(/\s*\(.*?\)/g,'');
+ function f(k){return S[k][lang].replace('{n}',nm0).replace('{b}',u.b||'').replace('{o}',u.o||'').replace('{c}',u.c||'').replace('{f}',u.f||'')}
+ var st=[];
+ if(u.t==='special')return [f('open')].concat(S[u.k][lang]).concat(u.k==='apqrpro'?[f('gxp')]:[]);
+ if(u.t==='prompt'){var nm=a[1].replace(/\s*\(prompt\)/,'');return [S.promptOpen[lang].replace('{n}',nm),f('key'),f('promptFill'),f('promptMake'),f('promptRun'),f('promptSafe')]}
+ st.push(f('open'),f('key'));
+ if(u.t==='csv'){st.push(f('csvTry'),f('csvCols'));if(/due|date|opened|effective|last_contact/.test(u.c||''))st.push(f('csvDate'));st.push(f('csvSave'),f('csvLoad'));if(u.o)st.push(f('out'))}
+ else if(u.t==='form'){st.push(f('formFill'),f('formDash'));if(u.c)st.push(f('formOld'));if(u.o)st.push(f('out'));st.push(f('backup'))}
+ else if(u.t==='input'){st.push(f('fill'),f('press'));if(u.o)st.push(f('out'))}
+ else if(u.t==='check'){if(u.f)st.push(f('fill'));st.push(f('checkTick'));st.push(u.b?f('press'):f('checkLive'));if(u.o)st.push(f('out'))}
+ if(a[2]==='p')st.push(f('gxp'));
+ return st;
+}
+function explainUsage(found,lang,t){
+ var a=found[0].a,d=document.createElement('div');d.className='m b';
+ var h=document.createElement('b');h.textContent=STEP_HEAD[lang].replace('{n}',a[1]);d.appendChild(h);
+ var steps=stepList(a,lang,t),ol=document.createElement('ol');
+ steps.forEach(function(s){var li=document.createElement('li');li.textContent=s;ol.appendChild(li)});d.appendChild(ol);
+ var u=(typeof AAROHI_USAGE!=='undefined'&&AAROHI_USAGE[a[0]])||{};
+ if(u.x==='capa'&&/capa|કેપા|कैपा/i.test(t)){var c=document.createElement('div');c.className='tip';c.textContent='💡 '+AAROHI_STEPS.capa[lang];d.appendChild(c)}
+ var e=document.createElement('div');e.className='tip';e.textContent=HELP_END[lang];d.appendChild(e);
+ d.appendChild(goBtn(a[0],OPEN[lang]));
+ var others=found.slice(1).filter(function(x){return x.s>=found[0].s-2}).slice(0,2);
+ if(others.length){var o=document.createElement('div');o.className='tip';o.textContent=ALSO[lang];d.appendChild(o);others.forEach(function(x){d.appendChild(goBtn(x.a[0],x.a[1]+' ↗'))})}
+ log.appendChild(d);log.scrollTop=log.scrollHeight;
+ speak(STEP_HEAD[lang].replace('{n}',a[1].replace(/\(.*?\)/g,''))+' '+steps.map(function(s,i){return (i+1)+'. '+s}).join(' '),lang);
+}
+function explainDashboards(lang){
+ var d=document.createElement('div');d.className='m b';var h=document.createElement('div');h.textContent=DASH_INTRO[lang];d.appendChild(h);
+ var ol=document.createElement('ul');ol.style.paddingLeft='20px';ol.style.margin='6px 0 0';
+ DASH_LIST.forEach(function(p){var a=byPage(p);if(!a&&p==='expense-agent-tracker.html')a=[p,'Expense Tracker + Auto Dashboard','b','','ખર્ચ ફોર્મમાં નોંધો, મહિનાનો total, બાકી બજેટ અને charts આપમેળે.','खर्च फॉर्म में दर्ज कीजिए, महीने का total, बचा बजट और charts अपने आप.','Add expenses in a form; monthly total, budget left and charts update by themselves.'];
+  if(!a)return;var li=document.createElement('li');var b=document.createElement('b');b.textContent=a[1];li.appendChild(b);
+  li.appendChild(document.createTextNode(': '+a[lang==='gu'?4:lang==='hi'?5:6].split('. ')[0].replace(/\.$/,'')+'.'));li.appendChild(document.createElement('br'));li.appendChild(goBtn(a[0],OPEN[lang]));ol.appendChild(li)});
+ d.appendChild(ol);var n=document.createElement('div');n.className='tip';n.textContent=DASH_NOTE[lang];d.appendChild(n);
+ log.appendChild(d);log.scrollTop=log.scrollHeight;speak(DASH_INTRO[lang]+' '+DASH_NOTE[lang],lang);
+}
+function explainGeneral(lang){
+ var d=document.createElement('div');d.className='m b';var h=document.createElement('div');h.textContent=WHICH[lang];d.appendChild(h);
+ var ol=document.createElement('ol');[AAROHI_STEPS.key[lang],AAROHI_STEPS.backup[lang]].forEach(function(s){var li=document.createElement('li');li.textContent=s;ol.appendChild(li)});d.appendChild(ol);
+ d.appendChild(goBtn('how-to-use-pharma-agent.html','Pharma: '+VIDEO[lang]));d.appendChild(goBtn('how-to-use-ai-agent.html','AI Studio: '+VIDEO[lang]));
+ log.appendChild(d);log.scrollTop=log.scrollHeight;speak(WHICH[lang],lang);
+}
+function findSupport(t){
+ if(typeof AAROHI_SUPPORT==='undefined')return null;var l=t.toLowerCase(),best=null,bs=0;
+ AAROHI_SUPPORT.forEach(function(s){var sc=0;s.k.split('|').forEach(function(k){if(l.indexOf(k)>=0)sc+=k.length});if(sc>bs){bs=sc;best=s}});return best;
+}
 var GREET=/^(hi|hii|hello|hey|namaste|namaskar|kem cho|kaise ho|ok|okay|yes|no|haa|ha|na|nahi|હા|ના|નમસ્તે|કેમ છો|हाँ|हां|नहीं|नमस्ते|ठीक)$/i;
 function intentWord(t){return has(t,K.price)||has(t,K.trial)||has(t,K.thanks)||has(t,K.buy)||has(t,K.custom)||has(t,K.data)||has(t,K.pharma)||has(t,K.biz)||has(t,K.studio)}
 function nextLeadStep(lang){
@@ -218,13 +285,20 @@ function nextLeadStep(lang){
 function reply(t){
  if(!t.trim())return;
  add('u',t);turns++;
- var lang=/[A-Za-z઀-૿ऀ-ॿ]/.test(t.replace(/[૦-૯०-९]/g,''))?detect(t):lastLang;lastLang=lang;
+ var lang=/[A-Za-z઀-૿ऀ-ॿ]/.test(t.replace(/[૦-૯०-९]/g,''))?detect(t):lastLang;
+ if(lang==='en'&&askedLead&&!leadShown&&t.trim().split(/\s+/).length<=3&&!/\b(my|name|is|the|and|i)\b/i.test(t))lang=lastLang;
+ lastLang=lang;
  var hadPhone=!!lead.phone,hadName=!!lead.name;
  grabLead(t);
  var gotLeadInfo=(lead.phone&&!hadPhone)||(lead.name&&!hadName);
  var topic=has(t,K.pharma)?'pharma':has(t,K.biz)?'biz':has(t,K.studio)?'studio':'';
  if(topic&&!lead.need)lead.need=topic==='pharma'?'Pharma QA agents':topic==='biz'?'Business agents':'AI Agent Studio';
  var found=has(t,K.custom)?[]:findAgents(t);
+ var sup=findSupport(t),use=usageAsked(t);
+ if(use)isCustomer=/lidh|kharid|bought|purchas|લીધ|ખરીદ્ય|खरीदा|लिया/i.test(t)||isCustomer;
+ if(sup&&!gotLeadInfo){var sd=add('b',sup[lang]);speak(sup[lang],lang);return}
+ var dashOnly=/dashboard|ડેશબોર્ડ|डैशबोर्ड/i.test(t)&&(!found.length||found[0].s<=3);
+ if(use&&!gotLeadInfo){if(dashOnly)explainDashboards(lang);else if(found.length)explainUsage(found,lang,t);else if(/dashboard|ડેશબોર્ડ|डैशबोर्ड/i.test(t))explainDashboards(lang);else explainGeneral(lang);return}
 
  // a short plain reply right after we asked for the name is taken as the name
  if(askedLead&&!leadShown&&!lead.name&&!gotLeadInfo&&!found.length&&!/[\d?]/.test(t)&&!intentWord(t)){
@@ -234,11 +308,11 @@ function reply(t){
  if(gotLeadInfo&&!leadShown&&!found.length){nextLeadStep(lang);return}
 
  if(found.length){explainAgents(found,lang);
-  if(!askedLead&&!leadShown&&turns>=2){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}return}
+  if(!askedLead&&!leadShown&&!isCustomer&&turns>=2){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}return}
  var key=has(t,K.thanks)&&t.length<30?'thanks':has(t,K.custom)?'custom':has(t,K.price)?'price':has(t,K.trial)?'trial':topic||(has(t,K.data)?'data':has(t,K.buy)?'buy':GREET.test(t.trim())?'hello':'unknown');
  if(key==='buy'){askedLead=true;nextLeadStep(lang);return}
  say(key,lang);
- if(!askedLead&&!leadShown&&(turns>=2||key==='price')&&key!=='thanks'&&key!=='hello'){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}
+ if(!askedLead&&!leadShown&&!isCustomer&&(turns>=2||key==='price')&&key!=='thanks'&&key!=='hello'){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}
 }
 
 $('f').addEventListener('submit',function(e){e.preventDefault();var v=q.value;q.value='';reply(v)});

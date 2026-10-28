@@ -3,11 +3,11 @@
    Keywords are matched against what the customer says, so include problem words in all three languages. */
 var AAROHI_AGENTS = [
 // ---------- Pharma QA ----------
-['qa-agent.html','Deviation & CAPA Overdue Agent','p','overdue|due date|escalation|qa head|tracker|pending deviation|pending capa|ઓવરડ્યુ|મુદત|બાકી deviation|बकाया|ओवरड्यू|late capa|capa late|capa overdue',
+['qa-agent.html','Deviation & CAPA Overdue Agent','p','capa|capa tracker|capa dashboard|capa list|dashboard|overdue|due date|escalation|qa head|tracker|pending deviation|pending capa|ઓવરડ્યુ|મુદત|બાકી deviation|बकाया|ओवरड्यू|late capa|capa late|capa overdue',
  'તમારા QA tracker માંથી overdue અને જલ્દી due થનારા Deviation/CAPA શોધે છે, risk મુજબ ક્રમ આપે છે અને QA Head માટે escalation mail તૈયાર કરે છે.',
  'आपके QA tracker में से overdue और जल्दी due होने वाले Deviation/CAPA ढूँढता है, risk के हिसाब से क्रम देता है और QA Head के लिए escalation mail तैयार करता है.',
  'Reads your QA tracker, finds overdue and soon-due deviations and CAPAs, ranks them by risk and drafts the escalation mail for the QA Head.'],
-['deviation-dashboard-agent.html','Deviation Entry + Auto Dashboard','p','deviation entry|deviation dashboard|deviation log|deviation register|deviation kpi|ડેવિએશન નોંધ|डेविएशन रजिस्टर|deviation chart',
+['deviation-dashboard-agent.html','Deviation Entry + Auto Dashboard','p','dashboard|deviation entry|deviation dashboard|deviation log|deviation register|deviation kpi|ડેવિએશન નોંધ|डेविएशन रजिस्टर|deviation chart',
  'નાના ફોર્મમાં deviation નોંધો, અને KPI તથા charts આપમેળે અપડેટ થાય છે. ડેટા તમારા બ્રાઉઝરમાં જ રહે છે, CSV માં export થાય છે.',
  'छोटे फॉर्म में deviation दर्ज कीजिए, KPI और charts अपने आप अपडेट होते हैं. डेटा आपके ब्राउज़र में ही रहता है, CSV में export होता है.',
  'Log deviations in a short form and the KPIs and charts update by themselves. Data stays in your browser and exports to CSV.'],
