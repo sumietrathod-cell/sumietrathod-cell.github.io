@@ -40,6 +40,8 @@ input:focus{border-color:var(--navy)}
 .mic.rec{background:#dc2626;color:#fff;animation:pl 1s ease-in-out infinite}@keyframes pl{50%{transform:scale(1.08)}}
 .send{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 18px;font-weight:700;cursor:pointer;flex:none}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.m .go{display:inline-block;margin-top:8px;background:var(--navy);color:#fff;border-radius:99px;padding:8px 16px;font-weight:700;font-size:14px;text-decoration:none}
+.m .go+.go{margin-left:6px}
 .note{font-size:13px;color:var(--muted);margin-top:14px}
 .note a{color:var(--navy2)}
 </style>
@@ -61,6 +63,9 @@ input:focus{border-color:var(--navy)}
       <button type="button">Pharma QA agents</button>
       <button type="button">दुकान के लिए एजेंट</button>
       <button type="button">Free trial</button>
+      <button type="button">CAPA overdue થઈ જાય છે</button>
+      <button type="button">ग्राहकों का उधार बाकी है</button>
+      <button type="button">How do I find the root cause of a deviation?</button>
     </div>
     <form id="f">
       <button class="mic" id="mic" type="button" aria-label="બોલો">🎤</button>
@@ -71,6 +76,7 @@ input:focus{border-color:var(--navy)}
   <p class="note">🎤 માઇક Chrome માં સૌથી સારું ચાલે છે. આરોહી Aarohan ના ready-made agents વિશે માહિતી આપે છે. ખરીદી અને સપોર્ટ WhatsApp <b>+91 63571 15513</b> પર. <a href="index.html">Aarohan home</a></p>
 </main>
 
+<script src="aarohi-agents.js"></script>
 <script>
 /* ElevenLabs voice agent: paste your Agent ID between the quotes to show the ElevenLabs talk button as well. */
 var ELEVENLABS_AGENT_ID = '';
@@ -144,6 +150,35 @@ function detect(t){
 function has(t,list){t=t.toLowerCase();for(var i=0;i<list.length;i++){if(t.indexOf(list[i])>=0)return true}return false}
 function fill(s){return s.replace('{n}',lead.name||'').replace('{p}',lead.phone||'')}
 
+var PRICE={p:{gu:'💰 ₹1,499 / વર્ષ (અથવા 24 pharma agents નું bundle ₹5,999). 7 દિવસ મફત ટ્રાય.',hi:'💰 ₹1,499 / साल (या 24 pharma agents का bundle ₹5,999). 7 दिन फ्री ट्राय.',en:'💰 ₹1,499 a year (or all 24 pharma agents for ₹5,999). Free for 7 days.'},
+ b:{gu:'💰 ₹499 થી શરૂ (20 business agents નું bundle ₹1,499 / વર્ષ). 7 દિવસ મફત ટ્રાય.',hi:'💰 ₹499 से शुरू (20 business agents का bundle ₹1,499 / साल). 7 दिन फ्री ट्राय.',en:'💰 From ₹499 (all 20 business agents for ₹1,499 a year). Free for 7 days.'},
+ s:{gu:'💰 AI Agent Studio માં સામેલ: 31 agents ₹999 / વર્ષ. 7 દિવસ મફત ટ્રાય.',hi:'💰 AI Agent Studio में शामिल: 31 agents ₹999 / साल. 7 दिन फ्री ट्राय.',en:'💰 Included in AI Agent Studio: 31 agents for ₹999 a year. Free for 7 days.'}};
+var OPEN={gu:'Agent ખોલો ↗',hi:'Agent खोलिए ↗',en:'Open agent ↗'};
+var MANY={gu:'આ તકલીફ માટે આ agents કામ આવશે:',hi:'इस काम के लिए ये agents काम आएँगे:',en:'These agents fit what you described:'};
+function findAgents(t){
+ var L=' '+t.toLowerCase().replace(/[^a-z0-9\u0900-\u097F\u0A80-\u0AFF₹-]+/g,' ')+' ',out=[];
+ if(typeof AAROHI_AGENTS==='undefined')return out;
+ for(var i=0;i<AAROHI_AGENTS.length;i++){var a=AAROHI_AGENTS[i],ks=a[3].split('|'),sc=0;
+  for(var j=0;j<ks.length;j++){var k=ks[j].toLowerCase();
+   var hit=/^[a-z0-9 -]+$/.test(k)?L.indexOf(' '+k+' ')>=0||(k.length>5&&L.indexOf(k)>=0):L.indexOf(k)>=0;
+   if(hit)sc+=k.length>=6?3:2;}
+  if(sc)out.push({a:a,s:sc});}
+ out.sort(function(x,y){return y.s-x.s});return out;
+}
+function explainAgents(found,lang){
+ var top=found.filter(function(f){return f.s>=found[0].s-1}).slice(0,3);
+ var d=document.createElement('div');d.className='m b';var spoken='';
+ if(top.length>1){var h=document.createElement('div');h.textContent=MANY[lang];d.appendChild(h);spoken=MANY[lang]+' ';}
+ top.forEach(function(f,i){var a=f.a,txt=a[lang==='gu'?4:lang==='hi'?5:6];
+  var p=document.createElement('div');if(i)p.style.marginTop='10px';
+  var b=document.createElement('b');b.textContent='👉 '+a[1];p.appendChild(b);
+  p.appendChild(document.createTextNode('\n'+txt+(top.length===1?'\n'+PRICE[a[2]][lang]:'')));
+  var g=document.createElement('a');g.className='go';g.href=a[0];g.target='_blank';g.rel='noopener';g.textContent=OPEN[lang];
+  p.appendChild(document.createElement('br'));p.appendChild(g);d.appendChild(p);
+  spoken+=a[1].replace(/\(.*?\)/g,'')+'. '+txt+' ';});
+ log.appendChild(d);log.scrollTop=log.scrollHeight;speak(spoken,lang);
+ if(!lead.need)lead.need=top[0].a[1];
+}
 function add(cls,text){var d=document.createElement('div');d.className='m '+cls;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
 function say(key,lang){var s=fill(T[key][lang]);add('b',s);speak(s,lang)}
 
@@ -172,26 +207,38 @@ function showLead(lang){
  log.appendChild(d);log.scrollTop=log.scrollHeight;
 }
 
+var GREET=/^(hi|hii|hello|hey|namaste|namaskar|kem cho|kaise ho|ok|okay|yes|no|haa|ha|na|nahi|હા|ના|નમસ્તે|કેમ છો|हाँ|हां|नहीं|नमस्ते|ठीक)$/i;
+function intentWord(t){return has(t,K.price)||has(t,K.trial)||has(t,K.thanks)||has(t,K.buy)||has(t,K.custom)||has(t,K.data)||has(t,K.pharma)||has(t,K.biz)||has(t,K.studio)}
+function nextLeadStep(lang){
+ if(lead.name&&lead.phone){say('done',lang);showLead(lang);return}
+ if(lead.phone&&!lead.name){say('askName',lang);return}
+ if(lead.name&&!lead.phone){say('askPhone',lang);return}
+ say('askLead',lang);
+}
 function reply(t){
  if(!t.trim())return;
  add('u',t);turns++;
  var lang=/[A-Za-z઀-૿ऀ-ॿ]/.test(t.replace(/[૦-૯०-९]/g,''))?detect(t):lastLang;lastLang=lang;
+ var hadPhone=!!lead.phone,hadName=!!lead.name;
  grabLead(t);
+ var gotLeadInfo=(lead.phone&&!hadPhone)||(lead.name&&!hadName);
  var topic=has(t,K.pharma)?'pharma':has(t,K.biz)?'biz':has(t,K.studio)?'studio':'';
  if(topic&&!lead.need)lead.need=topic==='pharma'?'Pharma QA agents':topic==='biz'?'Business agents':'AI Agent Studio';
+ var found=has(t,K.custom)?[]:findAgents(t);
 
- if(askedLead&&!leadShown){
-  if(!lead.name&&!/\d/.test(t)&&t.trim().split(/\s+/).length<=4&&!topic&&!has(t,K.price))lead.name=t.trim();
-  if(lead.name&&lead.phone){say('done',lang);showLead(lang);return}
-  if(lead.phone&&!lead.name){say('askName',lang);return}
-  if(lead.name&&!lead.phone){say('askPhone',lang);return}
+ // a short plain reply right after we asked for the name is taken as the name
+ if(askedLead&&!leadShown&&!lead.name&&!gotLeadInfo&&!found.length&&!/[\d?]/.test(t)&&!intentWord(t)){
+  var w=t.trim().replace(/[.!,]+$/,'');
+  if(w.split(/\s+/).length<=3&&!GREET.test(w)&&w.length>=2){lead.name=w;gotLeadInfo=true}
  }
- if(lead.name&&lead.phone&&!leadShown){say('done',lang);showLead(lang);return}
+ if(gotLeadInfo&&!leadShown&&!found.length){nextLeadStep(lang);return}
 
- var key=has(t,K.thanks)&&t.length<30?'thanks':has(t,K.custom)?'custom':has(t,K.price)?'price':has(t,K.trial)?'trial':topic||(has(t,K.data)?'data':has(t,K.buy)?'buy':'unknown');
- if(key==='buy'){askedLead=true;say('askLead',lang);return}
+ if(found.length){explainAgents(found,lang);
+  if(!askedLead&&!leadShown&&turns>=2){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}return}
+ var key=has(t,K.thanks)&&t.length<30?'thanks':has(t,K.custom)?'custom':has(t,K.price)?'price':has(t,K.trial)?'trial':topic||(has(t,K.data)?'data':has(t,K.buy)?'buy':GREET.test(t.trim())?'hello':'unknown');
+ if(key==='buy'){askedLead=true;nextLeadStep(lang);return}
  say(key,lang);
- if(!askedLead&&!leadShown&&(turns>=2||key==='price')&&key!=='thanks'){askedLead=true;setTimeout(function(){say('askLead',lang)},speakOn?300:0)}
+ if(!askedLead&&!leadShown&&(turns>=2||key==='price')&&key!=='thanks'&&key!=='hello'){askedLead=true;setTimeout(function(){say('askLead',lang)},300)}
 }
 
 $('f').addEventListener('submit',function(e){e.preventDefault();var v=q.value;q.value='';reply(v)});
