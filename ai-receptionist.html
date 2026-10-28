@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aarohi AI Receptionist | Aarohan QA Analytics</title>
+<meta name="description" content="Talk to Aarohi, the voice AI receptionist of Aarohan QA Analytics, in Gujarati, Hindi or English. Ask about the 75 ready-made agents, prices and the free 7-day trial.">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<meta name="theme-color" content="#081a32">
+<style>
+:root{--navy:#081a32;--navy2:#14286b;--gold:#d5b46d;--ink:#17273c;--muted:#62718a;--bg:#f5f7fb;--line:#e3e8ef;--green:#16a34a}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI","Noto Sans Gujarati","Shruti",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;gap:12px}
+header b{letter-spacing:.08em}header small{display:block;color:var(--gold);font-size:10px;letter-spacing:.2em}
+header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px;text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:18px 16px 28px}
+.desk{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.top{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.orb{width:44px;height:44px;border-radius:50%;background:conic-gradient(var(--navy2),var(--gold),var(--navy2));flex:none}
+.orb.on{animation:sp 1.3s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.orb.on{animation:none}}
+.who{flex:1;min-width:150px}.who b{display:block;font-size:17px}.who small{color:var(--muted);font-size:13px}
+select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;color:var(--ink)}
+.tg{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;color:var(--ink)}
+#log{display:flex;flex-direction:column;gap:10px;padding:16px;min-height:320px;max-height:58vh;overflow-y:auto}
+.m{max-width:88%;padding:11px 15px;border-radius:16px;font-size:15px;white-space:pre-line;overflow-wrap:anywhere}
+.b{background:#f1f4f9;align-self:flex-start;border-bottom-left-radius:4px}
+.u{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.lead{align-self:stretch;background:#fffaf0;border:1px dashed var(--gold);border-radius:12px;padding:12px 14px;font-size:14px}
+.lead b{display:block;margin-bottom:4px}
+.cta{display:inline-block;margin-top:8px;background:var(--green);color:#fff;border-radius:99px;padding:10px 18px;font-weight:700;font-size:14px;text-decoration:none}
+.qr{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px}
+.qr button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:99px;padding:7px 13px;font-size:14px;cursor:pointer}
+.qr button:hover{background:var(--navy);color:#fff}
+form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
+input{flex:1;min-width:0;padding:12px 15px;border:1px solid #cdd6e3;border-radius:99px;font-size:15px;outline:0}
+input:focus{border-color:var(--navy)}
+.mic{width:48px;height:48px;border-radius:50%;border:0;background:var(--gold);color:var(--navy);font-size:20px;cursor:pointer;flex:none}
+.mic.rec{background:#dc2626;color:#fff;animation:pl 1s ease-in-out infinite}@keyframes pl{50%{transform:scale(1.08)}}
+.send{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 18px;font-weight:700;cursor:pointer;flex:none}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.note{font-size:13px;color:var(--muted);margin-top:14px}
+.note a{color:var(--navy2)}
+</style>
+</head>
+<body>
+<header><div><small>AAROHAN QA ANALYTICS</small><b>AI RECEPTIONIST</b></div><a href="index.html#pricing">Prices</a></header>
+<main>
+  <div class="desk">
+    <div class="top">
+      <div class="orb" id="orb" aria-hidden="true"></div>
+      <div class="who"><b>Aarohi · આરોહી</b><small id="st">ગુજરાતી · हिंदी · English</small></div>
+      <label for="lang" class="sr" style="position:absolute;left:-9999px">Mic language</label>
+      <select id="lang" aria-label="Mic language"><option value="gu-IN">🎤 ગુજરાતી</option><option value="hi-IN">🎤 हिंदी</option><option value="en-IN">🎤 English</option></select>
+      <button class="tg" id="spk" type="button">🔊 On</button>
+    </div>
+    <div id="log" aria-live="polite"></div>
+    <div class="qr" id="qr">
+      <button type="button">કિંમત શું છે?</button>
+      <button type="button">Pharma QA agents</button>
+      <button type="button">दुकान के लिए एजेंट</button>
+      <button type="button">Free trial</button>
+    </div>
+    <form id="f">
+      <button class="mic" id="mic" type="button" aria-label="બોલો">🎤</button>
+      <input id="q" autocomplete="off" placeholder="બોલો અથવા લખો…" aria-label="તમારો સવાલ">
+      <button class="send" type="submit">Send</button>
+    </form>
+  </div>
+  <p class="note">🎤 માઇક Chrome માં સૌથી સારું ચાલે છે. આરોહી Aarohan ના ready-made agents વિશે માહિતી આપે છે. ખરીદી અને સપોર્ટ WhatsApp <b>+91 63571 15513</b> પર. <a href="index.html">Aarohan home</a></p>
+</main>
+
+<script>
+/* ElevenLabs voice agent: paste your Agent ID between the quotes to show the ElevenLabs talk button as well. */
+var ELEVENLABS_AGENT_ID = '';
+var WA = '916357115513';
+
+(function(){
+var $=function(i){return document.getElementById(i)};
+var log=$('log'),q=$('q'),orb=$('orb'),st=$('st');
+var speakOn=true, lastLang='gu', lead={name:'',phone:'',need:''}, askedLead=false, leadShown=false, turns=0;
+try{ if(localStorage.getItem('aarohi_spk')==='0'){speakOn=false;$('spk').textContent='🔇 Off'} }catch(e){}
+
+var T={
+ hello:{gu:'નમસ્તે! હું આરોહી, Aarohan QA Analytics ની AI Receptionist. અમારી પાસે 75 ready-made AI agents છે, pharma QA અને નાના બિઝનેસ માટે. તમે શેના માટે agent શોધો છો?',
+        hi:'नमस्ते! मैं आरोही, Aarohan QA Analytics की AI Receptionist. हमारे पास फार्मा QA और छोटे बिज़नेस के लिए 75 ready-made AI agents हैं. आपको किस काम के लिए agent चाहिए?',
+        en:'Hello! I am Aarohi, the AI receptionist of Aarohan QA Analytics. We have 75 ready-made AI agents for pharma QA and small businesses. What do you need an agent for?'},
+ price:{gu:'કિંમત વર્ષ માટે છે:\n• એક pharma QA agent: ₹1,499\n• Pharma QA bundle (24 agents): ₹5,999\n• બધા 75 agents: ₹7,999\n• Business bundle (20 agents): ₹1,499\n• AI Agent Studio (31 agents): ₹999\n• Company license: ₹14,999\nકોઈ પણ agent 7 દિવસ મફત ટ્રાય કરી શકો છો.',
+        hi:'कीमत साल भर की है:\n• एक pharma QA agent: ₹1,499\n• Pharma QA bundle (24 agents): ₹5,999\n• सभी 75 agents: ₹7,999\n• Business bundle (20 agents): ₹1,499\n• AI Agent Studio (31 agents): ₹999\n• Company license: ₹14,999\nकोई भी agent 7 दिन फ्री ट्राय कर सकते हैं.',
+        en:'Prices are per year:\n• One pharma QA agent: ₹1,499 (≈ US$18)\n• Pharma QA bundle, 24 agents: ₹5,999 (≈ US$72)\n• All 75 agents: ₹7,999 (≈ US$96)\n• Business bundle, 20 agents: ₹1,499 (≈ US$18)\n• AI Agent Studio, 31 agents: ₹999 (≈ US$12)\n• Company license: ₹14,999 (≈ US$180)\nYou can try any agent free for 7 days.'},
+ pharma:{gu:'Pharma QA માટે 24 agents છે: Deviation, CAPA, OOS, Change Control, APQR, FMEA, Cleanroom EM, Stability, Audit, Schedule M gap check, Site Quality Scorecard અને બીજા. દરેકમાં Excel backup છે. આખું bundle ₹5,999 / વર્ષ.',
+         hi:'Pharma QA के लिए 24 agents हैं: Deviation, CAPA, OOS, Change Control, APQR, FMEA, Cleanroom EM, Stability, Audit, Schedule M gap check, Site Quality Scorecard और भी. हर एक में Excel backup है. पूरा bundle ₹5,999 / साल.',
+         en:'For pharma QA there are 24 agents: deviation, CAPA, OOS, change control, APQR, FMEA, cleanroom EM, stability, audit, Schedule M gap check, site quality scorecard and more. Each has an Excel backup. The full bundle is ₹5,999 a year.'},
+ biz:{gu:'દુકાન, ક્લિનિક, ટ્યુશન ક્લાસ અને ફ્રીલાન્સર માટે 20 business agents છે: GST invoice, ઉધાર ખાતું, ફી reminder, સ્ટોક reorder, sales summary વગેરે. આખું bundle ₹1,499 / વર્ષ.',
+      hi:'दुकान, क्लिनिक, ट्यूशन क्लास और फ्रीलांसर के लिए 20 business agents हैं: GST invoice, उधार खाता, फीस reminder, स्टॉक reorder, sales summary वगैरह. पूरा bundle ₹1,499 / साल.',
+      en:'For shops, clinics, tuition classes and freelancers there are 20 business agents: GST invoice, udhaar khata, fee reminder, stock reorder, sales summary and more. The bundle is ₹1,499 a year.'},
+ studio:{gu:'AI Agent Studio માં 31 રોજિંદા agents છે: ChatGPT, Claude કે Gemini માટે 27 તૈયાર prompts, અને salary slip, budget planner, trip splitter, SIP/FD calculator. ₹999 / વર્ષ.',
+         hi:'AI Agent Studio में 31 रोज़ के agents हैं: ChatGPT, Claude या Gemini के लिए 27 तैयार prompts, और salary slip, budget planner, trip splitter, SIP/FD calculator. ₹999 / साल.',
+         en:'AI Agent Studio has 31 everyday agents: 27 ready prompts for ChatGPT, Claude or Gemini, plus a salary slip maker, budget planner, trip splitter and SIP/FD calculator. ₹999 a year.'},
+ trial:{gu:'હા, કોઈ પણ agent 7 દિવસ મફત છે. Aarohan વેબસાઇટ પર agent ખોલો અને સીધું વાપરો. પસંદ આવે તો WhatsApp પર key ખરીદી શકો.',
+        hi:'हाँ, कोई भी agent 7 दिन फ्री है. Aarohan वेबसाइट पर agent खोलिए और सीधे इस्तेमाल कीजिए. पसंद आए तो WhatsApp पर key खरीद सकते हैं.',
+        en:'Yes, every agent is free for 7 days. Open it on the Aarohan website and use it right away. If you like it, buy a key on WhatsApp.'},
+ custom:{gu:'Aarohan ફક્ત ready-made agents વેચે છે. custom બનાવટ કે setup સર્વિસ નથી. તમારી જરૂર કહો, હું સૌથી નજીકનો agent સૂચવું.',
+         hi:'Aarohan सिर्फ ready-made agents बेचता है. custom काम या setup सर्विस नहीं है. अपनी ज़रूरत बताइए, मैं सबसे करीब वाला agent बताती हूँ.',
+         en:'Aarohan sells ready-made agents only, with no custom builds or setup services. Tell me your need and I will suggest the closest agent.'},
+ data:{gu:'Agents તમારા ફોન કે કમ્પ્યુટરના બ્રાઉઝરમાં જ ચાલે છે. છતાં કંપનીનો confidential ડેટા નાખતા પહેલાં તમારી કંપનીની પોલિસી ચકાસજો. આ validated GxP system નથી.',
+       hi:'Agents आपके फोन या कंप्यूटर के ब्राउज़र में ही चलते हैं. फिर भी कंपनी का confidential डेटा डालने से पहले अपनी कंपनी की पॉलिसी देख लें. यह validated GxP system नहीं है.',
+       en:'The agents run in your own browser. Still, check your company policy before entering confidential data. They are reporting aids, not validated GxP systems.'},
+ askLead:{gu:'હું તમારી વિગત Aarohan ટીમને મોકલી દઉં. તમારું નામ અને WhatsApp નંબર કહેશો?',
+          hi:'मैं आपकी जानकारी Aarohan टीम को भेज देती हूँ. आपका नाम और WhatsApp नंबर बताएँगे?',
+          en:'I can pass your details to the Aarohan team. May I have your name and WhatsApp number?'},
+ askName:{gu:'આભાર! તમારું નામ શું છે?',hi:'धन्यवाद! आपका नाम क्या है?',en:'Thank you! What is your name?'},
+ askPhone:{gu:'આભાર {n}! તમારો WhatsApp નંબર કહેશો?',hi:'धन्यवाद {n}! आपका WhatsApp नंबर बताएँगे?',en:'Thanks {n}! What is your WhatsApp number?'},
+ done:{gu:'આભાર {n}! તમારો નંબર {p} નોંધ્યો. નીચેનું લીલું બટન દબાવો, એટલે વિગત સીધી Aarohan ના WhatsApp પર જશે.',
+       hi:'धन्यवाद {n}! आपका नंबर {p} नोट कर लिया. नीचे हरा बटन दबाइए, जानकारी सीधे Aarohan के WhatsApp पर जाएगी.',
+       en:'Thank you {n}! I noted {p}. Tap the green button below to send your details straight to Aarohan on WhatsApp.'},
+ thanks:{gu:'તમારો આભાર! બીજું કંઈ જાણવું હોય તો પૂછજો. 🙏',hi:'आपका धन्यवाद! और कुछ जानना हो तो पूछिए. 🙏',en:'Thank you! Ask me anything else you need. 🙏'},
+ unknown:{gu:'માફ કરજો, હું આ બરાબર સમજી નહીં. હું કિંમત, pharma QA agents, business agents, AI Agent Studio અને free trial વિશે કહી શકું. બીજા સવાલ માટે WhatsApp +91 63571 15513 પર લખો.',
+          hi:'माफ़ कीजिए, मैं ठीक से समझ नहीं पाई. मैं कीमत, pharma QA agents, business agents, AI Agent Studio और free trial के बारे में बता सकती हूँ. दूसरे सवाल के लिए WhatsApp +91 63571 15513 पर लिखिए.',
+          en:'Sorry, I did not quite get that. I can help with prices, pharma QA agents, business agents, AI Agent Studio and the free trial. For anything else, WhatsApp +91 63571 15513.'}
+};
+
+var K={
+ thanks:['thank','thanks','આભાર','धन्यवाद','शुक्रिया','dhanyavad','shukriya','aabhar'],
+ price:['price','cost','rate','kimat','kitna','kitne','bhav','pricing','plan','કિંમત','ભાવ','કેટલા','કેટલું','कीमत','दाम','कितना','कितने','₹','rs','rupees','fees'],
+ trial:['trial','free','demo','try','મફત','ફ્રી','ટ્રાય','ડેમો','फ्री','मुफ्त','ट्राय','डेमो','muft','mafat'],
+ pharma:['pharma','qa','deviation','capa','oos','apqr','audit','change control','fmea','gmp','schedule m','stability','cleanroom','ફાર્મા','फार्मा','ડેવિએશન','डेविएशन'],
+ biz:['shop','dukan','store','business','invoice','khata','gst','clinic','tuition','udhaar','udhar','stock','દુકાન','બિઝનેસ','ધંધો','ખાતું','दुकान','बिज़नेस','बिजनेस','धंधा','खाता','क्लिनिक'],
+ studio:['studio','chatgpt','gemini','claude','prompt','salary','budget','sip','સ્ટુડિયો','स्टूडियो'],
+ custom:['custom','setup','banavi','bana do','banao','service','સર્વિસ','બનાવી','सर्विस','बना'],
+ data:['data','safe','secure','confidential','privacy','ડેટા','सुरक्षित','डेटा'],
+ buy:['buy','purchase','order','license','key','kharid','contact','whatsapp','call','sumit','ખરીદ','ઓર્ડર','સંપર્ક','ફોન','खरीद','ऑर्डर','संपर्क','फोन']
+};
+
+function detect(t){
+ if(/[઀-૿]/.test(t))return 'gu';
+ if(/[ऀ-ॿ]/.test(t))return 'hi';
+ var l=' '+t.toLowerCase()+' ';
+ if(/\s(che|chhe|shu|su|mare|maru|tame|tamaru|joie|joiye|kem|ketla|nathi)\s/.test(l))return 'gu';
+ if(/\s(hai|kya|mujhe|chahiye|kaise|kitna|aap|mera|nahi|hain)\s/.test(l))return 'hi';
+ return 'en';
+}
+function has(t,list){t=t.toLowerCase();for(var i=0;i<list.length;i++){if(t.indexOf(list[i])>=0)return true}return false}
+function fill(s){return s.replace('{n}',lead.name||'').replace('{p}',lead.phone||'')}
+
+function add(cls,text){var d=document.createElement('div');d.className='m '+cls;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+function say(key,lang){var s=fill(T[key][lang]);add('b',s);speak(s,lang)}
+
+function speak(s,lang){
+ if(!speakOn||!('speechSynthesis' in window))return;
+ try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(s.replace(/•/g,''));var code=lang==='gu'?'gu-IN':lang==='hi'?'hi-IN':'en-IN';u.lang=code;
+  var vs=speechSynthesis.getVoices(),v=null;for(var i=0;i<vs.length;i++){if(vs[i].lang.replace('_','-')===code){v=vs[i];break}}
+  if(!v)for(i=0;i<vs.length;i++){if(vs[i].lang.indexOf(code.slice(0,2))===0){v=vs[i];break}}
+  if(v)u.voice=v;u.onstart=function(){orb.classList.add('on')};u.onend=u.onerror=function(){orb.classList.remove('on')};speechSynthesis.speak(u)}catch(e){}
+}
+
+function grabLead(t){
+ var digits=t.replace(/[^\d૦-૯०-९]/g,'').replace(/[૦-૯]/g,function(c){return c.charCodeAt(0)-0x0AE6}).replace(/[०-९]/g,function(c){return c.charCodeAt(0)-0x0966});
+ if(digits.length>=10&&digits.length<=13&&!lead.phone)lead.phone=digits.length>10?'+'+digits:digits;
+ var m=t.match(/(?:my name is|i am|i'm|this is|mera naam|maru naam|મારું નામ|મારુ નામ|मेरा नाम)\s*[:,-]?\s*([^\d,.!?\n]{2,40})/i);
+ if(m&&!lead.name)lead.name=m[1].replace(/\s+(che|chhe|hai|છે|है)\s*$/i,'').replace(/\s+(અને|और|and)\s*$/i,'').trim();
+}
+
+function showLead(lang){
+ leadShown=true;
+ var msg='New enquiry from Aarohi (AI Receptionist)\nName: '+lead.name+'\nWhatsApp: '+lead.phone+'\nInterest: '+(lead.need||'-')+'\nLanguage: '+lang;
+ var d=document.createElement('div');d.className='lead';
+ var b=document.createElement('b');b.textContent='📋 '+lead.name+' · '+lead.phone;d.appendChild(b);
+ var p=document.createElement('div');p.textContent='Interest: '+(lead.need||'-');d.appendChild(p);
+ var a=document.createElement('a');a.className='cta';a.target='_blank';a.rel='noopener';a.href='https://wa.me/'+WA+'?text='+encodeURIComponent(msg);a.textContent='WhatsApp પર મોકલો ↗';d.appendChild(a);
+ log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function reply(t){
+ if(!t.trim())return;
+ add('u',t);turns++;
+ var lang=/[A-Za-z઀-૿ऀ-ॿ]/.test(t.replace(/[૦-૯०-९]/g,''))?detect(t):lastLang;lastLang=lang;
+ grabLead(t);
+ var topic=has(t,K.pharma)?'pharma':has(t,K.biz)?'biz':has(t,K.studio)?'studio':'';
+ if(topic&&!lead.need)lead.need=topic==='pharma'?'Pharma QA agents':topic==='biz'?'Business agents':'AI Agent Studio';
+
+ if(askedLead&&!leadShown){
+  if(!lead.name&&!/\d/.test(t)&&t.trim().split(/\s+/).length<=4&&!topic&&!has(t,K.price))lead.name=t.trim();
+  if(lead.name&&lead.phone){say('done',lang);showLead(lang);return}
+  if(lead.phone&&!lead.name){say('askName',lang);return}
+  if(lead.name&&!lead.phone){say('askPhone',lang);return}
+ }
+ if(lead.name&&lead.phone&&!leadShown){say('done',lang);showLead(lang);return}
+
+ var key=has(t,K.thanks)&&t.length<30?'thanks':has(t,K.custom)?'custom':has(t,K.price)?'price':has(t,K.trial)?'trial':topic||(has(t,K.data)?'data':has(t,K.buy)?'buy':'unknown');
+ if(key==='buy'){askedLead=true;say('askLead',lang);return}
+ say(key,lang);
+ if(!askedLead&&!leadShown&&(turns>=2||key==='price')&&key!=='thanks'){askedLead=true;setTimeout(function(){say('askLead',lang)},speakOn?300:0)}
+}
+
+$('f').addEventListener('submit',function(e){e.preventDefault();var v=q.value;q.value='';reply(v)});
+$('qr').addEventListener('click',function(e){if(e.target.tagName==='BUTTON')reply(e.target.textContent)});
+$('spk').addEventListener('click',function(){speakOn=!speakOn;this.textContent=speakOn?'🔊 On':'🔇 Off';if(!speakOn)try{speechSynthesis.cancel()}catch(e){}try{localStorage.setItem('aarohi_spk',speakOn?'1':'0')}catch(e){}});
+
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,recOn=false;
+if(SR){
+ rec=new SR();rec.interimResults=true;rec.continuous=false;
+ rec.onresult=function(e){var s='',fin=false;for(var i=0;i<e.results.length;i++){s+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}q.value=s;if(fin){q.value='';reply(s)}};
+ rec.onerror=function(e){st.textContent=e.error==='not-allowed'?'માઇકની પરવાનગી આપો':'માઇક: '+e.error};
+ rec.onend=function(){recOn=false;$('mic').classList.remove('rec');if(st.textContent==='સાંભળું છું…')st.textContent='ગુજરાતી · हिंदी · English'};
+}
+$('mic').addEventListener('click',function(){
+ if(!rec){st.textContent='આ બ્રાઉઝરમાં માઇક નથી, Chrome વાપરો';return}
+ if(recOn){rec.stop();return}
+ try{speechSynthesis.cancel()}catch(e){}
+ rec.lang=$('lang').value;try{rec.start();recOn=true;this.classList.add('rec');st.textContent='સાંભળું છું…'}catch(e){}
+});
+$('lang').addEventListener('change',function(){var v=this.value;var l=v==='gu-IN'?'gu':v==='hi-IN'?'hi':'en';q.placeholder=l==='gu'?'બોલો અથવા લખો…':l==='hi'?'बोलिए या लिखिए…':'Speak or type…'});
+if('speechSynthesis' in window)try{speechSynthesis.getVoices()}catch(e){}
+
+add('b',T.hello.gu);
+
+if(ELEVENLABS_AGENT_ID){
+ var w=document.createElement('elevenlabs-convai');w.setAttribute('agent-id',ELEVENLABS_AGENT_ID);document.body.appendChild(w);
+ var s=document.createElement('script');s.src='https://unpkg.com/@elevenlabs/convai-widget-embed';s.async=true;document.body.appendChild(s);
+}
+})();
+</script>
+</body>
+</html>
