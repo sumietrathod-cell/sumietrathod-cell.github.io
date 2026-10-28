@@ -51,7 +51,7 @@ function licensed(info){
   WHO=info.n;backupBtn();
 }
 function keyBox(msg){
-  var o=overlay('<h2>Enter your license key</h2><p>'+(msg||'Paste the license key you received from Aarohan QA Analytics. It unlocks all agents on this device.')+'</p><textarea id="at-k" placeholder="AQA1-..." spellcheck="false" autocapitalize="off"></textarea><div class="at-m" id="at-e"></div><button id="at-ok">Activate</button><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I want to buy a license key for the Aarohan agents ('+agent+').')+'">Buy a license on WhatsApp</a><button class="at-l" id="at-x">Back</button>');
+  var o=overlay('<h2>Enter your license key</h2><p>'+(msg||'Paste the license key you received from Aarohan QA Analytics. It unlocks all agents on this device.')+'</p><textarea id="at-k" placeholder="AQA1-..." spellcheck="false" autocapitalize="off"></textarea><div class="at-m" id="at-e"></div><button id="at-ok">Activate</button><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I want to buy a license key for the Aarohan agents ('+agent+').')+'">Buy a license on WhatsApp</a><p style="font-size:12px;margin:10px 0 0">By activating you accept the <a href="license.html" target="_blank" rel="noopener">License Agreement</a>.</p><button class="at-l" id="at-x">Back</button>');
   o.querySelector('#at-x').onclick=function(){o.remove();init(true)};
   o.querySelector('#at-ok').onclick=function(){
     var b=this,e=o.querySelector('#at-e');b.disabled=true;b.textContent='Checking...';
