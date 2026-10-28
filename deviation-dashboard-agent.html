@@ -37,4 +37,4 @@ $('k').innerHTML='<div><b>'+D.length+'</b><span>Total deviations</span></div><di
 bars($('c1'),count('department'),['#3b5bdb','#8b5cf6','#0ea5a4','#f59e0b','#ef4444']);donut($('c2'),count('classification'),{Minor:'#22c55e',Major:'#f59e0b',Critical:'#ef4444'});
 $('r').innerHTML=D.map(function(r,i){return {r:r,i:i}}).sort(function(a,b){return String(b.r.date).localeCompare(String(a.r.date))}).map(function(o){var r=o.r;return '<tr><td>'+esc(r.date)+'</td><td>'+esc(r.department)+'</td><td><span class="p '+esc(r.classification)+'">'+esc(r.classification)+'</span></td><td>'+esc(r.title)+'</td><td>'+esc(r.status)+'</td><td><button class="x" onclick="del('+o.i+')">Delete</button></td></tr>'}).join('')||'<tr><td colspan="6" class="f">No entries yet. Add one above or tap "Load sample data".</td></tr>'}
 render();
-</script></body></html>
+</script><script src="trial.js"></script></body></html>

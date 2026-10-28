@@ -5,4 +5,4 @@ kpis:function(D,u){var m=u.today.slice(0,7),mt=0,tt=0,cat={};D.forEach(function(
 charts:[{t:'This month by category',type:'bar',by:'category',sum:'amount',filter:function(r,T){return String(r.date).slice(0,7)===T.slice(0,7)}},{t:'All time: paid by',type:'donut',by:'mode',sum:'amount'}],
 cols:['date','category','amount','mode','note'],sort:function(a,b){return String(b.date).localeCompare(String(a.date))},
 sample:function(T,d){var c=['Food','Travel','Rent','Bills','Shopping','Health','Education','Business','Food','Travel'],m=['UPI','Cash','Card','Bank','UPI'],n=['Lunch','Auto fare','Room rent','Electricity bill','Clothes','Medicine','Course fee','Client visit','Groceries','Fuel'],a=[320,180,9000,1450,1800,650,2500,1200,860,540],o=[];for(var i=0;i<24;i++)o.push({date:d(-i*1-(i>8?i:0)),category:c[i%10],amount:Math.round(a[i%10]*(0.8+((i*7)%5)/10)),mode:m[i%5],note:n[i%10]});return o}};
-</script><script src="tracker.js"></script></body></html>
+</script><script src="tracker.js"></script><script src="trial.js"></script></body></html>
