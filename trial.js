@@ -128,15 +128,15 @@ function downloadBackup(){
 function backupBtn(){
   if(document.querySelector('.at-tools'))return;
   var w=document.createElement('div');w.className='at-tools';
-  var b=document.createElement('button');b.className='at-bk';b.type='button';
-  b.textContent='Download Excel backup';b.title='Save your entries and results as an Excel (CSV) file on this device';
-  b.onclick=downloadBackup;w.appendChild(b);
-  var hasFile=document.querySelector('input[type=file]:not(.at-x)');
-  if(!hasFile&&fields().length){
-    var f=document.createElement('button');f.className='at-bk';f.type='button';f.textContent='Fill from Excel';f.title='Upload an Excel file to fill this form';f.onclick=fillMenu;w.appendChild(f);
-  }
+  var mk=function(t,ti,fn,id){var x=document.createElement('button');x.className='at-bk';x.type='button';x.textContent=t;x.title=ti;x.onclick=fn;if(id)x.id=id;w.appendChild(x);return x};
+  var fileInp=document.querySelector('input[type=file]:not(.at-x)');
+  MODE=fileInp?'file':(fields().length?'form':'');
+  if(MODE)mk('Live data','Keep this dashboard updated from your Google Sheet or last Excel file',liveMenu,'at-live');
+  if(MODE==='form')mk('Fill from Excel','Upload an Excel file to fill this form',fillMenu);
+  mk('Download Excel backup','Save your entries and results as an Excel (CSV) file on this device',downloadBackup);
   document.body.appendChild(w);
-  if(hasFile)excelForCsv();
+  if(MODE==='file')excelForCsv();
+  if(MODE)setTimeout(autoLoad,50);
 }
 /* ---------- Excel upload for every agent ---------- */
 var XL=null;
@@ -158,23 +158,59 @@ function template(){needXLSX(function(){var F=fields(),wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([F.map(function(f){return f.label}),F.map(curVal)]),'Data');
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['How to fill'],['Row 1 holds the field names: keep them as they are.'],['Add one row per record. Row 2 shows the example values on the page.'],['Upload the file with "Fill from Excel" on the '+agent+' page and pick the row to use.']]),'Read me');
  XLSX.writeFile(wb,agent.replace(/[^A-Za-z0-9]+/g,'_')+'_template.xlsx')})}
+/* ---------- form agents: rows from Excel or Sheet ---------- */
+function matchMap(rows){var F=fields(),keys=Object.keys(rows[0]||{});return {F:F,keys:keys,map:F.map(function(f){return keys.filter(function(k){return norm(k)===norm(f.label)})[0]||keys.filter(function(k){return norm(k)&&(norm(f.label).indexOf(norm(k))===0||norm(k).indexOf(norm(f.label))===0)})[0]})}}
+function goRun(){var go=window.run||window.calc||window.go;if(typeof go==='function'){try{go()}catch(x){}}else{var bt=[].slice.call(document.querySelectorAll('main button,button')).filter(function(b){return !inUI(b)&&!b.classList.contains('g2')})[0];if(bt)bt.click()}}
+function applyRow(rows,r){var M=matchMap(rows);M.F.forEach(function(f,i){if(M.map[i]!==undefined&&rows[r][M.map[i]]!==undefined)setVal(f,rows[r][M.map[i]])});goRun()}
+function readRows(buf,cb,err){needXLSX(function(){try{var wb=XLSX.read(buf,{type:typeof buf==='string'?'string':'array',cellDates:true});cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:'',dateNF:'yyyy-mm-dd'}))}catch(x){err&&err()}})}
 function fillMenu(){var o=overlay('<h2>Fill from Excel</h2><p>Upload an Excel or CSV file with the field names in the first row. Not sure of the format? Download the template for this agent first.</p><input type="file" class="at-x" id="at-xf" accept=".xlsx,.xls,.csv"><div class="at-m" id="at-xm"></div><div id="at-xr"></div><button id="at-xt">Download Excel template</button><button class="at-l" id="at-xc">Close</button>');
  o.querySelector('#at-xc').onclick=function(){o.remove()};o.querySelector('#at-xt').onclick=template;
  o.querySelector('#at-xf').onchange=function(){var file=this.files[0];if(!file)return;var m=o.querySelector('#at-xm');m.style.color='#62718a';m.textContent='Reading '+file.name+'...';
-  needXLSX(function(){var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:'',dateNF:'yyyy-mm-dd'});
-   if(!rows.length)throw 0;var F=fields(),keys=Object.keys(rows[0]),map=F.map(function(f){var k=keys.filter(function(k){return norm(k)===norm(f.label)})[0]||keys.filter(function(k){return norm(k)&&(norm(f.label).indexOf(norm(k))===0||norm(k).indexOf(norm(f.label))===0)})[0];return k});
-   var hit=map.filter(Boolean).length;if(!hit){m.style.color='#b91c1c';m.textContent='None of the column names match this form. Download the template and copy your data into it.';return}
-   var apply=function(r){F.forEach(function(f,i){if(map[i]!==undefined&&rows[r][map[i]]!==undefined)setVal(f,rows[r][map[i]])});o.remove();
-    var go=window.run||window.calc||window.go;if(typeof go==='function'){try{go()}catch(x){}}else{var bt=[].slice.call(document.querySelectorAll('main button,button')).filter(function(b){return !inUI(b)&&!b.classList.contains('g2')})[0];if(bt)bt.click()}};
-   if(rows.length===1){apply(0);return}
-   m.style.color='#166534';m.textContent=rows.length+' rows found, '+hit+' of '+F.length+' fields matched. Choose the row to fill:';
-   var first=keys[0],box=o.querySelector('#at-xr');box.innerHTML='<div style="max-height:240px;overflow:auto;border:1px solid #cdd6e3;border-radius:10px;margin-bottom:8px">'+rows.map(function(r,i){return '<button type="button" data-i="'+i+'" style="display:block;width:100%;text-align:left;background:#fff;color:#17273c;border:0;border-bottom:1px solid #eef1f6;border-radius:0;padding:10px 12px;margin:0;font-weight:500">'+(i+1)+'. '+esc(cleanTxt(r[first]))+(keys[1]?' · '+esc(cleanTxt(r[keys[1]])):'')+'</button>'}).join('')+'</div>';
-   [].slice.call(box.querySelectorAll('button')).forEach(function(b){b.onclick=function(){apply(+b.getAttribute('data-i'))}})
-  }catch(x){m.style.color='#b91c1c';m.textContent='Could not read this file. Use the template for this agent.'}};rd.readAsArrayBuffer(file)})}}
+  var rd=new FileReader();rd.onload=function(e){readRows(new Uint8Array(e.target.result),function(rows){
+   if(!rows.length){m.style.color='#b91c1c';m.textContent='This file has no data rows.';return}
+   var M=matchMap(rows),hit=M.map.filter(Boolean).length;if(!hit){m.style.color='#b91c1c';m.textContent='None of the column names match this form. Download the template and copy your data into it.';return}
+   var pick=function(r){saveSrc({kind:'rows',name:file.name,rows:rows,idx:r,last:r===rows.length-1});o.remove();applyRow(rows,r);liveBadge()};
+   if(rows.length===1){pick(0);return}
+   m.style.color='#166534';m.textContent=rows.length+' rows found, '+hit+' of '+M.F.length+' fields matched. Choose the row to fill:';
+   var first=M.keys[0],box=o.querySelector('#at-xr');box.innerHTML='<div style="max-height:240px;overflow:auto;border:1px solid #cdd6e3;border-radius:10px;margin-bottom:8px">'+rows.map(function(r,i){return '<button type="button" data-i="'+i+'" style="display:block;width:100%;text-align:left;background:#fff;color:#17273c;border:0;border-bottom:1px solid #eef1f6;border-radius:0;padding:10px 12px;margin:0;font-weight:500">'+(i+1)+'. '+esc(cleanTxt(r[first]))+(M.keys[1]?' · '+esc(cleanTxt(r[M.keys[1]])):'')+'</button>'}).join('')+'</div>';
+   [].slice.call(box.querySelectorAll('button')).forEach(function(b){b.onclick=function(){pick(+b.getAttribute('data-i'))}})
+  },function(){m.style.color='#b91c1c';m.textContent='Could not read this file. Use the template for this agent.'})};rd.readAsArrayBuffer(file)}}
+/* ---------- file agents: remember and replay ---------- */
+function mainFile(){return document.querySelector('input[type=file]:not(.at-x)')}
+function b64e(buf){var u=new Uint8Array(buf),s='';for(var i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)}
+function b64d2(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+function feedFile(inp,file){var dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;inp._replay=1;inp.dispatchEvent(new Event('change',{bubbles:true}));inp._replay=0}
 function excelForCsv(){[].slice.call(document.querySelectorAll('input[type=file]:not(.at-x)')).forEach(function(inp){var a=inp.getAttribute('accept')||'';if(/csv/i.test(a)&&!/xlsx/i.test(a)){inp.setAttribute('accept',a+',.xlsx,.xls');inp.setAttribute('data-x','1');var n=document.createElement('div');n.className='at-xn';n.textContent='Excel files (.xlsx) work too.';(inp.closest('label')||inp).insertAdjacentElement('afterend',n)}});
- document.addEventListener('change',function(e){var inp=e.target;if(!inp||inp.type!=='file'||!inp.getAttribute('data-x')||inp._xl)return;var f=inp.files&&inp.files[0];if(!f||!/\.xlsx?$/i.test(f.name))return;e.stopImmediatePropagation();
+ document.addEventListener('change',function(e){var inp=e.target;if(!inp||inp.type!=='file'||inp.classList.contains('at-x')||inp._xl)return;var f=inp.files&&inp.files[0];if(!f)return;
+  if(!inp._replay&&f.size<1500000){var rd0=new FileReader();rd0.onload=function(ev){saveSrc({kind:'file',name:f.name,type:f.type,data:b64e(ev.target.result)});liveBadge()};rd0.readAsArrayBuffer(f)}
+  if(!inp.getAttribute('data-x')||!/\.xlsx?$/i.test(f.name))return;e.stopImmediatePropagation();
   needXLSX(function(){var rd=new FileReader();rd.onload=function(ev){try{var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true}),csv=XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]],{dateNF:'yyyy-mm-dd'});
    var dt=new DataTransfer();dt.items.add(new File([csv],f.name.replace(/\.xlsx?$/i,'.csv'),{type:'text/csv'}));inp.files=dt.files;inp._xl=1;inp.dispatchEvent(new Event('change',{bubbles:true}));inp._xl=0}catch(x){alert('Could not read this Excel file.')}};rd.readAsArrayBuffer(f)})},true)}
+/* ---------- live data: Google Sheet link or last file ---------- */
+var MODE='',SRCK='aarohan_src_'+(PAGE||'page');
+function getSrc(){return get(SRCK)||{}}
+function saveSrc(o){var s=getSrc();if(o.kind!=='url'&&s.url)o.url=s.url;o.at=Date.now();try{localStorage.setItem(SRCK,JSON.stringify(o))}catch(e){try{delete o.data;delete o.rows;localStorage.setItem(SRCK,JSON.stringify(o))}catch(x){}}}
+function sheetCsvUrl(u){u=String(u||'').trim();var m=u.match(/docs\.google\.com\/spreadsheets\/d\/(e\/)?([A-Za-z0-9_-]+)/);if(!m)return u;if(m[1])return 'https://docs.google.com/spreadsheets/d/e/'+m[2]+'/pub?output=csv'+((u.match(/[?&#]gid=(\d+)/)||[])[1]?'&gid='+u.match(/[?&#]gid=(\d+)/)[1]:'');var g=(u.match(/[?&#]gid=(\d+)/)||[])[1];return 'https://docs.google.com/spreadsheets/d/'+m[2]+'/export?format=csv'+(g?'&gid='+g:'')}
+function ago(t){var m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago'}
+function liveBadge(msg){var b=document.getElementById('at-live');if(!b)return;var s=getSrc();b.textContent=s.url?'Live: Google Sheet':(s.kind?'Last file: '+(s.name||'Excel'):'Live data');if(msg)b.title=msg;b.style.borderColor=s.url?'#16a34a':'';b.style.color=s.url?'#166534':''}
+function loadUrl(u,done,fail){fetch(sheetCsvUrl(u),{cache:'no-store'}).then(function(r){if(!r.ok)throw r.status;return r.text()}).then(function(t){if(/^\s*<(!doctype|html)/i.test(t))throw 'html';
+  if(MODE==='file'){var inp=mainFile();feedFile(inp,new File([t],'google-sheet.csv',{type:'text/csv'}));done&&done(t.split(/\n/).length-1)}
+  else readRows(t,function(rows){if(!rows.length)return fail&&fail('empty');var s=getSrc(),i=s.last===false&&s.idx<rows.length?s.idx:rows.length-1;applyRow(rows,i);done&&done(rows.length)},function(){fail&&fail('parse')})
+ }).catch(function(x){fail&&fail(x)})}
+function autoLoad(){var s=getSrc();if(!s.kind&&!s.url)return;
+ var fromFile=function(){if(s.kind==='file'&&s.data&&MODE==='file'){var inp=mainFile();if(inp)feedFile(inp,new File([b64d2(s.data)],s.name||'data.csv',{type:s.type||''}))}else if(s.kind==='rows'&&s.rows&&MODE==='form'){applyRow(s.rows,Math.min(s.idx||0,s.rows.length-1))}liveBadge('Loaded '+(s.name||'your last file')+' saved '+ago(s.at))};
+ if(s.url)loadUrl(s.url,function(n){s.at=Date.now();try{localStorage.setItem(SRCK,JSON.stringify(s))}catch(e){}liveBadge('Updated from Google Sheet just now ('+n+' rows)')},function(){fromFile();toast('Could not reach your Google Sheet. Showing your last saved data.')});
+ else fromFile()}
+function toast(t){var d=document.createElement('div');d.className='at-bar';d.style.bottom='calc(10px + env(safe-area-inset-bottom,0px))';d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove()},5000)}
+function liveMenu(){var s=getSrc();var o=overlay('<h2>Live data</h2><p>Keep your data in a Google Sheet and this '+(MODE==='file'?'dashboard':'agent')+' updates itself every time you open it. You only maintain the Sheet.</p>'+
+ '<ol style="margin:0 0 12px;padding-left:18px;color:#62718a;font-size:13px;line-height:1.6"><li>Put your data in Google Sheets with the same columns as the Excel template.</li><li>In Google Sheets: File &gt; Share &gt; Publish to web &gt; choose the sheet &gt; CSV &gt; Publish.</li><li>Copy the link and paste it here.</li></ol>'+
+ '<input id="at-lu" placeholder="https://docs.google.com/spreadsheets/..." value="'+esc(s.url||'')+'"><div class="at-m" id="at-lm">'+(s.url?'Connected. Last update '+ago(s.at)+'.':(s.kind?'Without a link, this page reopens with your last file: '+esc(s.name||'')+' ('+ago(s.at)+').':''))+'</div>'+
+ '<button id="at-ls">Connect and load now</button>'+(s.url?'<button id="at-lr" style="background:#fff;color:#081a32;border:1.5px solid #081a32">Refresh now</button>':'')+(s.kind||s.url?'<button class="at-l" id="at-ld">Disconnect and forget saved data</button>':'')+'<button class="at-l" id="at-lc">Close</button>');
+ var m=o.querySelector('#at-lm');o.querySelector('#at-lc').onclick=function(){o.remove()};
+ var go=function(u){m.style.color='#62718a';m.textContent='Loading your Google Sheet...';loadUrl(u,function(n){var x=getSrc();x.url=u;x.at=Date.now();if(!x.kind)x.kind='url';try{localStorage.setItem(SRCK,JSON.stringify(x))}catch(e){}liveBadge();o.remove();toast('Loaded '+n+' rows from your Google Sheet. It will update every time you open this page.')},function(err){m.style.color='#b91c1c';m.textContent=err==='html'||err===401||err===403||err===404?'The Sheet is not published. In Google Sheets use File > Share > Publish to web > CSV, then paste that link.':'Could not load this link. Check it is published to the web as CSV and your internet is on.'})};
+ o.querySelector('#at-ls').onclick=function(){var u=o.querySelector('#at-lu').value.trim();if(!/^https:\/\//.test(u)){m.style.color='#b91c1c';m.textContent='Paste the full link that starts with https://';return}go(u)};
+ var r=o.querySelector('#at-lr');if(r)r.onclick=function(){go(s.url)};
+ var d=o.querySelector('#at-ld');if(d)d.onclick=function(){try{localStorage.removeItem(SRCK)}catch(e){}liveBadge();o.remove();toast('Disconnected. Saved data removed from this browser.')}}
 window.aarohanBackup=downloadBackup;
 window.aarohanEnterKey=keyBox;
 function savedKeys(){var o=get(LIC);if(!o)return[];if(o.key)return[o.key];return o.keys||[]}
