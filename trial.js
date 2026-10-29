@@ -131,6 +131,7 @@ function backupBtn(){
   var mk=function(t,ti,fn,id){var x=document.createElement('button');x.className='at-bk';x.type='button';x.textContent=t;x.title=ti;x.onclick=fn;if(id)x.id=id;w.appendChild(x);return x};
   var fileInp=document.querySelector('input[type=file]:not(.at-x)');
   MODE=fileInp?'file':(fields().length?'form':'');
+  mk('How to use','Step-by-step help for this agent',helpMenu,'at-help');
   mk('My company','Add your logo, company name and address to this agent and its reports',brandMenu,'at-brand');
   if(MODE)mk('Live data','Keep this dashboard updated from your Google Sheet or last Excel file',liveMenu,'at-live');
   if(MODE==='form')mk('Fill from Excel','Upload an Excel file to fill this form',fillMenu);
@@ -189,6 +190,19 @@ function excelForCsv(){[].slice.call(document.querySelectorAll('input[type=file]
   needXLSX(function(){var rd=new FileReader();rd.onload=function(ev){try{var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true}),csv=XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]],{dateNF:'yyyy-mm-dd'});
    var dt=new DataTransfer();dt.items.add(new File([csv],f.name.replace(/\.xlsx?$/i,'.csv'),{type:'text/csv'}));inp.files=dt.files;inp._xl=1;inp.dispatchEvent(new Event('change',{bubbles:true}));inp._xl=0}catch(x){alert('Could not read this Excel file.')}};rd.readAsArrayBuffer(f)})},true)}
 
+
+/* ---------- in-agent help ---------- */
+function helpMenu(){var hasF=MODE==='file',hasForm=MODE==='form';
+ var steps=['<b>See the sample:</b> the agent opens with example data so you can see a full result first.',
+  hasF?'<b>Load your data:</b> use the upload box on this page. Excel (.xlsx) and CSV both work. Keep the column names shown in the sample.':'<b>Enter your data:</b> replace the sample values with yours, then tap the main button on the page.',
+  hasForm?'<b>Fill from Excel:</b> tap Fill from Excel, download the template, add one row per record, upload it and pick the row.':'',
+  MODE?'<b>Live data:</b> keep your data in your own Google Sheet, publish it as CSV (File, Share, Publish to web) and paste the link under Live data. The agent updates every time you open it.':'',
+  '<b>My company:</b> add your logo, name, address and GST once; they show on every agent and on printed reports.',
+  '<b>Results:</b> green = OK, amber = watch, red = action. Use Copy or Print / save PDF to share.',
+  '<b>Backup:</b> tap Download Excel backup at the end of each session. Your data stays in this browser and is not sent to us.'].filter(Boolean);
+ var o=overlay('<h2>How to use: '+esc(agent)+'</h2><ol style="margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.55;color:#17273c">'+steps.map(function(x){return '<li style="margin:6px 0">'+x+'</li>'}).join('')+'</ol>'+
+  '<p style="font-size:13px">Outputs are drafts for review under your SOP.</p><a class="at-w" style="background:#081a32" href="guide.html" target="_blank" rel="noopener">Open the full customer guide</a><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I need help with the '+agent+'.')+'" style="margin-top:8px">Ask on WhatsApp</a><button class="at-l" id="at-hc">Close</button>');
+ o.querySelector('#at-hc').onclick=function(){o.remove()}}
 /* ---------- customer branding: logo, name, address ---------- */
 var BK='aarohan_brand_v1',HDR0=null;
 function getBrand(){return get(BK)||{}}
