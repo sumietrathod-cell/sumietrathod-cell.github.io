@@ -2,6 +2,8 @@
 /* Aarohan QA Analytics: 7-day free demo + signed license keys.
    Only the PUBLIC key is here. License keys can be created only with Sumit's private Master Key,
    which is never stored on this website. */
+/* License server (Cloudflare Worker). Empty = signature check only. */
+var LICSERVER='';
 var KEY='aarohan_trial_v1',LIC='aarohan_license_v1',DAYS=7,EP='https://formspree.io/f/xrpervae',WA='916357115513';
 var PUB={kty:'EC',crv:'P-256',x:'Ji_1Rd4Fw-9d-o-E2kazdMl-HQ0O-QXoEyNxiu6sVgk',y:'h2m8EkJ_cU9szuu6WkpufPA39YjEcg9Qj6amfhMJkG4',ext:true};
 var agent=(document.title||'Agent').split('|')[0].trim();
@@ -58,7 +60,7 @@ function keyBox(msg){
     var b=this,e=o.querySelector('#at-e');b.disabled=true;b.textContent='Checking...';
     verify(o.querySelector('#at-k').value).then(function(r){
       b.disabled=false;b.textContent='Activate';
-      if(r.ok){addKey(r.key);if(covers(r.info)){licensed(r.info);return}e.textContent='Saved. This key covers '+scopeText(r.info)+', not this agent ('+GNAME[GROUP]+').';return}
+      if(r.ok){addKey(r.key);if(covers(r.info)){gate(r,function(){licensed(r.info)});return}e.textContent='Saved. This key covers '+scopeText(r.info)+', not this agent ('+GNAME[GROUP]+').';return}
       e.textContent=r.why==='expired'?'This key expired on '+r.info.e+'. Please renew on WhatsApp.':'This key is not valid. Please check and paste it again.';
     });
   };
@@ -259,6 +261,21 @@ function addKey(k){var a=savedKeys().filter(function(x){return x!==k});a.unshift
 function dropKey(k){set(LIC,{keys:savedKeys().filter(function(x){return x!==k})})}
 function notCovered(info){var o=overlay('<h2>This agent is not in your license</h2><p>Your license for '+esc(info.n)+' covers: <b>'+esc(scopeText(info))+'</b>. '+esc(agent)+' is part of the '+esc(GNAME[GROUP])+'.</p><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I have a license ('+scopeText(info)+') and want to add the '+agent+'.')+'">Upgrade on WhatsApp</a><button id="at-have">Enter another key</button>');o.querySelector('#at-have').onclick=function(){o.remove();keyBox()}}
 
+
+/* ---------- online check: device limit and switch-off ---------- */
+function deviceId(){var d=null;try{d=localStorage.getItem('aarohan_device')}catch(e){}if(!d){d=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2);try{localStorage.setItem('aarohan_device',d)}catch(e){}}return d}
+function gate(r,ok){if(!LICSERVER)return ok();
+ var ck='aarohan_lic_ok',c=get(ck)||{},k=r.key||'';
+ if(c.k===k&&Date.now()-c.at<864e5)return ok();
+ var done=false,t=setTimeout(function(){if(!done){done=true;ok()}},6000);
+ fetch(LICSERVER.replace(/\/$/,'')+'/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:deviceId()})})
+ .then(function(x){return x.json()}).then(function(res){if(done)return;done=true;clearTimeout(t);
+  if(res.ok){set(ck,{k:k,at:Date.now()});ok();return}
+  if(res.why==='limit'||res.why==='revoked'){try{localStorage.removeItem(ck)}catch(e){}clearUI();
+   var msg=res.why==='limit'?'This license key is already active on '+res.limit+' device'+(res.limit>1?'s':'')+', the maximum for this plan. Ask the license owner to free a device, or buy an extra device.':'This license has been switched off. Please contact Aarohan QA Analytics to renew or restore it.';
+   var o=overlay('<h2>'+(res.why==='limit'?'Device limit reached':'License switched off')+'</h2><p>'+msg+'</p><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, my '+agent+' license shows: '+(res.why==='limit'?'device limit reached':'license switched off')+'.')+'">Contact on WhatsApp</a><button id="at-have">Enter another key</button>');o.querySelector('#at-have').onclick=function(){o.remove();keyBox()};return}
+  ok()})
+ .catch(function(){if(done)return;done=true;clearTimeout(t);ok()})}
 /* ---------- 7-day demo ---------- */
 function bar(left){var b=document.createElement('div');b.className='at-bar';b.innerHTML='Free demo: '+left+' day'+(left===1?'':'s')+' left <a id="at-key">Enter key</a><a target="_blank" rel="noopener" href="'+wa('Hello Sumit, I tried the '+agent+' demo and want a license.')+'">Buy license</a>';document.body.appendChild(b);b.querySelector('#at-key').onclick=function(){keyBox()};backupBtn()}
 function expired(){var o=overlay('<h2>Your 7-day free demo has ended</h2><p>Thank you for trying the Aarohan agents. To keep using them, buy a license key on WhatsApp, then enter it here.</p><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, my free demo ended. I want a license key for the '+agent+'.')+'">Buy license on WhatsApp</a><button id="at-have">I have a license key</button>');o.querySelector('#at-have').onclick=function(){o.remove();keyBox()}}
@@ -284,7 +301,7 @@ function init(skipLicense){
       else{if(r.why==='expired'&&!exp)exp=r;if(!(fromUrl&&keys[i]===fromUrl))dropKey(keys[i])}
     });
     if(fromUrl&&rs[0].ok)addKey(fromUrl);
-    if(hit){licensed(hit.info);return}
+    if(hit){gate(hit,function(){licensed(hit.info)});return}
     if(other){notCovered(other.info);return}
     if(exp){keyBox('Your license expired on '+esc(exp.info.e)+'. Please renew on WhatsApp and paste the new key.');return}
     trial();
