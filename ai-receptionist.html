@@ -6,6 +6,11 @@
 <title>Aarohi AI Receptionist | Aarohan QA Analytics</title>
 <meta name="description" content="Talk to Aarohi, the voice AI receptionist of Aarohan QA Analytics, in Gujarati, Hindi or English. Ask about the 75 ready-made agents, prices and the free 7-day trial.">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="manifest" href="aarohi.webmanifest">
+<link rel="apple-touch-icon" href="aarohi-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aarohi">
 <meta name="theme-color" content="#081a32">
 <style>
 :root{--navy:#081a32;--navy2:#14286b;--gold:#d5b46d;--ink:#17273c;--muted:#62718a;--bg:#f5f7fb;--line:#e3e8ef;--green:#16a34a}
@@ -36,6 +41,8 @@ select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8p
 form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:center}
 input{flex:1;min-width:0;padding:12px 15px;border:1px solid #cdd6e3;border-radius:99px;font-size:15px;outline:0}
 input:focus{border-color:var(--navy)}
+.tg.echo-on{background:var(--navy);color:#fff;border-color:var(--navy)}
+#inst{display:none}
 .mic{width:48px;height:48px;border-radius:50%;border:0;background:var(--gold);color:var(--navy);font-size:20px;cursor:pointer;flex:none}
 .mic.rec{background:#dc2626;color:#fff;animation:pl 1s ease-in-out infinite}@keyframes pl{50%{transform:scale(1.08)}}
 .send{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:12px 18px;font-weight:700;cursor:pointer;flex:none}
@@ -57,7 +64,9 @@ input:focus{border-color:var(--navy)}
       <div class="who"><b>Aarohi · આરોહી</b><small id="st">ગુજરાતી · हिंदी · English</small></div>
       <label for="lang" class="sr" style="position:absolute;left:-9999px">Mic language</label>
       <select id="lang" aria-label="Mic language"><option value="gu-IN">🎤 ગુજરાતી</option><option value="hi-IN">🎤 हिंदी</option><option value="en-IN">🎤 English</option></select>
+      <button class="tg" id="echo" type="button" title="Echo mode: ek vaar dabavo, pachhi bas bolta raho">🔁 Echo</button>
       <button class="tg" id="spk" type="button">🔊 On</button>
+      <button class="tg" id="inst" type="button">📲 Install</button>
     </div>
     <div id="log" aria-live="polite"></div>
     <div class="qr" id="qr">
@@ -194,7 +203,7 @@ function speak(s,lang){
  try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(s.replace(/•/g,''));var code=lang==='gu'?'gu-IN':lang==='hi'?'hi-IN':'en-IN';u.lang=code;
   var vs=speechSynthesis.getVoices(),v=null;for(var i=0;i<vs.length;i++){if(vs[i].lang.replace('_','-')===code){v=vs[i];break}}
   if(!v)for(i=0;i<vs.length;i++){if(vs[i].lang.indexOf(code.slice(0,2))===0){v=vs[i];break}}
-  if(v)u.voice=v;u.onstart=function(){orb.classList.add('on')};u.onend=u.onerror=function(){orb.classList.remove('on')};speechSynthesis.speak(u)}catch(e){}
+  if(v)u.voice=v;u.onstart=function(){orb.classList.add('on')};u.onend=u.onerror=function(){orb.classList.remove('on');if(window.aarohiEchoNext)window.aarohiEchoNext()};speechSynthesis.speak(u)}catch(e){}
 }
 
 function grabLead(t){
@@ -322,16 +331,30 @@ $('spk').addEventListener('click',function(){speakOn=!speakOn;this.textContent=s
 var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,recOn=false;
 if(SR){
  rec=new SR();rec.interimResults=true;rec.continuous=false;
- rec.onresult=function(e){var s='',fin=false;for(var i=0;i<e.results.length;i++){s+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}q.value=s;if(fin){q.value='';reply(s)}};
- rec.onerror=function(e){st.textContent=e.error==='not-allowed'?'માઇકની પરવાનગી આપો':'માઇક: '+e.error};
- rec.onend=function(){recOn=false;$('mic').classList.remove('rec');if(st.textContent==='સાંભળું છું…')st.textContent='ગુજરાતી · हिंदी · English'};
+ rec.onresult=function(e){var s='',fin=false;for(var i=0;i<e.results.length;i++){s+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}q.value=s;if(fin){q.value='';if(echoOn&&/^\s*(bas|stop|band karo|bandh karo|બસ|બંધ કરો|बस|बंद करो)\b/i.test(s)){echoStop();return}reply(s)}};
+ rec.onerror=function(e){if(echoOn&&(e.error==='no-speech'||e.error==='aborted'))return;st.textContent=e.error==='not-allowed'?'માઇકની પરવાનગી આપો':'માઇક: '+e.error};
+ rec.onend=function(){recOn=false;$('mic').classList.remove('rec');if(echoOn){setTimeout(function(){if(echoOn&&!recOn&&!(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)))listen()},500);}if(st.textContent==='સાંભળું છું…')st.textContent='ગુજરાતી · हिंदी · English'};
 }
+function listen(){if(!rec||recOn)return;rec.lang=$('lang').value;try{rec.start();recOn=true;$('mic').classList.add('rec');st.textContent=echoOn?'🔁 Echo · સાંભળું છું…':'સાંભળું છું…'}catch(e){}}
 $('mic').addEventListener('click',function(){
  if(!rec){st.textContent='આ બ્રાઉઝરમાં માઇક નથી, Chrome વાપરો';return}
- if(recOn){rec.stop();return}
+ if(recOn){if(echoOn)echoStop();rec.stop();return}
  try{speechSynthesis.cancel()}catch(e){}
- rec.lang=$('lang').value;try{rec.start();recOn=true;this.classList.add('rec');st.textContent='સાંભળું છું…'}catch(e){}
+ listen();
 });
+/* Echo mode: hands-free conversation like a smart speaker */
+var echoOn=false,wake=null;
+function keepAwake(){try{if(navigator.wakeLock)navigator.wakeLock.request('screen').then(function(l){wake=l}).catch(function(){})}catch(e){}}
+function echoStart(){if(!rec){st.textContent='આ બ્રાઉઝરમાં માઇક નથી, Chrome વાપરો';return}echoOn=true;$('echo').classList.add('echo-on');$('echo').textContent='🔁 Echo ON';keepAwake();try{speechSynthesis.cancel()}catch(e){}listen()}
+function echoStop(){echoOn=false;$('echo').classList.remove('echo-on');$('echo').textContent='🔁 Echo';try{if(wake){wake.release();wake=null}}catch(e){}try{if(recOn)rec.stop()}catch(e){}st.textContent='ગુજરાતી · हिंदी · English'}
+window.aarohiEchoNext=function(){if(echoOn)setTimeout(listen,350)};
+$('echo').addEventListener('click',function(){echoOn?echoStop():echoStart()});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&echoOn){keepAwake();listen()}});
+/* Install as app */
+var instEvt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();instEvt=e;$('inst').style.display='inline-block'});
+$('inst').addEventListener('click',function(){if(instEvt){instEvt.prompt();instEvt=null;this.style.display='none'}});
+if('serviceWorker' in navigator)try{navigator.serviceWorker.register('voice-sw.js').catch(function(){})}catch(e){}
 $('lang').addEventListener('change',function(){var v=this.value;var l=v==='gu-IN'?'gu':v==='hi-IN'?'hi':'en';q.placeholder=l==='gu'?'બોલો અથવા લખો…':l==='hi'?'बोलिए या लिखिए…':'Speak or type…'});
 if('speechSynthesis' in window)try{speechSynthesis.getVoices()}catch(e){}
 
