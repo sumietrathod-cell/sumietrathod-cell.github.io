@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Aarohi Voice Typing | Aarohan QA Analytics</title>
+<meta name="description" content="Bolo ane AI saaf text lakhi aape. Gujarati, Hindi, English voice typing.">
+<link rel="manifest" href="aarohi-type.webmanifest">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="aarohi-192.png">
+<meta name="theme-color" content="#0b0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aarohi Type">
+<style>
+:root{--bg:#0b0f14;--card:#151b23;--line:#253040;--ink:#eef2f7;--muted:#8b98ab;--gold:#d5b46d;--red:#e5484d;--green:#30a46c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI","Noto Sans Gujarati","Noto Sans Devanagari",Arial,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+header img{width:32px;height:32px;border-radius:8px}
+header h1{font-size:17px;margin:0;flex:1;line-height:1.2}
+header h1 small{display:block;font-size:12px;color:var(--gold);font-weight:500}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 11px;font-size:14px;cursor:pointer}
+main{flex:1;display:flex;flex-direction:column;gap:12px;padding:4px 16px 16px;max-width:640px;width:100%;margin:0 auto;overflow-y:auto}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:7px 13px;font-size:14px;cursor:pointer}
+.chip.on{background:var(--gold);color:#111;border-color:var(--gold);font-weight:600}
+.lbl{font-size:12px;color:var(--muted);margin:2px 0 -4px}
+.out{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;min-height:150px;position:relative}
+.out textarea{width:100%;min-height:130px;background:transparent;border:0;color:var(--ink);font:inherit;font-size:18px;resize:vertical;outline:none}
+.out .live{color:var(--muted);font-style:italic}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.act{flex:1;min-width:92px;border:0;border-radius:12px;padding:12px 10px;font:inherit;font-weight:600;cursor:pointer;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.act.pri{background:var(--gold);color:#111;border-color:var(--gold)}
+.st{text-align:center;color:var(--muted);font-size:14px;min-height:22px}
+.dock{padding:14px 16px;padding-bottom:max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px;background:linear-gradient(transparent,var(--bg) 30%)}
+#talk{width:96px;height:96px;border-radius:50%;border:0;background:var(--gold);color:#111;font-size:38px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 8px 30px #d5b46d33;transition:transform .12s}
+#talk.rec{background:var(--red);color:#fff;transform:scale(1.08);animation:pulse 1.1s infinite}
+#talk.busy{opacity:.6}
+@keyframes pulse{50%{box-shadow:0 0 0 18px #e5484d22}}
+.hint{font-size:13px;color:var(--muted)}
+.hist{display:flex;flex-direction:column;gap:8px}
+.hi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;cursor:pointer;white-space:pre-wrap;max-height:84px;overflow:hidden}
+.hi time{display:block;font-size:11px;color:var(--muted)}
+dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:92%}
+dialog::backdrop{background:#000a}
+dialog label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
+dialog input,dialog select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--bg);color:var(--ink)}
+dialog .row{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.small{font-size:12.5px;color:var(--muted);margin-top:6px}
+.small a{color:var(--gold)}
+#inst{display:none}
+</style>
+</head>
+<body>
+<header>
+  <img src="logo.svg" alt="">
+  <h1>Aarohi Voice Typing<small>Bolo · AI lakhe · Copy · Paste</small></h1>
+  <button class="ib" id="inst" type="button">📲 Install</button>
+  <button class="ib" id="setBtn" type="button" aria-label="Settings">⚙️</button>
+</header>
+
+<main>
+  <div class="lbl">Bolvani bhasha</div>
+  <div class="chips" id="langs"></div>
+  <div class="lbl">AI shu kare?</div>
+  <div class="chips" id="modes"></div>
+
+  <div class="out">
+    <textarea id="txt" placeholder="Niche nu 🎤 button dabavi rakho ane bolo… chhodsho etle text ahi aavi jashe ane copy thai jashe."></textarea>
+    <div class="live" id="live"></div>
+  </div>
+
+  <div class="acts">
+    <button class="act pri" id="copy" type="button">📋 Copy</button>
+    <button class="act" id="wa" type="button">💬 WhatsApp</button>
+    <button class="act" id="share" type="button">↗️ Share</button>
+    <button class="act" id="redo" type="button">✨ Fari AI</button>
+    <button class="act" id="clr" type="button">🗑️ Clear</button>
+  </div>
+
+  <div class="lbl" id="histLbl" style="display:none">Pachhla lakhan (tap karo = pachhu lavo)</div>
+  <div class="hist" id="hist"></div>
+</main>
+
+<div class="dock">
+  <div class="st" id="st">Dabavi rakho ane bolo</div>
+  <button id="talk" type="button" aria-label="Dabavi rakho ane bolo">🎤</button>
+  <div class="hint">Dabavi rakho = bolo · Chhodo = text taiyar · Ek tap = chalu/bandh</div>
+</div>
+
+<dialog id="dlg">
+  <h2 style="margin:0 0 4px;font-size:19px">Settings</h2>
+  <div class="small">Key fakt aa phone na browser ma save thay chhe. Koi server par jati nathi.</div>
+  <label for="key">Google Gemini API key (FREE)</label>
+  <input id="key" type="password" autocomplete="off" placeholder="AIza... paste karo">
+  <div class="small">Key vagar pan chalshe (jem bolyu tem lakhase). AI sudharo/translate mate key joie:
+    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> → Google thi login → <b>Create API key</b> → copy → ahi paste. Card nathi joti.</div>
+  <label for="model">Model</label>
+  <select id="model">
+    <option value="gemini-3.8-flash">Gemini 3.8 Flash (free, jhadpi)</option>
+    <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (free, halku)</option>
+    <option value="gemini-2.5-flash">Gemini 2.5 Flash (free)</option>
+  </select>
+  <label for="auto">Text taiyar thay tyare</label>
+  <select id="auto"><option value="1">Auto copy karo (Go Echoo jevu)</option><option value="0">Copy na karo</option></select>
+  <div class="small">Company nu confidential data na bolsho: free Gemini ma data Google vapari shake.</div>
+  <div class="row"><button class="ib" id="delKey" type="button">Key delete</button><button class="act pri" id="save" type="button" style="flex:none">Save</button></div>
+</dialog>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var S={get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
+var txt=$('txt'),live=$('live'),st=$('st'),talk=$('talk');
+
+var LANGS=[['gu-IN','ગુજરાતી'],['hi-IN','हिन्दी'],['en-IN','English']];
+var MODES=[
+ ['clean','✨ Saaf karo','Fix punctuation, spelling and grammar. Remove filler words (umm, aa, matlab, etle ke), repetitions and false starts. Keep the SAME language and script the speaker used and keep the meaning exactly. Do not add anything.'],
+ ['raw','🎙️ Jem bolyu tem',''],
+ ['english','🇬🇧 English ma','Translate into clear, natural English. Remove filler words. Keep the meaning exactly.'],
+ ['msg','💬 WhatsApp message','Rewrite as a short, polite WhatsApp message in the same language the speaker used. Remove filler words. Keep the meaning.'],
+ ['email','📧 Professional email','Rewrite as a short professional email in English with a subject line on the first line as "Subject: ...". Remove filler words. Keep the meaning and facts exactly; do not invent names, numbers or dates.'],
+ ['points','• Points ma','Turn this into a clean bullet-point list in the same language the speaker used. Remove filler words. Keep every fact.']
+];
+var lang=S.get('at_lang','gu-IN'),mode=S.get('at_mode','clean');
+
+function chips(box,list,cur,onPick){box.innerHTML='';list.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip'+(it[0]===cur?' on':'');b.textContent=it[1];b.onclick=function(){onPick(it[0]);};box.appendChild(b)})}
+function drawLangs(){chips($('langs'),LANGS,lang,function(v){lang=v;S.set('at_lang',v);drawLangs()})}
+function drawModes(){chips($('modes'),MODES,mode,function(v){mode=v;S.set('at_mode',v);drawModes()})}
+drawLangs();drawModes();
+
+/* ---------- speech recognition: hold to talk ---------- */
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,want=false,finalT='',lastRaw='';
+function setSt(t){st.textContent=t}
+if(!SR){setSt('Aa browser ma mic nathi. Android ma Chrome vapro.');talk.classList.add('busy')}
+function startRec(){
+ if(!SR||want)return;
+ want=true;finalT='';live.textContent='';talk.classList.add('rec');setSt('🔴 Sambhalu chhu… bolo');
+ try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}
+ begin();
+}
+function begin(){
+ rec=new SR();rec.lang=lang;rec.interimResults=true;rec.continuous=true;rec.maxAlternatives=1;
+ rec.onresult=function(e){var interim='';for(var i=e.resultIndex;i<e.results.length;i++){var t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=(finalT?' ':'')+t.trim();else interim+=t}live.textContent=(finalT+' '+interim).trim()};
+ rec.onerror=function(e){if(e.error==='not-allowed'){want=false;doneOnce=true;talk.classList.remove('rec');setSt('Mic ni permission aapo (upar 🔒 → Microphone → Allow)')}};
+ rec.onend=function(){if(want){try{begin()}catch(e){}}else finish()};
+ try{rec.start()}catch(e){}
+}
+function stopRec(){
+ if(!want)return;want=false;talk.classList.remove('rec');setSt('Taiyar karu chhu…');
+ try{navigator.vibrate&&navigator.vibrate([20,40,20])}catch(e){}
+ try{rec&&rec.stop()}catch(e){finish()}
+ setTimeout(function(){if(st.textContent==='Taiyar karu chhu…'&&!busy)finish()},2500);
+}
+var busy=false,doneOnce=false;
+function finish(){
+ if(busy||doneOnce)return;doneOnce=true;
+ var raw=(finalT||live.textContent||'').trim();live.textContent='';
+ if(!raw){setSt('Kai sambhlayu nahi. Fari dabavi ne bolo.');return}
+ lastRaw=raw;process(raw);
+}
+var downAt=0,holdMode=false;
+talk.addEventListener('pointerdown',function(e){e.preventDefault();if(want){holdMode=false;stopRec();return}doneOnce=false;downAt=Date.now();holdMode=true;startRec()});
+talk.addEventListener('pointerup',function(){if(!holdMode)return;if(Date.now()-downAt<350){holdMode=false;setSt('🔴 Sambhalu chhu… pachhu tap karo etle bandh');return}holdMode=false;stopRec()});
+talk.addEventListener('pointercancel',function(){if(holdMode){holdMode=false;stopRec()}});
+talk.addEventListener('contextmenu',function(e){e.preventDefault()});
+
+/* ---------- AI ---------- */
+async function process(raw){
+ var m=MODES.filter(function(x){return x[0]===mode})[0];
+ var key=S.get('at_key','');
+ if(mode==='raw'||!key){
+  put(raw);
+  setSt(mode!=='raw'&&!key?'✓ Taiyar (AI mate ⚙️ ma free key nakho)':'✓ Taiyar');
+  return;
+ }
+ busy=true;talk.classList.add('busy');setSt('✨ AI sudhare chhe…');
+ try{
+  var out=await ai(m[2],raw,key);
+  put(out||raw);setSt('✓ Taiyar');
+ }catch(e){put(raw);setSt('AI bhool: '+e.message+' — jem bolyu tem mukyu chhe')}
+ busy=false;talk.classList.remove('busy');
+}
+async function ai(instr,raw,key){
+ var model=S.get('at_model','gemini-3.8-flash');
+ var sys='You are a dictation cleanup engine. '+instr+' The input is speech-to-text from an Indian speaker and may mix Gujarati, Hindi and English. Output ONLY the final text, no quotes, no explanation.';
+ var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:raw}]}],generationConfig:{maxOutputTokens:1200,temperature:0.2}})});
+ var j=await r.json();
+ if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+ var c=(j.candidates||[])[0];
+ return c&&c.content&&c.content.parts?c.content.parts.map(function(p){return p.text||''}).join('').trim():'';
+}
+function put(t){
+ var cur=txt.value.trim();
+ txt.value=cur?cur+'\n'+t:t;
+ saveHist(t);
+ if(S.get('at_auto','1')==='1')copy(true);
+}
+
+/* ---------- actions ---------- */
+function copy(silent){
+ var t=txt.value.trim();if(!t)return;
+ var ok=function(){if(!silent)setSt('📋 Copy thai gayu');else setSt('✓ Taiyar ane copy thai gayu — have koi pan app ma Paste karo')};
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,function(){fallback(t);ok()})}else{fallback(t);ok()}
+}
+function fallback(t){txt.select();try{document.execCommand('copy')}catch(e){}txt.setSelectionRange(0,0);txt.blur()}
+$('copy').onclick=function(){copy(false)};
+$('wa').onclick=function(){var t=txt.value.trim();if(t)window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank')};
+$('share').onclick=function(){var t=txt.value.trim();if(!t)return;if(navigator.share)navigator.share({text:t}).catch(function(){});else copy(false)};
+$('redo').onclick=function(){var t=txt.value.trim()||lastRaw;if(!t)return;if(!S.get('at_key','')){dlg.showModal();return}txt.value='';doneOnce=true;process(t)};
+$('clr').onclick=function(){txt.value='';live.textContent='';setSt('Dabavi rakho ane bolo')};
+
+/* ---------- history ---------- */
+function getHist(){try{return JSON.parse(S.get('at_hist','[]'))||[]}catch(e){return []}}
+function saveHist(t){var h=getHist();h.unshift({t:t,d:Date.now()});S.set('at_hist',JSON.stringify(h.slice(0,20)));drawHist()}
+function drawHist(){var h=getHist(),box=$('hist');box.innerHTML='';$('histLbl').style.display=h.length?'block':'none';
+ h.forEach(function(it){var d=document.createElement('div');d.className='hi';var tm=document.createElement('time');tm.textContent=new Date(it.d).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});d.appendChild(tm);d.appendChild(document.createTextNode(it.t));d.onclick=function(){txt.value=it.t;copy(false);window.scrollTo(0,0)};box.appendChild(d)})}
+drawHist();
+
+/* ---------- settings ---------- */
+var dlg=$('dlg');
+$('setBtn').onclick=function(){$('key').value=S.get('at_key','');$('model').value=S.get('at_model','gemini-3.8-flash');$('auto').value=S.get('at_auto','1');dlg.showModal()};
+$('save').onclick=function(){var k=$('key').value.trim();if(k)S.set('at_key',k);S.set('at_model',$('model').value);S.set('at_auto',$('auto').value);dlg.close();setSt(k?'✓ Save thayu — AI chalu':'✓ Save thayu')};
+$('delKey').onclick=function(){S.del('at_key');$('key').value='';setSt('Key delete thai')};
+
+/* ---------- install as app ---------- */
+var instEvt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();instEvt=e;$('inst').style.display='inline-block'});
+$('inst').onclick=function(){if(instEvt){instEvt.prompt();instEvt=null;this.style.display='none'}};
+if('serviceWorker' in navigator)try{navigator.serviceWorker.register('voice-sw.js').catch(function(){})}catch(e){}
+})();
+</script>
+</body>
+</html>
