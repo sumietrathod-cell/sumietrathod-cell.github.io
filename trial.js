@@ -3,7 +3,7 @@
    Only the PUBLIC key is here. License keys can be created only with Sumit's private Master Key,
    which is never stored on this website. */
 /* License server (Cloudflare Worker). Empty = signature check only. */
-var LICSERVER='';
+var LICSERVER='https://aarohan-lic.pages.dev';
 var KEY='aarohan_trial_v1',LIC='aarohan_license_v1',DAYS=7,EP='https://formspree.io/f/xrpervae',WA='916357115513';
 var PUB={kty:'EC',crv:'P-256',x:'Ji_1Rd4Fw-9d-o-E2kazdMl-HQ0O-QXoEyNxiu6sVgk',y:'h2m8EkJ_cU9szuu6WkpufPA39YjEcg9Qj6amfhMJkG4',ext:true};
 var agent=(document.title||'Agent').split('|')[0].trim();
@@ -268,7 +268,7 @@ function gate(r,ok){if(!LICSERVER)return ok();
  var ck='aarohan_lic_ok',c=get(ck)||{},k=r.key||'';
  if(c.k===k&&Date.now()-c.at<864e5)return ok();
  var done=false,t=setTimeout(function(){if(!done){done=true;ok()}},6000);
- fetch(LICSERVER.replace(/\/$/,'')+'/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:deviceId()})})
+ fetch(LICSERVER.replace(/\/$/,'')+'/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:deviceId(),page:PAGE})})
  .then(function(x){return x.json()}).then(function(res){if(done)return;done=true;clearTimeout(t);
   if(res.ok){set(ck,{k:k,at:Date.now()});ok();return}
   if(res.why==='limit'||res.why==='revoked'){try{localStorage.removeItem(ck)}catch(e){}clearUI();
