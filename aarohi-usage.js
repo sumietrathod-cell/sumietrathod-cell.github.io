@@ -20,6 +20,7 @@ var AAROHI_USAGE = {
 'apqr-pro-agent.html':{t:'special',k:'apqrpro'},
 'report-maker.html':{t:'csv',c:'any column headings; at least one number column (for example Sales); a date column and a category column (for example Region) give more charts',b:'Try with sample sales data',o:'Save as PDF / Print'},
 'bill-scanner.html':{t:'input',f:'Photos of your bills (JPG or PNG, straight and well lit), Bill language',b:'Read bills',o:'Download Excel'},
+'excel-cleaner.html':{t:'input',f:'Your messy Excel or CSV file, then the clean options you want',b:'Clean now',o:'Download clean Excel'},
 'cpk-agent.html':{t:'input',f:'Results (comma separated), Lower limit (LSL), Upper limit (USL)',b:'Calculate'},
 'stability-agent.html':{t:'input',f:'Months (comma separated), Assay % (same order), Lower limit %, Proposed shelf life (months)',b:'Predict',o:'Copy conclusion'},
 'coldchain-agent.html':{t:'input',f:'Temperatures (comma separated), Lower limit °C, Upper limit °C, Interval (minutes)',b:'Assess',o:'Copy assessment'},

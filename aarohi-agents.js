@@ -300,5 +300,9 @@ var AAROHI_AGENTS = [
 ['bill-scanner.html','Aarohan Bill Scanner (bill photo to Excel)','b','bill|bills|bill photo|invoice photo|gst bill|gst summary|purchase bill|receipt|scan bill|ocr|photo to excel|expense bills|ખર્ચ|બિલ|જીએસટી|फोटो|बिल|जीएसटी|खर्च',
  'બિલનો ફોટો પાડો અને Excel મળે, તારીખ, બિલ નંબર, દુકાન, GST અને કુલ રકમ સાથે અને મહિના મુજબ GST સારાંશ. ફોટો તમારા બ્રાઉઝરમાં જ વંચાય છે. બધા આંકડા જરૂર ચકાસો.',
  'बिल की फोटो खींचिए और Excel पाइए, तारीख, बिल नंबर, दुकान, GST और कुल रकम के साथ और महीने के हिसाब से GST सारांश. फोटो आपके ब्राउज़र में ही पढ़ी जाती है. सभी आंकड़े ज़रूर जाँचिए.',
- 'Click a photo of your bills and get an Excel with date, bill number, shop, GST and total, plus a monthly GST summary. Photos are read inside your browser. Always check every number.']
+ 'Click a photo of your bills and get an Excel with date, bill number, shop, GST and total, plus a monthly GST summary. Photos are read inside your browser. Always check every number.'],
+['excel-cleaner.html','Aarohan Excel Cleaner (clean messy Excel)','b','clean excel|excel cleaner|messy excel|duplicate|duplicates|remove duplicate|data cleaning|clean data|date format|phone number|ganda excel|saaf|ડુપ્લિકેટ|સાફ|ગંદી|એક્સેલ સાફ|डुप्लिकेट|साफ|गंदा एक्सेल|डेटा क्लीनिंग',
+ 'ગંદી Excel કે CSV ફાઇલ મૂકો. ડુપ્લિકેટ અને ખાલી લાઇન હટાવે, તારીખ, ફોન નંબર, નામ, રકમ અને ઈમેલ સુધારે, અને દરેક ફેરફારની યાદી આપે. ફાઇલ તમારા બ્રાઉઝરમાં જ રહે છે. ફેરફારની યાદી જરૂર ચકાસો.',
+ 'गंदी Excel या CSV फाइल डालिए. डुप्लिकेट और खाली लाइनें हटाता है, तारीख, फोन नंबर, नाम, रकम और ईमेल ठीक करता है, और हर बदलाव की सूची देता है. फाइल आपके ब्राउज़र में ही रहती है. बदलाव की सूची ज़रूर जाँचिए.',
+ 'Drop a messy Excel or CSV file. It removes duplicate and empty rows, fixes dates, phone numbers, names, amounts and emails, and lists every change. Your file stays in your browser. Please check the change list.']
 ];
