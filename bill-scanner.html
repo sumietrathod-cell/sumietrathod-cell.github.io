@@ -1,0 +1,85 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aarohan Bill Scanner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<style>
+:root{--g:#0f8a4b;--n:#0b2a4a;--bg:#eef3f8;--m:#5b6b82}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:'Segoe UI',Arial,sans-serif;color:#14264a}
+header{background:var(--n);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:14px}header h1{margin:0;font-size:24px}header small{color:#9fd8b8;display:block;font-size:13px;margin-top:2px}
+.wrap{max-width:1250px;margin:0 auto;padding:18px 22px}.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px #0002;margin-bottom:14px}
+.warn{background:#fff8e6;border:1px solid #f0d28a;border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.5;margin-bottom:14px}
+#drop{border:3px dashed #9db3c9;border-radius:14px;background:#fff;padding:26px;text-align:center;cursor:pointer}#drop.on{border-color:var(--g);background:#effaf3}#drop b{font-size:19px}#drop p{color:var(--m);margin:6px 0 0}
+button{background:var(--g);color:#fff;border:0;border-radius:9px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer}button:disabled{opacity:.5;cursor:default}.b2{background:#fff;color:var(--n);border:1px solid #b9c7d6}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}select,input{padding:7px 8px;border:1px solid #b9c7d6;border-radius:7px;font-size:14px;font-family:inherit}
+#th{display:flex;gap:8px;flex-wrap:wrap}#th div{width:84px;font-size:10px;color:var(--m);text-align:center;overflow:hidden}#th img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid #cfd9e4}
+.pb{height:10px;background:#dbe5ee;border-radius:6px;overflow:hidden;margin-top:8px;display:none}.pb i{display:block;height:100%;width:0;background:var(--g)}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:4px 5px;border-bottom:1px solid #e3eaf2;text-align:left}th{background:#f4f8fb;color:var(--n);white-space:nowrap}td input{width:100%;min-width:70px}td input.n{text-align:right}.tw{overflow:auto}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kp div{background:#f4f8fb;border-radius:10px;padding:10px 14px}.kp span{font-size:12px;color:var(--m);text-transform:uppercase}.kp b{display:block;font-size:24px;margin-top:3px}
+.x{background:#fff;color:#c0392b;border:1px solid #e3b4ae;padding:4px 9px}.foot{color:var(--m);font-size:12px;line-height:1.5;margin:10px 0 30px}
+@media(max-width:800px){.kp{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<header><svg viewBox="0 0 64 64" style="flex:none;height:46px;width:46px"><rect width="64" height="64" rx="14" fill="#0f8a4b"/><path d="M13 47 L26 15 L39 47" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 37 H33.5" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="41" y="33" width="5" height="14" rx="1.5" fill="#bff0d2"/><rect x="49" y="23" width="5" height="24" rx="1.5" fill="#bff0d2"/></svg>
+<div><h1>Aarohan Bill Scanner <span style="font-size:13px;background:#0f8a4b;padding:3px 8px;border-radius:6px;vertical-align:middle">DEMO</span></h1><small>Click a photo of your bills. Get an Excel with a monthly GST summary. Photos are read inside your browser and are not uploaded.</small></div></header>
+<div class="wrap">
+<div class="warn"><b>Please check every number.</b> Reading text from a photo is never 100% correct, especially for blurry, folded or handwritten bills. Correct any wrong cell in the table before you download. This is a helper for your records, not an accounting or tax filing tool. First use needs internet (the reading engine loads once).</div>
+<div id="drop"><b>Click here to take or choose bill photos</b><p>You can pick many photos at once (JPG or PNG). Straight, well-lit photos work best.</p><input id="file" type="file" accept="image/*" multiple hidden></div>
+<div class="card" id="qc" style="display:none"><div id="th"></div>
+<div class="row"><label>Bill language <select id="lang"><option value="eng">English</option><option value="eng+hin">English + Hindi</option></select></label><button id="go">Read bills</button><button class="b2" id="clr">Clear photos</button><span id="st" style="color:var(--m);font-size:14px"></span></div><div class="pb" id="pb"><i id="pi"></i></div></div>
+<div class="row"><button class="b2" id="samp">Load sample data (no photo)</button><button class="b2" id="add">+ Add a row by hand</button></div>
+<div class="card" id="rc" style="display:none"><div class="kp" id="kp"></div>
+<div class="row"><h3 style="margin:0;flex:1">Bills (you can edit every cell)</h3><button id="dx">Download Excel</button><button class="b2" id="dc">Download CSV</button></div>
+<div class="tw"><table id="tb"></table></div></div>
+<div class="card" id="sc" style="display:none"><h3 style="margin-top:0">Monthly GST summary</h3><div class="tw"><table id="sm"></table></div></div>
+<p class="foot">Aarohan Bill Scanner (demo) by Aarohan QA Analytics, sumietrathod-cell.github.io. It guesses date, bill number, shop name, GSTIN, tax and total from the text it reads. Always verify against the original bill. Sample data is made up.</p>
+</div>
+<script>
+const $=id=>document.getElementById(id);let files=[],data=[];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function num(s){const x=parseFloat(String(s).replace(/[,₹Rs\s]/g,''));return isFinite(x)?x:0}
+function nums(line){return (line.match(/\d[\d,]*\.?\d*/g)||[]).map(num).filter(v=>v>0)}
+function parseDate(t){let m;if(m=t.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})\b/)){let y=+m[3];if(y<100)y+=2000;const d=+m[1],mo=+m[2];if(mo>=1&&mo<=12&&d>=1&&d<=31)return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+ if(m=t.match(/\b(\d{1,2})[\s\-]([A-Za-z]{3})[a-z]*[\s\-,]*(\d{4}|\d{2})\b/)){const mo=MON.findIndex(x=>x.toLowerCase()===m[2].toLowerCase());if(mo>=0){let y=+m[3];if(y<100)y+=2000;return `${y}-${String(mo+1).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`}}return ''}
+function parseBill(text,name){const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);const all=lines.join('\n');const o={date:parseDate(all),inv:'',shop:'',gstin:'',taxable:0,gst:0,total:0,cat:'',file:name};
+ const g=all.toUpperCase().match(/\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b/);if(g)o.gstin=g[0];
+ let m;for(const mm of all.matchAll(/(?:invoice|inv|bill|receipt)[ \t]*(?:no|number|num|#)?[ \t]*[.:\-#]*[ \t]*([A-Z0-9][A-Z0-9\/\-]{2,})/gi)){if(/\d/.test(mm[1])&&!/^\d{2}[A-Z]{5}\d{4}/i.test(mm[1])){o.inv=mm[1];break}}
+ const sh=lines.find(l=>/[A-Za-z]{3,}/.test(l)&&!/invoice|tax|bill|gst|receipt|cash|memo|original/i.test(l)&&l.length>3);o.shop=sh?sh.replace(/[^\w\s&.,'-]/g,'').trim().slice(0,40):'';
+ let tot=0;lines.forEach(l=>{if(/(grand\s*total|net\s*(amount|payable)|amount\s*payable|bill\s*amount|total\s*amount|^total\b|\btotal\b)/i.test(l)&&!/sub\s*total|taxable|cgst|sgst|igst|gst/i.test(l)){const n=nums(l);if(n.length)tot=Math.max(tot,n[n.length-1])}});
+ if(!tot){const a=nums(all);tot=a.length?Math.max(...a):0}o.total=tot;
+ let gst=0;lines.forEach(l=>{if(/cgst|sgst|igst|utgst/i.test(l)){const n=nums(l.replace(/\d+(\.\d+)?\s*%/g,''));if(n.length)gst+=n[n.length-1]}});o.gst=Math.round(gst*100)/100;
+ let tx=0;lines.forEach(l=>{if(/taxable|sub\s*total|subtotal/i.test(l)){const n=nums(l);if(n.length)tx=n[n.length-1]}});o.taxable=tx||(o.total&&o.gst?Math.round((o.total-o.gst)*100)/100:o.total);
+ if(!o.gst&&tx&&o.total>tx)o.gst=Math.round((o.total-tx)*100)/100;return o}
+// image prep
+function prep(f){return new Promise(res=>{const im=new Image();im.onload=()=>{const sc=Math.min(2200/im.width,2.2);const w=Math.round(im.width*sc),h=Math.round(im.height*sc);const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(im,0,0,w,h);const d=x.getImageData(0,0,w,h),p=d.data;for(let i=0;i<p.length;i+=4){let g=.3*p[i]+.59*p[i+1]+.11*p[i+2];g=Math.max(0,Math.min(255,(g-110)*1.5+128));p[i]=p[i+1]=p[i+2]=g}x.putImageData(d,0,0);c.toBlob(b=>res(b),'image/png')};im.src=URL.createObjectURL(f)})}
+$('drop').onclick=()=>$('file').click();['dragover','dragenter'].forEach(e=>$('drop').addEventListener(e,ev=>{ev.preventDefault();$('drop').classList.add('on')}));['dragleave','drop'].forEach(e=>$('drop').addEventListener(e,ev=>{ev.preventDefault();$('drop').classList.remove('on')}));
+$('drop').addEventListener('drop',e=>addFiles(e.dataTransfer.files));$('file').onchange=e=>addFiles(e.target.files);
+function addFiles(fl){files=files.concat([...fl].filter(f=>f.type.startsWith('image/')));showQ()}
+function showQ(){$('qc').style.display=files.length?'block':'none';$('th').innerHTML=files.map(f=>`<div><img src="${URL.createObjectURL(f)}">${f.name.slice(0,14)}</div>`).join('')}
+$('clr').onclick=()=>{files=[];showQ()};
+$('go').onclick=async()=>{if(!files.length)return;if(typeof Tesseract==='undefined'){alert('The reading engine could not load. Check your internet and refresh.');return}
+ $('go').disabled=true;$('pb').style.display='block';const lang=$('lang').value;let done=0;
+ for(const f of files){$('st').textContent=`Reading ${done+1} of ${files.length}: ${f.name}`;
+  try{const b=await prep(f);const r=await Tesseract.recognize(b,lang,{logger:m=>{if(m.status==='recognizing text')$('pi').style.width=((done+m.progress)/files.length*100)+'%'}});const o=parseBill(r.data.text,f.name);o.raw=r.data.text;data.push(o)}catch(e){data.push({date:'',inv:'',shop:'(could not read)',gstin:'',taxable:0,gst:0,total:0,cat:'',file:f.name})}
+  done++;$('pi').style.width=(done/files.length*100)+'%';render()}
+ $('st').textContent='Done. Please check every row below.';$('go').disabled=false;files=[];showQ()};
+function render(){$('rc').style.display=data.length?'block':'none';$('sc').style.display=data.length?'block':'none';if(!data.length)return;
+ const F=[['date','Date (YYYY-MM-DD)',0],['inv','Bill no',0],['shop','Shop / vendor',0],['gstin','GSTIN',0],['taxable','Taxable',1],['gst','GST',1],['total','Total',1],['cat','Category',0],['file','Photo',0]];
+ $('tb').innerHTML='<tr><th>#</th>'+F.map(f=>`<th>${f[1]}</th>`).join('')+'<th></th></tr>'+data.map((r,i)=>`<tr><td>${i+1}</td>`+F.map(f=>`<td><input class="${f[2]?'n':''}" data-i="${i}" data-k="${f[0]}" value="${String(r[f[0]]??'').replace(/"/g,'&quot;')}"></td>`).join('')+`<td><button class="x" data-del="${i}">x</button></td></tr>`).join('');
+ document.querySelectorAll('#tb input').forEach(inp=>inp.onchange=()=>{const r=data[+inp.dataset.i],k=inp.dataset.k;r[k]=(k==='taxable'||k==='gst'||k==='total')?num(inp.value):inp.value;summ()});
+ document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{data.splice(+b.dataset.del,1);render()});summ()}
+function fm(n){return (Math.round(n*100)/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function summ(){const T=data.reduce((a,r)=>a+r.total,0),G=data.reduce((a,r)=>a+r.gst,0),X=data.reduce((a,r)=>a+r.taxable,0);
+ $('kp').innerHTML=`<div><span>Bills</span><b>${data.length}</b></div><div><span>Total amount</span><b>${fm(T)}</b></div><div><span>GST paid</span><b>${fm(G)}</b></div><div><span>Taxable value</span><b>${fm(X)}</b></div>`;
+ const by=monthly();$('sm').innerHTML='<tr><th>Month</th><th>Bills</th><th>Taxable</th><th>GST</th><th>Total</th></tr>'+by.map(m=>`<tr><td>${m.k}</td><td>${m.n}</td><td>${fm(m.x)}</td><td>${fm(m.g)}</td><td>${fm(m.t)}</td></tr>`).join('')}
+function monthly(){const g={};data.forEach(r=>{const k=/^\d{4}-\d{2}/.test(r.date)?r.date.slice(0,7):'Unknown date';const o=g[k]=g[k]||{k,n:0,x:0,g:0,t:0};o.n++;o.x+=r.taxable;o.g+=r.gst;o.t+=r.total});return Object.values(g).sort((a,b)=>a.k.localeCompare(b.k))}
+function vendors(){const g={};data.forEach(r=>{const k=(r.shop||'Unknown').trim()||'Unknown';const o=g[k]=g[k]||{k,n:0,t:0,g:0};o.n++;o.t+=r.total;o.g+=r.gst});return Object.values(g).sort((a,b)=>b.t-a.t)}
+$('dx').onclick=()=>{const wb=XLSX.utils.book_new();
+ const b=[['Date','Bill no','Shop / vendor','GSTIN','Taxable','GST','Total','Category','Photo']].concat(data.map(r=>[r.date,r.inv,r.shop,r.gstin,r.taxable,r.gst,r.total,r.cat,r.file]));b.push([],['','','','Total',data.reduce((a,r)=>a+r.taxable,0),data.reduce((a,r)=>a+r.gst,0),data.reduce((a,r)=>a+r.total,0)]);
+ const w1=XLSX.utils.aoa_to_sheet([['Aarohan Bill Scanner (demo) - Aarohan QA Analytics - please verify all numbers against the original bills'],[]].concat(b));w1['!cols']=[{wch:12},{wch:14},{wch:28},{wch:18},{wch:12},{wch:12},{wch:12},{wch:14},{wch:20}];XLSX.utils.book_append_sheet(wb,w1,'Bills');
+ const m=[['Month','Bills','Taxable','GST','Total']].concat(monthly().map(x=>[x.k,x.n,x.x,x.g,x.t]));const w2=XLSX.utils.aoa_to_sheet(m);w2['!cols']=[{wch:14},{wch:8},{wch:14},{wch:14},{wch:14}];XLSX.utils.book_append_sheet(wb,w2,'Monthly GST Summary');
+ const v=[['Shop / vendor','Bills','Total','GST']].concat(vendors().map(x=>[x.k,x.n,x.t,x.g]));const w3=XLSX.utils.aoa_to_sheet(v);w3['!cols']=[{wch:30},{wch:8},{wch:14},{wch:14}];XLSX.utils.book_append_sheet(wb,w3,'By Vendor');
+ XLSX.writeFile(wb,'Aarohan_Bills_'+new Date().toISOString().slice(0,10)+'.xlsx')};
+$('dc').onclick=()=>{const c=[['Date','Bill no','Shop','GSTIN','Taxable','GST','Total','Category','Photo']].concat(data.map(r=>[r.date,r.inv,r.shop,r.gstin,r.taxable,r.gst,r.total,r.cat,r.file])).map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'}));a.download='Aarohan_Bills.csv';a.click()};
+$('add').onclick=()=>{data.push({date:'',inv:'',shop:'',gstin:'',taxable:0,gst:0,total:0,cat:'',file:''});render()};
+$('samp').onclick=()=>{data=[['2026-09-04','INV-1021','Shree Ram Stationers','24ABCDE1234F1Z5',4237.29,762.71,5000,'Office'],['2026-09-12','B-778','Patel Electricals','24PQRSX5678L1Z9',8474.58,1525.42,10000,'Repairs'],['2026-10-02','INV-1190','Shree Ram Stationers','24ABCDE1234F1Z5',2118.64,381.36,2500,'Office'],['2026-10-15','C-3302','Om Hardware','24LMNOP4321K1Z2',6355.93,1144.07,7500,'Materials'],['2026-10-27','INV-1244','Patel Electricals','24PQRSX5678L1Z9',3389.83,610.17,4000,'Repairs']].map(a=>({date:a[0],inv:a[1],shop:a[2],gstin:a[3],taxable:a[4],gst:a[5],total:a[6],cat:a[7],file:'sample'}));render()};
+if(location.hash==='#selftest'){const s='SHREE RAM STATIONERS\nTax Invoice\nGSTIN: 24ABCDE1234F1Z5\nInvoice No: INV-1021   Date: 04/09/2026\nPen box 10 x 120   1200.00\nNotebook 40 x 80   3200.00\nSub Total   4400.00\nCGST 9%   396.00\nSGST 9%   396.00\nGrand Total   5192.00';const p=document.createElement('pre');p.id='st';p.textContent=JSON.stringify(parseBill(s,'t.jpg'));document.body.appendChild(p)}
+window.__parseBill=parseBill;
+</script></body></html>

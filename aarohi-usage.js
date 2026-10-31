@@ -19,6 +19,7 @@ var AAROHI_USAGE = {
 'apqr-agent.html':{t:'csv',c:'batch, date, then one column per test parameter; the second row starts with SPEC and gives each limit as min-max, NLT x or NMT x',b:'Draft APQR',o:'Copy text'},
 'apqr-pro-agent.html':{t:'special',k:'apqrpro'},
 'report-maker.html':{t:'csv',c:'any column headings; at least one number column (for example Sales); a date column and a category column (for example Region) give more charts',b:'Try with sample sales data',o:'Save as PDF / Print'},
+'bill-scanner.html':{t:'input',f:'Photos of your bills (JPG or PNG, straight and well lit), Bill language',b:'Read bills',o:'Download Excel'},
 'cpk-agent.html':{t:'input',f:'Results (comma separated), Lower limit (LSL), Upper limit (USL)',b:'Calculate'},
 'stability-agent.html':{t:'input',f:'Months (comma separated), Assay % (same order), Lower limit %, Proposed shelf life (months)',b:'Predict',o:'Copy conclusion'},
 'coldchain-agent.html':{t:'input',f:'Temperatures (comma separated), Lower limit °C, Upper limit °C, Interval (minutes)',b:'Assess',o:'Copy assessment'},
