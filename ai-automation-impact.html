@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AI Reporting Automation Impact Dashboard</title>
+<style>
+*{box-sizing:border-box}body{margin:0;width:1600px;height:790px;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;color:#13294b}
+.hd{background:#13294b;color:#fff;padding:22px 34px;display:flex;justify-content:space-between;align-items:center}
+.hd h1{margin:0;font-size:30px;letter-spacing:.3px}.hd small{color:#f2c230;font-size:15px;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;padding:18px 34px 6px}
+.k{background:#fff;border-top:4px solid #0e7c7b;border-radius:6px;padding:12px 16px;box-shadow:0 1px 3px #0002}
+.k:nth-child(2){border-color:#e67e22}.k:nth-child(3){border-color:#2e86ab}.k:nth-child(4){border-color:#c0392b}.k:nth-child(5){border-color:#13294b}
+.k span{font-size:13px;color:#5b6b82;text-transform:uppercase;letter-spacing:.6px}.k b{display:block;font-size:38px;margin-top:4px}
+.k i{font-style:normal;font-size:13px;color:#0e7c7b;font-weight:600}
+.grid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:16px;padding:12px 34px}
+.c{background:#fff;border-radius:6px;padding:14px 16px;box-shadow:0 1px 3px #0002;height:330px}
+.c h3{margin:0 0 6px;font-size:17px}.c svg{width:100%;height:280px}
+.ins{margin:2px 34px 0;background:#fff;border-radius:6px;box-shadow:0 1px 3px #0002;overflow:hidden}
+.ins h4{margin:0;background:#0e7c7b;color:#fff;padding:7px 16px;font-size:15px}
+.ins p{margin:0;padding:5px 16px;font-size:15px}
+.ft{padding:8px 34px;font-size:12px;color:#667;font-style:italic}
+</style></head><body>
+<div class="hd"><div style="display:flex;align-items:center;gap:16px"><img src="aarohan_logo.svg" width="60" height="60" alt="Aarohan"><h1>AI REPORTING AUTOMATION IMPACT DASHBOARD &nbsp;|&nbsp; Pharma QA Reporting</h1></div><small>Aarohan QA Analytics &nbsp;·&nbsp; Apr - Sep 2026</small></div>
+<div class="kpis">
+<div class="k"><span>Reports automated</span><b>1,240</b><i>of 1,780 monthly-cycle reports (70%)</i></div>
+<div class="k"><span>Hours saved / month</span><b>186</b><i>+58% vs April</i></div>
+<div class="k"><span>Avg turnaround</span><b>0.4 h</b><i>was 3.2 h (-88%)</i></div>
+<div class="k"><span>Manual entry errors</span><b>-62%</b><i>after validation rules</i></div>
+<div class="k"><span>First-pass draft accepted</span><b>81%</b><i>after QA review</i></div>
+</div>
+<div class="grid">
+<div class="c"><h3>Hours saved per month</h3><svg id="s1" viewBox="0 0 560 280"></svg></div>
+<div class="c"><h3>Turnaround per task: manual vs AI-assisted (hours)</h3><svg id="s2" viewBox="0 0 480 280"></svg></div>
+<div class="c"><h3>Draft review outcome</h3><svg id="s3" viewBox="0 0 480 280"></svg></div>
+</div>
+<div class="ins"><h4>MANAGEMENT INSIGHTS</h4>
+<p>1. Biggest time saving: APQR data consolidation (6.5 h to 0.9 h per product). Make it the first workflow to roll out across products.</p>
+<p>2. Time saved grew every month as more report types moved to agents: 118 h in April to 186 h in September.</p>
+<p>3. 19% of AI drafts needed rework: mostly missing root-cause detail. Add a mandatory field checklist before generation.</p>
+<p>4. Human QA review stays in the loop for every record. AI produces drafts, QA decides.</p>
+</div>
+<div class="ft">Portfolio sample built with fictitious data. No real company, product or batch information. AI-assisted analysis; QA review required for real use.</div>
+<script>
+const NS='http://www.w3.org/2000/svg';
+function el(p,t,a,x){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(x!==undefined)e.textContent=x;p.appendChild(e);return e}
+// chart1 bars+line
+(function(){const s=document.getElementById('s1'),m=['Apr','May','Jun','Jul','Aug','Sep'],v=[118,129,141,158,172,186],W=560,H=280,L=40,B=30,T=14,mx=200;
+for(let g=0;g<=4;g++){const y=T+(H-B-T)*(1-g/4);el(s,'line',{x1:L,x2:W-10,y1:y,y2:y,stroke:'#dde3ea'});el(s,'text',{x:L-6,y:y+4,'text-anchor':'end','font-size':12,fill:'#556'},g*50)}
+const bw=52,step=(W-L-20)/6;let pts=[];
+v.forEach((d,i)=>{const x=L+12+i*step,h=(H-B-T)*d/mx,y=H-B-h;el(s,'rect',{x,y,width:bw,height:h,fill:'#0e7c7b',rx:3});el(s,'text',{x:x+bw/2,y:y-6,'text-anchor':'middle','font-size':13,'font-weight':700,fill:'#13294b'},d);el(s,'text',{x:x+bw/2,y:H-10,'text-anchor':'middle','font-size':13,fill:'#556'},m[i]);pts.push((x+bw/2)+','+y)});
+el(s,'polyline',{points:pts.join(' '),fill:'none',stroke:'#e67e22','stroke-width':3})})();
+// chart2 paired horizontal bars
+(function(){const s=document.getElementById('s2'),t=[['Deviation draft',2.5,0.3],['CAPA follow-up',1.8,0.2],['APQR consolidation',6.5,0.9],['Data cleaning',4.2,0.6],['Weekly MIS report',3.0,0.4]],L=140,mx=7,W=480;
+t.forEach((r,i)=>{const y=14+i*52;el(s,'text',{x:L-8,y:y+22,'text-anchor':'end','font-size':13,fill:'#13294b'},r[0]);
+el(s,'rect',{x:L,y:y,width:(W-L-40)*r[1]/mx,height:16,fill:'#9aa8ba',rx:2});el(s,'text',{x:L+(W-L-40)*r[1]/mx+5,y:y+13,'font-size':12,fill:'#445'},r[1]);
+el(s,'rect',{x:L,y:y+19,width:(W-L-40)*r[2]/mx,height:16,fill:'#0e7c7b',rx:2});el(s,'text',{x:L+(W-L-40)*r[2]/mx+5,y:y+32,'font-size':12,fill:'#0e7c7b','font-weight':700},r[2])});
+el(s,'rect',{x:140,y:268,width:12,height:10,fill:'#9aa8ba'});el(s,'text',{x:156,y:277,'font-size':12,fill:'#445'},'Manual');el(s,'rect',{x:220,y:268,width:12,height:10,fill:'#0e7c7b'});el(s,'text',{x:236,y:277,'font-size':12,fill:'#445'},'AI-assisted')})();
+// chart3 donut
+(function(){const s=document.getElementById('s3'),d=[['Accepted as is',81,'#0e7c7b'],['Minor edits',12,'#e67e22'],['Reworked',7,'#c0392b']],cx=140,cy=135,r=88,r2=52;let a=-Math.PI/2;
+d.forEach(x=>{const b=a+2*Math.PI*x[1]/100,p=(R,t)=>[cx+R*Math.cos(t),cy+R*Math.sin(t)],o1=p(r,a),o2=p(r,b),i2=p(r2,b),i1=p(r2,a),lg=(b-a)>Math.PI?1:0;
+el(s,'path',{d:`M${o1}A${r},${r} 0 ${lg} 1 ${o2}L${i2}A${r2},${r2} 0 ${lg} 0 ${i1}Z`,fill:x[2]});a=b});
+el(s,'text',{x:cx,y:cy+6,'text-anchor':'middle','font-size':26,'font-weight':700,fill:'#13294b'},'81%');
+d.forEach((x,i)=>{el(s,'rect',{x:270,y:92+i*34,width:14,height:14,fill:x[2]});el(s,'text',{x:292,y:104+i*34,'font-size':14,fill:'#13294b'},x[0]+' ('+x[1]+'%)')})})();
+</script></body></html>
