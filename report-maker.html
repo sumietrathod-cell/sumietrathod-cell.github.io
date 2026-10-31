@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aarohan Report Maker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--g:#0f8a4b;--n:#0b2a4a;--bg:#eef3f8;--c:#fff;--t:#14264a;--m:#5b6b82}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:'Segoe UI',Arial,sans-serif;color:var(--t)}
+header{background:var(--n);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:14px}
+header h1{margin:0;font-size:24px}header small{color:#9fd8b8;display:block;font-size:13px;margin-top:2px}
+.wrap{max-width:1250px;margin:0 auto;padding:18px 22px}
+#drop{border:3px dashed #9db3c9;border-radius:14px;background:#fff;padding:34px;text-align:center;cursor:pointer}
+#drop.on{border-color:var(--g);background:#effaf3}#drop b{font-size:20px}#drop p{color:var(--m);margin:8px 0 0}
+button,.btn{background:var(--g);color:#fff;border:0;border-radius:9px;padding:10px 18px;font-size:15px;font-weight:600;cursor:pointer}
+.btn2{background:#fff;color:var(--n);border:1px solid #b9c7d6}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:16px 0}
+.bar label{font-size:12px;color:var(--m);display:block;margin-bottom:3px;font-weight:600}
+select{padding:8px 10px;border:1px solid #b9c7d6;border-radius:8px;font-size:14px;min-width:150px;background:#fff}
+.k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{background:var(--c);border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px #0002}
+.kp span{font-size:12px;color:var(--m);text-transform:uppercase;letter-spacing:.5px}.kp b{display:block;font-size:30px;margin-top:4px}.kp i{font-style:normal;font-size:13px;font-weight:600}
+.up{color:#0f8a4b}.dn{color:#c0392b}
+.g2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-top:12px}
+.card h3{margin:0 0 6px;font-size:16px;color:var(--n)}svg{width:100%;height:250px}
+.ins li{margin:7px 0;line-height:1.45}.ins ul{padding-left:20px;margin:6px 0}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid #e3eaf2;text-align:left;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}th{background:#f4f8fb;color:var(--n)}
+.foot{color:var(--m);font-size:12px;margin:14px 0 30px;line-height:1.5}
+#out{display:none}
+@media(max-width:800px){.k{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media print{header button,#drop,.bar,.noprint{display:none!important}body{background:#fff}.card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}}
+</style></head><body>
+<header><svg viewBox="0 0 64 64" width="46" height="46" style="flex:none;height:46px;width:46px"><rect width="64" height="64" rx="14" fill="#0f8a4b"/><path d="M13 47 L26 15 L39 47" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 37 H33.5" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="41" y="33" width="5" height="14" rx="1.5" fill="#bff0d2"/><rect x="49" y="23" width="5" height="24" rx="1.5" fill="#bff0d2"/></svg>
+<div><h1>Aarohan Report Maker <span style="font-size:13px;background:#0f8a4b;padding:3px 8px;border-radius:6px;vertical-align:middle">DEMO</span></h1><small>Drop an Excel or CSV file. Get a dashboard and a report in one click. Your data stays in your browser.</small></div></header>
+<div class="wrap">
+<div id="drop"><b>Drop your Excel / CSV file here, or click to choose</b><p>.xlsx, .xls or .csv. Nothing is uploaded to any server.</p><p><button id="samp" class="btn2" style="margin-top:10px">Try with sample sales data</button></p><input id="file" type="file" accept=".csv,.xlsx,.xls" hidden></div>
+<div id="out">
+<div class="bar"><div><label>Measure (number)</label><select id="sM"></select></div><div><label>Group by</label><select id="sD"></select></div><div><label>Date column</label><select id="sT"></select></div><div><label>Filter value</label><select id="sF"></select></div><div><label>Calculation</label><select id="sA"><option value="sum">Sum</option><option value="avg">Average</option></select></div>
+<div style="margin-left:auto" class="noprint"><button id="pr">Save as PDF / Print</button></div></div>
+<div class="k" id="kp"></div>
+<div class="g2"><div class="card"><h3 id="t1">Trend</h3><svg id="c1" viewBox="0 0 640 250"></svg></div><div class="card"><h3 id="t2">Top groups</h3><svg id="c2" viewBox="0 0 440 250"></svg></div></div>
+<div class="card ins" style="margin-top:12px"><h3>Smart insights (calculated from your data)</h3><ul id="ins"></ul></div>
+<div class="card" style="margin-top:12px;overflow:auto"><h3>Data preview (first 8 rows)</h3><div id="tb"></div></div>
+<p class="foot">Report made with Aarohan Report Maker (demo) by Aarohan QA Analytics, sumietrathod-cell.github.io. Insights are calculated by simple rules from the file you provided and are not financial, medical or regulatory advice. Check important numbers against the source.</p></div>
+</div>
+<script>
+const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
+function el(p,t,a,x){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(x!==undefined)e.textContent=x;p.appendChild(e);return e}
+let rows=[],cols=[],types={};
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmt(n){if(!isFinite(n))return '-';const a=Math.abs(n);if(a>=1e7)return (n/1e7).toFixed(2)+' Cr';if(a>=1e5)return (n/1e5).toFixed(2)+' L';if(a>=1000)return Math.round(n).toLocaleString('en-IN');return (Math.round(n*100)/100).toString()}
+function parseCSV(t){const out=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'){r.push(c);out.push(r);r=[];c=''}else if(ch!='\r')c+=ch}if(c.length||r.length){r.push(c);out.push(r)}return out}
+function toDate(v){if(v instanceof Date)return v;if(typeof v==='number'&&v>30000&&v<80000)return new Date(Math.round((v-25569)*86400*1000));if(typeof v==='string'&&/^\d{4}-\d{1,2}-\d{1,2}|^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/.test(v.trim())){let s=v.trim(),m;if(m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/)){const y=+m[3]<100?2000+ +m[3]:+m[3];return new Date(y,+m[2]-1,+m[1])}if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return new Date(+m[1],+m[2]-1,+m[3]);const d=new Date(s);return isNaN(d)?null:d}return null}
+function load(matrix){matrix=matrix.filter(r=>r.some(x=>x!==''&&x!=null));if(matrix.length<2){alert('File has no data rows.');return}
+ cols=matrix[0].map((h,i)=>String(h||('Column '+(i+1))).trim());rows=matrix.slice(1).map(r=>{const o={};cols.forEach((c,i)=>o[c]=r[i]===undefined?'':r[i]);return o});
+ types={};cols.forEach(c=>{const v=rows.map(r=>r[c]).filter(x=>x!==''&&x!=null);const n=v.length||1;const num=v.filter(x=>typeof x==='number'||(typeof x==='string'&&x.trim()!==''&&isFinite(x.replace(/,/g,''))));const dt=v.filter(x=>toDate(x));
+  if(dt.length/n>.8&&!(num.length/n>.9&&!/date|day|month|time/i.test(c)))types[c]='date';else if(num.length/n>.8)types[c]='num';else types[c]='cat'});
+ rows.forEach(r=>cols.forEach(c=>{if(types[c]==='num'&&typeof r[c]!=='number')r[c]=parseFloat(String(r[c]).replace(/,/g,''))||0;if(types[c]==='date')r[c]=toDate(r[c])}));
+ const nums=cols.filter(c=>types[c]==='num'),cats=cols.filter(c=>types[c]==='cat'&&new Set(rows.map(r=>r[c])).size<=60),dts=cols.filter(c=>types[c]==='date');
+ if(!nums.length){alert('No numeric column found. Add a column with numbers (for example Sales).');return}
+ const pref=nums.find(c=>/sales|revenue|amount|total|value|profit|cost|price/i.test(c))||nums[0];
+ $('sM').innerHTML=nums.map(c=>`<option ${c===pref?'selected':''}>${c}</option>`).join('');
+ $('sD').innerHTML=cats.length?cats.map(c=>`<option>${c}</option>`).join(''):'<option value="">(none)</option>';
+ $('sT').innerHTML=dts.length?dts.map(c=>`<option>${c}</option>`).join(''):'<option value="">(none)</option>';
+ fillF();$('out').style.display='block';render();$('out').scrollIntoView({behavior:'smooth'})}
+function fillF(){const d=$('sD').value;const vals=d?[...new Set(rows.map(r=>r[d]))].sort():[];$('sF').innerHTML='<option value="">All</option>'+vals.map(v=>`<option>${v}</option>`).join('')}
+function agg(arr,m,a){const s=arr.reduce((x,r)=>x+(r[m]||0),0);return a==='avg'?(arr.length?s/arr.length:0):s}
+function render(){const m=$('sM').value,d=$('sD').value,t=$('sT').value,f=$('sF').value,a=$('sA').value;let R=rows;if(d&&f)R=R.filter(r=>String(r[d])===f);
+ const lab=a==='avg'?'Average':'Total';const tot=agg(R,m,a);const vals=R.map(r=>r[m]);const mx=Math.max(...vals),mn=Math.min(...vals);
+ let kp=[[lab+' '+m,fmt(tot),''],['Records',R.length.toLocaleString('en-IN'),''],['Average per record',fmt(R.length?R.reduce((x,r)=>x+r[m],0)/R.length:0),''],['Highest record',fmt(mx),'']];
+ // monthly
+ let months=[];if(t){const g={};R.forEach(r=>{const dt=r[t];if(!dt)return;const k=dt.getFullYear()*100+dt.getMonth();(g[k]=g[k]||[]).push(r)});months=Object.keys(g).sort().map(k=>({k:+k,l:MON[k%100]+' '+String(Math.floor(k/100)).slice(2),v:agg(g[k],m,a),n:g[k].length}));
+  if(months.length>=2){const l=months[months.length-1],p=months[months.length-2],ch=p.v?(l.v-p.v)/Math.abs(p.v)*100:0;kp[3]=[ 'Last month vs previous',(ch>=0?'+':'')+ch.toFixed(1)+'%',`<i class="${ch>=0?'up':'dn'}">${l.l} vs ${p.l}</i>`]}}
+ $('kp').innerHTML=kp.map(x=>`<div class="card kp"><span>${x[0]}</span><b>${x[1]}</b>${x[2]||''}</div>`).join('');
+ // chart1
+ let s=$('c1');s.innerHTML='';$('t1').textContent=t?`${lab} ${m} by month`:'No date column found';
+ if(months.length){const mxv=Math.max(...months.map(x=>x.v),1)*1.12,W=640,H=250,L=44,B=34,T=12,st=(W-L-10)/months.length,bw=Math.min(40,st*.7);
+  for(let g=0;g<=4;g++){const y=T+(H-B-T)*(1-g/4);el(s,'line',{x1:L,x2:W-6,y1:y,y2:y,stroke:'#e1e8f2'});el(s,'text',{x:L-6,y:y+4,'text-anchor':'end','font-size':11,fill:'#556'},fmt(mxv*g/4))}
+  months.forEach((x,i)=>{const h=(H-B-T)*Math.max(x.v,0)/mxv,xx=L+i*st+(st-bw)/2;el(s,'rect',{x:xx,y:H-B-h,width:bw,height:h,fill:'#0f8a4b',rx:3});if(months.length<=14)el(s,'text',{x:xx+bw/2,y:H-B-h-5,'text-anchor':'middle','font-size':10,'font-weight':700,fill:'#14264a'},fmt(x.v));if(months.length<=18||i%2==0)el(s,'text',{x:xx+bw/2,y:H-12,'text-anchor':'middle','font-size':10,fill:'#556'},x.l)})}
+ // chart2
+ s=$('c2');s.innerHTML='';let groups=[];if(d){const g={};R.forEach(r=>(g[r[d]]=g[r[d]]||[]).push(r));groups=Object.keys(g).map(k=>({l:String(k),v:agg(g[k],m,a)})).sort((x,y)=>y.v-x.v)}
+ $('t2').textContent=d?`Top ${d}`:'No category column found';
+ const top=groups.slice(0,8),mg=Math.max(...top.map(x=>x.v),1);top.forEach((x,i)=>{const y=8+i*29,w=(440-170)*x.v/mg;el(s,'text',{x:132,y:y+15,'text-anchor':'end','font-size':11,fill:'#14264a'},x.l.length>18?x.l.slice(0,17)+'..':x.l);el(s,'rect',{x:138,y,width:Math.max(w,1),height:20,fill:i==0?'#0f8a4b':'#6bb890',rx:3});el(s,'text',{x:142+w,y:y+15,'font-size':11,'font-weight':700,fill:'#14264a'},fmt(x.v))});
+ // insights
+ const I=[];const sumAll=groups.reduce((x,y)=>x+y.v,0);
+ if(groups.length>1&&a==='sum'&&sumAll>0){I.push(`<b>${groups[0].l}</b> is the largest ${d}: ${fmt(groups[0].v)} (${(groups[0].v/sumAll*100).toFixed(0)}% of the total).`);const t3=groups.slice(0,3).reduce((x,y)=>x+y.v,0);I.push(`The top 3 ${d} values make ${(t3/sumAll*100).toFixed(0)}% of the total${t3/sumAll>.7?'. The result depends heavily on a few groups, which is a risk.':'.'}`);const lw=groups[groups.length-1];I.push(`The smallest group is <b>${lw.l}</b> (${fmt(lw.v)}). Check if it needs attention or can be dropped.`)}
+ if(months.length>=3){const best=months.reduce((x,y)=>y.v>x.v?y:x),worst=months.reduce((x,y)=>y.v<x.v?y:x);I.push(`Best month: <b>${best.l}</b> (${fmt(best.v)}). Weakest month: <b>${worst.l}</b> (${fmt(worst.v)}).`);const h=Math.floor(months.length/2),a1=months.slice(0,h).reduce((x,y)=>x+y.v,0)/h,a2=months.slice(h).reduce((x,y)=>x+y.v,0)/(months.length-h);if(a1)I.push(`The second half of the period averages ${(((a2-a1)/Math.abs(a1))*100).toFixed(0)}% ${a2>=a1?'higher':'lower'} than the first half.`)}
+ if(R.length>8){const mean=vals.reduce((x,y)=>x+y,0)/vals.length,sd=Math.sqrt(vals.reduce((x,y)=>x+(y-mean)**2,0)/vals.length);const out=vals.filter(v=>sd>0&&Math.abs(v-mean)>2.5*sd).length;I.push(out?`${out} record(s) are unusually far from the average (more than 2.5 standard deviations). Worth checking for entry errors or special cases.`:'No unusual outlier records found in this column.')}
+ const blanks=cols.filter(c=>rows.filter(r=>r[c]===''||r[c]==null).length>rows.length*.05);if(blanks.length)I.push(`Data quality: ${blanks.slice(0,3).join(', ')} ${blanks.length>1?'have':'has'} more than 5% blank cells.`);
+ $('ins').innerHTML=I.map(x=>`<li>${x}</li>`).join('')||'<li>Add a date and a category column for richer insights.</li>';
+ $('tb').innerHTML='<table><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>'+rows.slice(0,8).map(r=>'<tr>'+cols.map(c=>`<td>${r[c] instanceof Date?r[c].getFullYear()+'-'+String(r[c].getMonth()+1).padStart(2,'0')+'-'+String(r[c].getDate()).padStart(2,'0'):r[c]}</td>`).join('')+'</tr>').join('')+'</table>'}
+['sM','sT','sF','sA'].forEach(i=>$(i).onchange=render);$('sD').onchange=()=>{fillF();render()};$('pr').onclick=()=>window.print();
+$('drop').onclick=e=>{if(e.target.id!=='samp')$('file').click()};
+['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('on')}));['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('on')}));
+$('drop').addEventListener('drop',e=>read(e.dataTransfer.files[0]));$('file').onchange=e=>read(e.target.files[0]);
+function read(f){if(!f)return;const rd=new FileReader();if(/\.csv$/i.test(f.name)){rd.onload=()=>load(parseCSV(rd.result));rd.readAsText(f)}else{rd.onload=()=>{try{const wb=XLSX.read(rd.result,{type:'array',cellDates:true});load(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}))}catch(err){alert('Could not read this file. Try saving it as CSV.')}};rd.readAsArrayBuffer(f)}}
+$('samp').onclick=e=>{e.stopPropagation();let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;const reg=['North','South','East','West'],prod=['Laptop','Phone','Tablet','Headphones','Monitor'],pr={Laptop:62000,Phone:28000,Tablet:21000,Headphones:3500,Monitor:14000};const m=[['Date','Region','Product','Units','Sales']];
+ for(let i=0;i<420;i++){const mo=i%12,d=new Date(2026,mo,1+Math.floor(r()*27)),p=prod[Math.floor(r()*prod.length)],u=1+Math.floor(r()*6*(1+mo*0.04));m.push([d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),reg[Math.floor(r()*4)],p,u,Math.round(u*pr[p]*(0.9+r()*.2))])}load(m)};
+if(location.hash==='#sample')document.getElementById('samp').click();
+</script></body></html>

@@ -292,5 +292,9 @@ var AAROHI_AGENTS = [
 ['prompt-code.html','Coding Helper (prompt)','s','code|coding|programming|python|javascript|bug|કોડ|कोड',
  'સરળ પગલાંમાં code સમજાવે, લખે કે સુધારે, tests સાથે, એવો prompt.',
  'आसान कदमों में code समझाए, लिखे या ठीक करे, tests के साथ, ऐसा prompt.',
- 'A ready prompt that explains, writes or fixes code in simple steps, with tests.']
+ 'A ready prompt that explains, writes or fixes code in simple steps, with tests.'],
+['report-maker.html','Aarohan Report Maker (Excel/CSV to dashboard)','b','report|report maker|dashboard|excel dashboard|csv|sales report|monthly report|insights|chart|graph|excel file|auto report|data analysis|sales analysis|ડેશબોર્ડ|રિપોર્ટ|ચાર્ટ|એક્સેલ|डैशबोर्ड|रिपोर्ट|चार्ट|एक्सेल',
+ 'તમારી Excel અથવા CSV ફાઇલ મૂકો અને એક ક્લિકમાં dashboard, charts અને સરળ insights મળે. ડેટા તમારા બ્રાઉઝરમાં જ રહે છે, રિપોર્ટ PDF તરીકે save કરી શકાય.',
+ 'अपनी Excel या CSV फाइल डालिए और एक क्लिक में dashboard, charts और आसान insights पाइए. डेटा आपके ब्राउज़र में ही रहता है, रिपोर्ट PDF के रूप में save कर सकते हैं.',
+ 'Drop your Excel or CSV file and get a dashboard, charts and simple calculated insights in one click. Data stays in your browser and the report can be saved as a PDF.']
 ];
