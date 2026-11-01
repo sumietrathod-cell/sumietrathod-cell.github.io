@@ -2,6 +2,10 @@
    Each entry: [page, name, group (p = pharma QA, b = business, s = AI Agent Studio), keywords separated by |, Gujarati, Hindi, English]
    Keywords are matched against what the customer says, so include problem words in all three languages. */
 var AAROHI_AGENTS = [
+['salesmitra.html','SalesMitra AI Sales Agent','s','sales|sales agent|lead|leads|customer|customers|client|clients|cold email|email marketing|prospect|pipeline|grahak|grahak shodho|ગ્રાહક|ગ્રાહકો|ગ્રાહક શોધો|ग्राहक|ग्राहक ढूँढो|लीड|વેચાણ|बिक्री|more sales|new customers|b2b',
+ 'તમે શું વેચો છો અને આદર્શ ગ્રાહક કોણ છે તે કહો. SalesMitra સાચા leads શોધે છે, research કરે છે, personalized cold email લખે છે અને replies તથા pipeline dashboard પર track કરે છે.',
+ 'आप क्या बेचते हैं और आदर्श ग्राहक कौन है, बताइए. SalesMitra असली leads ढूँढता है, research करता है, personalized cold email लिखता है और replies व pipeline dashboard पर track करता है.',
+ 'Tell it what you sell and who your ideal customer is. SalesMitra finds real leads, researches them, writes personalized cold emails and tracks replies and the pipeline on one dashboard.'],
 // ---------- Pharma QA ----------
 ['qa-agent.html','Deviation & CAPA Overdue Agent','p','capa|capa tracker|capa dashboard|capa list|dashboard|overdue|due date|escalation|qa head|tracker|pending deviation|pending capa|ઓવરડ્યુ|મુદત|બાકી deviation|बकाया|ओवरड्यू|late capa|capa late|capa overdue',
  'તમારા QA tracker માંથી overdue અને જલ્દી due થનારા Deviation/CAPA શોધે છે, risk મુજબ ક્રમ આપે છે અને QA Head માટે escalation mail તૈયાર કરે છે.',

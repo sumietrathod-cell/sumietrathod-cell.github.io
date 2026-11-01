@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SalesMitra AI Sales Agent | Aarohan QA Analytics</title>
+<meta name="description" content="SalesMitra: an AI sales agent for any business. Tell it what you sell and who your ideal customer is. It finds real leads, researches them, writes personalized cold emails and tracks your pipeline on a live dashboard.">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<meta name="theme-color" content="#081a32">
+<style>
+:root{--navy:#081a32;--navy2:#14286b;--gold:#d5b46d;--ink:#17273c;--muted:#62718a;--line:#e3e8ef;--bg:#f5f7fb;--teal:#1597c9;--coral:#ff5b3a;--pink:#d6337f;--green:#16a34a}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 system-ui,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+a{color:inherit}
+header{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;letter-spacing:.03em;font-size:14px}
+.brand img{width:34px;height:34px;border-radius:9px}
+.brand small{display:block;font-size:10px;letter-spacing:.12em;color:var(--gold);font-weight:600}
+header .back{color:#fff;font-size:13px;border:1px solid #ffffff44;padding:6px 12px;border-radius:99px;text-decoration:none;white-space:nowrap}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:26px 18px 30px}
+.hero .w{max-width:980px;margin:auto;display:flex;gap:20px;align-items:center}
+.hero h1{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.15}
+.hero h1 span{color:var(--gold)}
+.hero p{color:#c8d5e6;margin:8px 0 0;max-width:620px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.steps b{font-size:12px;font-weight:600;background:#ffffff14;border:1px solid #ffffff2a;border-radius:99px;padding:4px 10px}
+.bot{flex:none}
+.wrap{max-width:980px;margin:auto;padding:16px 14px 90px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:-22px 0 14px;padding:0 0 4px;position:relative;z-index:2}
+.tab{flex:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;cursor:pointer;color:var(--muted);font:600 13px system-ui,"Segoe UI",Arial,sans-serif;box-shadow:0 4px 14px #08193214}
+.tab.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.tab .n{display:inline-block;min-width:18px;margin-left:4px;background:var(--pink);color:#fff;border-radius:99px;font-size:11px;padding:0 5px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{font-size:20px;margin:0 0 4px}
+h3{font-size:15px;margin:0 0 8px}
+.s{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px;color:var(--navy2)}
+input,textarea,select{width:100%;padding:10px 12px;border:1px solid #cdd6e3;border-radius:10px;font:15px system-ui,"Segoe UI",Arial,sans-serif;background:#fff;color:var(--ink)}
+textarea{min-height:120px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+button,.btn{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:10px 18px;font:700 14px system-ui,"Segoe UI",Arial,sans-serif;cursor:pointer;display:inline-block;margin:6px 6px 0 0;text-decoration:none}
+.btn.c,button.c{background:var(--coral)}
+.btn.g,button.g{background:var(--green)}
+.btn.o,button.o{background:#7c3aed}
+button.l{background:#e9eef5;color:var(--ink)}
+button:disabled{opacity:.5}
+pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:13px/1.5 system-ui,"Segoe UI",Arial,sans-serif;max-height:260px;overflow:auto}
+.k{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.k div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.k span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.k b{display:block;font-size:30px;letter-spacing:-.02em}
+.k b.w{color:var(--pink)}
+.bar{display:grid;grid-template-columns:96px 1fr 30px;gap:10px;align-items:center;margin:8px 0;font-size:13px}
+.tr{height:9px;background:#eef3f8;border-radius:9px;overflow:hidden}.tr i{display:block;height:100%;background:var(--teal);border-radius:9px}
+.lead{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+.mid{flex:1;min-width:0}.mid b{display:block}.mid small{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:#eef3f8;color:var(--muted);white-space:nowrap}
+.pill.sent{background:#e5f7ef;color:var(--green)}.pill.drafted{background:#fff3e0;color:#b26a00}
+.kan{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:8px;overflow-x:auto;padding-bottom:6px}
+.col{background:#eaf0f6;border-radius:12px;padding:8px;min-height:200px}
+.col h4{margin:2px 2px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between}
+.chip{background:#fff;border-radius:10px;padding:8px;margin-bottom:6px;font-size:13px;cursor:pointer;box-shadow:0 1px 2px #08193210}
+.chip small{display:block;color:var(--muted);font-size:11px}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.fact{font-size:12px;background:#f5f7fb;border:1px solid var(--line);border-radius:99px;padding:3px 10px;text-decoration:none}
+.sig{background:var(--coral);color:#fff;border-color:var(--coral)}
+.msg{max-width:85%;padding:8px 12px;border-radius:14px;margin:6px 0;white-space:pre-wrap}
+.msg.them{background:#f5f7fb;border:1px solid var(--line)}.msg.me{background:var(--teal);color:#fff;margin-left:auto}
+.ov{position:fixed;inset:0;background:#08193266;display:none;z-index:20}.ov.on{display:block}
+.dr{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--bg);z-index:21;transform:translateX(100%);transition:transform .25s;overflow:auto;padding:16px}
+.dr.on{transform:none}
+.x{float:right;margin:0;width:34px;height:34px;padding:0;border-radius:50%;background:#fff;color:var(--ink);font-size:18px}
+.empty{text-align:center;color:var(--muted);padding:26px 10px}
+.warn{background:#fef3c7;color:#92400e;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}
+.ok{background:#e5f7ef;color:#166534;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.3s;z-index:40;pointer-events:none;font-size:14px}
+.toast.on{opacity:1}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:20px}
+@media(max-width:640px){.k{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.hero .bot{display:none}.kan{grid-template-columns:repeat(6,150px)}}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html"><img src="logo.svg" alt="Aarohan QA Analytics logo"><span>AAROHAN <span style="color:var(--gold)">QA</span> ANALYTICS<small>AI AGENT STUDIO</small></span></a>
+  <a class="back" href="ai-agent-studio.html">&larr; All agents</a>
+</header>
+
+<section class="hero"><div class="w">
+  <div>
+    <h1><span>SalesMitra</span> — your AI sales agent</h1>
+    <p>Tell it two things: what you sell and who your ideal customer is. It finds real leads, researches each one, writes personalized cold emails and tracks every reply on one dashboard.</p>
+    <div class="steps"><b>1 · Find leads</b><b>2 · Research</b><b>3 · Write email</b><b>4 · Send</b><b>5 · Replies</b><b>6 · Meeting</b></div>
+  </div>
+  <div class="bot" id="botHero"></div>
+</div></section>
+
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+  <p class="foot">Leads and emails are saved only in this browser. Use <b>Export CSV</b> to keep a copy. AI can make mistakes: check every email before you send it.</p>
+</div>
+<div class="ov" id="ov"></div>
+<div class="dr" id="dr"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+var BOT=function(s){return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="7" y="0" width="2" height="2" fill="#ff5b3a"/><rect x="2" y="2" width="12" height="8" fill="#d5b46d"/><rect x="3" y="4" width="10" height="3" fill="#081a32"/><rect x="4" y="5" width="2" height="1" fill="#5fe0ff"/><rect x="10" y="5" width="2" height="1" fill="#5fe0ff"/><rect x="6" y="8" width="4" height="1" fill="#081a32"/><rect x="3" y="10" width="10" height="4" fill="#14286b"/><rect x="7" y="10" width="2" height="3" fill="#fff"/><rect x="4" y="14" width="2" height="2" fill="#081a32"/><rect x="10" y="14" width="2" height="2" fill="#081a32"/></svg>'};
+document.getElementById('botHero').innerHTML=BOT(110);
+var STAGES=['Outreach','Engaged','Qualifying','Negotiating','Closing','Won'];
+var COLORS=['#1597c9','#ff5b3a','#d6337f','#16a34a','#7c3aed','#e8a317','#14286b','#c2410c'];
+var KEY='salesmitra_v1';
+var S=load();
+var view='train';
+if(S.profile&&S.profile.sell)view=S.leads.length?'today':'run';
+var openId=null;
+
+function load(){try{var d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.leads)return d}catch(e){}return {profile:null,leads:[],log:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Could not save in this browser')}}
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function col(n){var h=0;String(n||'?').split('').forEach(function(c){h+=c.charCodeAt(0)});return COLORS[h%COLORS.length]}
+function ini(n){return esc((String(n||'?').trim()[0]||'?').toUpperCase())}
+function now(){return new Date().toISOString()}
+function ago(t){if(!t)return'';var d=(Date.now()-new Date(t))/6e4;if(d<1)return'now';if(d<60)return Math.round(d)+'m ago';if(d<1440)return Math.round(d/60)+'h ago';return Math.round(d/1440)+'d ago'}
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on')},2400)}
+function log(t){S.log.unshift({t:t,ts:now()});S.log=S.log.slice(0,60)}
+function waiting(){return S.leads.filter(function(l){var m=l.messages||[];return m.length&&m[m.length-1].from==='them'&&l.stage!=='Lost'}).length}
+function copy(text,btn){var done=function(){if(btn)btn.textContent='Copied';toast('Copied')};if(navigator.clipboard)navigator.clipboard.writeText(text).then(done,function(){toast('Select the text and copy')});else toast('Select the text and copy')}
+
+// ---------- tabs ----------
+var TABS=[['train','1 · Train'],['run','2 · Run agent'],['today','Today'],['outbox','Outbox'],['convo','Replies'],['pipe','Pipeline']];
+function render(){
+  $('#tabs').innerHTML=TABS.map(function(t){var n=t[0]==='convo'?waiting():0;return '<button class="tab '+(view===t[0]?'on':'')+'" data-t="'+t[0]+'">'+t[1]+(n?'<span class="n">'+n+'</span>':'')+'</button>'}).join('');
+  [].forEach.call(document.querySelectorAll('[data-t]'),function(b){b.onclick=function(){view=b.getAttribute('data-t');render();window.scrollTo(0,0)}});
+  $('#view').innerHTML=({train:vTrain,run:vRun,today:vToday,outbox:vOutbox,convo:vConvo,pipe:vPipe})[view]();
+  bind();
+}
+
+// ---------- 1 train ----------
+function vTrain(){
+  var p=S.profile||{};
+  function opt(list,cur){return list.map(function(o){return '<option'+(String(cur)===String(o)?' selected':'')+'>'+o+'</option>'}).join('')}
+  return '<div class="card"><h2>Train SalesMitra</h2><p class="s">Tell it two things. It does the rest.</p>'+
+  '<form id="tf"><label>What do you sell?</label><input name="sell" required placeholder="e.g. Website design for local businesses" value="'+esc(p.sell)+'">'+
+  '<label>Ideal customer?</label><input name="ideal" required placeholder="e.g. Clinics and cafés in Pune, 5–50 people" value="'+esc(p.ideal)+'">'+
+  '<div class="two"><div><label>City / region to search</label><input name="city" placeholder="e.g. Pune, Maharashtra" value="'+esc(p.city)+'"></div>'+
+  '<div><label>Your name, company, phone</label><input name="sender" placeholder="e.g. Sumit Rathod, Aarohan, 63571 15513" value="'+esc(p.sender)+'"></div></div>'+
+  '<label>Proof or offer (optional)</label><input name="offer" placeholder="e.g. 13 years experience; free 15-minute demo" value="'+esc(p.offer)+'">'+
+  '<div class="two"><div><label>Email tone</label><select name="tone">'+opt(['Friendly & short','Formal','Hinglish casual'],p.tone)+'</select></div>'+
+  '<div><label>Leads per run</label><select name="n">'+opt([5,10,15,20],p.n||10)+'</select></div></div>'+
+  '<label>Email language</label><select name="lang">'+opt(['English','Hindi','Gujarati','Hinglish','German'],p.lang)+'</select>'+
+  '<button class="c" type="submit">Start SalesMitra &rarr;</button></form></div>';
+}
+
+// ---------- 2 run ----------
+function leadPrompt(){
+  var p=S.profile||{},skip=S.leads.map(function(l){return l.name}).slice(0,60).join('; ');
+  return 'You are SalesMitra, an expert B2B sales development agent. Use web search to do real research. Never invent a business, a fact, an email address or a phone number.\n\n'+
+  'WHAT I SELL: '+p.sell+'\nIDEAL CUSTOMER: '+p.ideal+'\nAREA: '+(p.city||'(use the ideal customer description)')+'\nMY SIGNATURE: '+(p.sender||'(leave a placeholder)')+'\nPROOF / OFFER: '+(p.offer||'(none)')+'\nTONE: '+(p.tone||'Friendly & short')+'\nEMAIL LANGUAGE: '+(p.lang||'English')+'\n'+(skip?'ALREADY CONTACTED, SKIP: '+skip+'\n':'')+
+  '\nTASK\n1. DISCOVER '+(p.n||10)+' real businesses that fit the ideal customer, using several different searches (Google listings, directories, association lists).\n'+
+  '2. RESEARCH each one from its own website or listing: what they do, size, rating/reviews, recent news.\n'+
+  '3. Take the email and phone ONLY if published on their website or listing. If not found, leave them empty. Do not guess emails like info@.\n'+
+  '4. SIGNALS: up to 3 short, real reasons to contact them now (e.g. New branch opened, No online booking, Hiring, Slow website, Few reviews).\n'+
+  '5. WRITE one cold email per lead, max 110 words: a specific hook from the research in line 1, how my offer helps that exact situation, one easy ask (15-minute call or a short demo), my signature, and a last line: "Not relevant? Just reply \'no\' and I won\'t write again." No hype and no made-up numbers.\n\n'+
+  'OUTPUT: first a 3-line summary, then ONE json code block that is a JSON array, one object per lead, with exactly these keys:\n'+
+  '{"name":"","type":"","city":"","website":"","email":"","phone":"","rating":"","research":"2-3 sentences","signals":["",""],"emailSubject":"","emailBody":"","source":"URL where you found them"}';
+}
+function vRun(){
+  if(!S.profile||!S.profile.sell)return '<div class="card empty">'+BOT(54)+'<p>First tell SalesMitra what you sell.</p><button class="c" data-go="train">Go to Train</button></div>';
+  var t=leadPrompt(),q=encodeURIComponent(t);
+  return '<div class="card"><h2>Run the agent</h2><p class="s">SalesMitra uses Claude (or ChatGPT) with web search to find and research real leads. Free, no API key.</p>'+
+  '<h3>Step A · Start the agent</h3><a class="btn o" target="_blank" rel="noopener" href="https://claude.ai/new?q='+q+'">Run in Claude</a><a class="btn g" target="_blank" rel="noopener" href="https://chatgpt.com/?q='+q+'&hints=search">Run in ChatGPT</a><button class="l" id="cpP">Copy prompt</button>'+
+  '<details style="margin-top:10px"><summary class="s" style="cursor:pointer">See the agent prompt</summary><pre>'+esc(t)+'</pre></details>'+
+  '<div class="warn">Turn on <b>web search</b> in Claude or ChatGPT so the leads are real. It takes 1–3 minutes.</div>'+
+  '<h3 style="margin-top:16px">Step B · Paste the result here</h3><p class="s">Copy the whole answer (or just the json block) and paste it below.</p>'+
+  '<textarea id="paste" placeholder="Paste the agent answer here…"></textarea><button class="c" id="imp">Add leads to my dashboard</button><div id="impMsg"></div></div>';
+}
+function parseLeads(txt){
+  var m=txt.match(/```(?:json)?\s*([\s\S]*?)```/i),body=m?m[1]:txt;
+  var a=body.indexOf('['),b=body.lastIndexOf(']');
+  if(a<0||b<a)throw new Error('No list of leads found');
+  var arr=JSON.parse(body.slice(a,b+1));
+  if(!Array.isArray(arr))throw new Error('Not a list');
+  return arr.filter(function(x){return x&&x.name});
+}
+function importLeads(){
+  var txt=$('#paste').value.trim(),msg=$('#impMsg');
+  if(!txt){toast('Paste the agent answer first');return}
+  try{
+    var arr=parseLeads(txt),added=0,dup=0;
+    arr.slice().reverse().forEach(function(x){
+      var key=(String(x.name)+'|'+String(x.city||'')).toLowerCase();
+      if(S.leads.some(function(l){return (l.name+'|'+(l.city||'')).toLowerCase()===key||(x.email&&l.email===x.email)})){dup++;return}
+      S.leads.unshift({id:'L'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:String(x.name),type:x.type||'',city:x.city||'',website:x.website||'',email:x.email||'',phone:x.phone||'',rating:x.rating||'',research:x.research||'',signals:Array.isArray(x.signals)?x.signals.slice(0,3):[],emailSubject:x.emailSubject||'',emailBody:x.emailBody||'',source:x.source||'',stage:'Outreach',status:x.emailBody?'drafted':'',messages:[],createdAt:now(),draftedAt:x.emailBody?now():''});
+      added++;
+    });
+    if(added){log(added+' new leads found and researched');log(added+' personalized emails drafted')}
+    save();
+    msg.innerHTML='<div class="ok">'+added+' leads added'+(dup?', '+dup+' duplicates skipped':'')+'. Open <b>Outbox</b> to review and send.</div>';
+    if(added){setTimeout(function(){view='outbox';render()},1200)}
+  }catch(e){msg.innerHTML='<div class="warn">Could not read the leads. Paste the full answer, including the json block that starts with [ and ends with ].</div>'}
+}
+
+// ---------- dashboard views ----------
+function emptyBox(){return '<div class="card empty">'+BOT(54)+'<p>No leads yet.</p><button class="c" data-go="'+(S.profile?'run':'train')+'">'+(S.profile?'Run the agent':'Train SalesMitra')+'</button></div>'}
+function vToday(){
+  var L=S.leads,dr=L.filter(function(l){return l.emailBody}).length,sent=L.filter(function(l){return l.status==='sent'}).length,conv=L.filter(function(l){return (l.messages||[]).some(function(m){return m.from==='them'})}).length,w=waiting();
+  var by=STAGES.map(function(s){return [s,L.filter(function(l){return (l.stage||'Outreach')===s}).length]}),mx=Math.max.apply(null,[1].concat(by.map(function(x){return x[1]})));
+  return '<div class="k"><div><span>Contacts found</span><b>'+L.length+'</b></div><div><span>Emails sent</span><b>'+sent+'<small style="font-size:13px;color:var(--muted);font-weight:500"> / '+dr+'</small></b></div><div><span>Conversations</span><b>'+conv+'</b></div><div><span>Waiting on you</span><b class="'+(w?'w':'')+'">'+w+'</b></div></div>'+
+  (L.length?'':'<div style="margin-top:14px">'+emptyBox()+'</div>')+
+  '<div class="card" style="margin-top:14px"><h3>Contacts by stage</h3>'+by.map(function(x,i){return '<div class="bar"><span>'+x[0]+'</span><div class="tr"><i style="width:'+(x[1]/mx*100)+'%;'+(i>3?'background:var(--pink)':'')+'"></i></div><b>'+x[1]+'</b></div>'}).join('')+'</div>'+
+  '<div class="card"><h3>Activity</h3>'+(S.log.length?S.log.slice(0,12).map(function(a){return '<div style="display:flex;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)"><b style="color:var(--green)">✓</b><span style="flex:1">'+esc(a.t)+'</span><span style="color:var(--muted)">'+ago(a.ts)+'</span></div>'}).join(''):'<p class="s">Nothing yet.</p>')+
+  '<button class="l" id="csv">Export CSV</button><button class="l" id="reset" style="color:var(--pink)">Clear all data</button></div>';
+}
+function pill(l){return l.status?'<span class="pill '+l.status+'">'+(l.status==='sent'?'Sent':'Drafted')+'</span>':''}
+function row(l,sub){return '<div class="lead" data-o="'+l.id+'"><div class="av" style="background:'+col(l.name)+'">'+ini(l.name)+'</div><div class="mid"><b>'+esc(l.name)+'</b><small>'+sub+'</small></div>'+pill(l)+'</div>'}
+function vOutbox(){
+  if(!S.leads.length)return emptyBox();
+  var d=S.leads.filter(function(l){return l.status!=='sent'}),s=S.leads.filter(function(l){return l.status==='sent'});
+  return '<div class="card"><h2>Outbox</h2><p class="s">Open a lead, check the email, then send it from Gmail or your mail app.</p></div>'+
+  (d.length?'<h3>To send ('+d.length+')</h3>'+d.map(function(l){return row(l,esc(l.emailSubject||'No email yet'))}).join(''):'')+
+  (s.length?'<h3 style="margin-top:14px">Sent ('+s.length+')</h3>'+s.map(function(l){return row(l,esc(l.emailSubject))}).join(''):'');
+}
+function vConvo(){
+  var L=S.leads.filter(function(l){return (l.messages||[]).some(function(m){return m.from==='them'})});
+  if(!L.length)return '<div class="card empty">'+BOT(50)+'<p>No replies yet. When a lead replies, open the lead and paste the reply. SalesMitra sorts it and writes your answer.</p></div>';
+  return L.map(function(l){var m=l.messages[l.messages.length-1];return row(l,(m.from==='me'?'You: ':'')+esc(m.text))}).join('');
+}
+function vPipe(){
+  if(!S.leads.length)return emptyBox();
+  return '<p class="s">Tap a card to move it to the next stage.</p><div class="kan">'+STAGES.map(function(s){var L=S.leads.filter(function(l){return (l.stage||'Outreach')===s});return '<div class="col"><h4>'+s+'<span>'+L.length+'</span></h4>'+L.map(function(l){return '<div class="chip" data-o="'+l.id+'">'+esc(l.name)+'<small>'+esc(l.type)+'</small></div>'}).join('')+'</div>'}).join('')+'</div>';
+}
+
+// ---------- lead drawer ----------
+function openLead(id){openId=id;drawLead();$('#ov').classList.add('on');$('#dr').classList.add('on')}
+function closeLead(){openId=null;$('#ov').classList.remove('on');$('#dr').classList.remove('on');render()}
+$('#ov').onclick=closeLead;
+function cur(){return S.leads.filter(function(x){return x.id===openId})[0]}
+function drawLead(){
+  var l=cur();if(!l){closeLead();return}
+  var f=[];if(l.city)f.push('📍 '+esc(l.city));if(l.rating)f.push('★ '+esc(l.rating));if(l.phone)f.push('☎ '+esc(l.phone));if(l.email)f.push('✉ '+esc(l.email));
+  var links=(l.website?'<a class="fact" target="_blank" rel="noopener" href="'+esc(l.website)+'">🌐 Website</a>':'')+(l.source&&l.source!==l.website?'<a class="fact" target="_blank" rel="noopener" href="'+esc(l.source)+'">Source</a>':'');
+  $('#dr').innerHTML='<button class="x" id="xb">×</button><div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:44px;height:44px;background:'+col(l.name)+'">'+ini(l.name)+'</div><div><h2 style="margin:0">'+esc(l.name)+'</h2><span class="s">'+esc(l.type)+'</span></div></div>'+
+  '<div class="facts">'+f.map(function(x){return '<span class="fact">'+x+'</span>'}).join('')+links+'</div>'+
+  ((l.signals||[]).length?'<div class="facts">'+l.signals.map(function(s){return '<span class="fact sig">'+esc(s)+'</span>'}).join('')+'</div>':'')+
+  (l.research?'<div class="card" style="font-size:14px">'+esc(l.research)+'</div>':'')+
+  '<label>Stage</label><select id="stg">'+STAGES.concat(['Lost']).map(function(s){return '<option'+((l.stage||'Outreach')===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select>'+
+  '<label>Email to</label><input id="eTo" value="'+esc(l.email)+'" placeholder="Add their email">'+
+  '<label>Subject</label><input id="eSub" value="'+esc(l.emailSubject)+'"><label>Email</label><textarea id="eBody" style="min-height:200px">'+esc(l.emailBody)+'</textarea>'+
+  '<div><button id="gm" class="c">Open in Gmail</button><button id="mt" class="l">Mail app</button><button id="cpE" class="l">Copy</button><button id="sent" class="g">'+(l.status==='sent'?'Sent ✓':'Mark as sent')+'</button></div>'+
+  '<h3 style="margin-top:18px">Conversation</h3>'+((l.messages||[]).map(function(m){return '<div class="msg '+m.from+'">'+esc(m.text)+'<div style="font-size:11px;opacity:.7">'+ago(m.ts)+'</div></div>'}).join('')||'<p class="s">No messages yet.</p>')+
+  '<label>Paste their reply</label><textarea id="rep" style="min-height:90px" placeholder="Paste the reply you received…"></textarea>'+
+  '<button class="l" id="addT">+ Add their reply</button><a class="btn o" id="aiR" target="_blank" rel="noopener" href="#">Write my reply with Claude</a>'+
+  '<div style="margin-top:20px"><button class="l" id="del" style="color:var(--pink)">Delete lead</button></div>';
+  $('#xb').onclick=closeLead;
+  function grab(){l.email=$('#eTo').value.trim();l.emailSubject=$('#eSub').value;l.emailBody=$('#eBody').value;save()}
+  ['eTo','eSub','eBody'].forEach(function(i){$('#'+i).onchange=grab});
+  $('#stg').onchange=function(){l.stage=this.value;log(l.name+' → '+l.stage);save();toast('Moved to '+l.stage)};
+  $('#gm').onclick=function(){grab();window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(l.email)+'&su='+encodeURIComponent(l.emailSubject)+'&body='+encodeURIComponent(l.emailBody),'_blank','noopener')};
+  $('#mt').onclick=function(){grab();location.href='mailto:'+encodeURIComponent(l.email)+'?subject='+encodeURIComponent(l.emailSubject)+'&body='+encodeURIComponent(l.emailBody)};
+  $('#cpE').onclick=function(){grab();copy('Subject: '+l.emailSubject+'\n\n'+l.emailBody,this)};
+  $('#sent').onclick=function(){grab();if(l.status!=='sent'){l.status='sent';l.sentAt=now();l.messages=(l.messages||[]).concat([{from:'me',text:l.emailBody,ts:now()}]);log('Email sent → '+l.name);save()}drawLead()};
+  $('#addT').onclick=function(){var t=$('#rep').value.trim();if(!t)return;l.messages=(l.messages||[]).concat([{from:'them',text:t,ts:now()}]);if((l.stage||'Outreach')==='Outreach')l.stage='Engaged';if(/\b(not interested|no thanks|unsubscribe|remove me)\b/i.test(t)||/^\s*no\.?\s*$/i.test(t))l.stage='Lost';log('Reply from '+l.name);save();drawLead()};
+  $('#aiR').onclick=function(){var p=S.profile||{},th=(l.messages||[]).map(function(m){return (m.from==='them'?l.name:'Me')+': '+m.text}).join('\n\n');var extra=$('#rep').value.trim();if(extra)th+='\n\n'+l.name+': '+extra;
+    var t='You are SalesMitra, my sales assistant. Read this email conversation and write my next reply.\n\nWhat I sell: '+p.sell+'\nMy signature: '+(p.sender||'')+'\nTone: '+(p.tone||'Friendly & short')+'\nLanguage: '+(p.lang||'English')+'\n\nLead: '+l.name+' ('+l.type+', '+l.city+')\nResearch: '+l.research+'\n\nConversation:\n'+th+'\n\nFirst tell me in one line what they want (Interested / Question / Wants a meeting / Not interested). Then write my reply: short and warm, answer their question, and if they are interested offer two specific time options for a 15-minute call. If they are not interested, write a polite one-line thank-you only.';
+    this.href='https://claude.ai/new?q='+encodeURIComponent(t)};
+  $('#del').onclick=function(){if(this.getAttribute('data-s')){S.leads=S.leads.filter(function(x){return x.id!==l.id});save();closeLead()}else{this.setAttribute('data-s',1);this.textContent='Tap again to delete'}};
+}
+
+// ---------- bind ----------
+function bind(){
+  [].forEach.call(document.querySelectorAll('[data-o]'),function(e){e.onclick=function(){openLead(e.getAttribute('data-o'))}});
+  [].forEach.call(document.querySelectorAll('[data-go]'),function(e){e.onclick=function(){view=e.getAttribute('data-go');render()}});
+  var tf=$('#tf');if(tf)tf.onsubmit=function(ev){ev.preventDefault();var d={};[].forEach.call(tf.elements,function(e){if(e.name)d[e.name]=e.value.trim()});d.n=+d.n||10;S.profile=d;log('SalesMitra trained: '+d.sell);save();view='run';render();window.scrollTo(0,0)};
+  var cp=$('#cpP');if(cp)cp.onclick=function(){copy(leadPrompt(),cp)};
+  var im=$('#imp');if(im)im.onclick=importLeads;
+  var cs=$('#csv');if(cs)cs.onclick=exportCSV;
+  var rs=$('#reset');if(rs)rs.onclick=function(){if(rs.getAttribute('data-s')){S={profile:S.profile,leads:[],log:[]};save();render()}else{rs.setAttribute('data-s',1);rs.textContent='Tap again to clear'}};
+}
+function exportCSV(){
+  var cols=['name','type','city','website','email','phone','rating','stage','status','signals','emailSubject','emailBody','research','source'];
+  var c=function(v){v=Array.isArray(v)?v.join('; '):String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"'};
+  var csv=cols.join(',')+'\n'+S.leads.map(function(l){return cols.map(function(k){return c(l[k])}).join(',')}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='salesmitra-leads.csv';document.body.appendChild(a);a.click();a.remove();
+}
+render();
+})();
+</script>
+<script src="trial.js"></script>
+</body>
+</html>
