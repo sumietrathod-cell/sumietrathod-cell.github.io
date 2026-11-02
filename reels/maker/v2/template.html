@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<!-- Aarohan reel template v2: big AAROHAN brand + Aarohi AI doll. Content comes from config.js (window.CFG). -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#0f1236}
+body{font-family:'Inter',sans-serif;color:#fff;position:relative}
+.bg{position:absolute;inset:0;background:
+ radial-gradient(700px 600px at 860px 260px,rgba(98,52,200,.55),transparent 70%),
+ radial-gradient(800px 700px at 80px 1720px,rgba(120,40,40,.45),transparent 70%),
+ linear-gradient(180deg,#121a45 0%,#17134a 45%,#120f38 100%)}
+.brand{position:absolute;top:44px;left:0;right:0;text-align:center;z-index:5}
+.brand .big{font-family:'Inter Display';font-weight:900;font-size:132px;line-height:1;letter-spacing:10px;padding-left:10px;
+ background:linear-gradient(180deg,#ffe28a 0%,#f5c542 55%,#e0a52a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 6px 18px rgba(245,197,66,.35))}
+.brand .qa{margin-top:12px;font-weight:900;font-size:40px;letter-spacing:16px;padding-left:16px;color:#fff}
+.scene{position:absolute;inset:0;display:none}
+.center{position:absolute;left:0;right:0;text-align:center}
+.h{font-family:'Inter Display';font-weight:900;font-size:112px;line-height:1.04;letter-spacing:-2px}
+.y{color:#f5c542}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;padding:0 90px}
+.chip{border:3px solid #4a4d86;background:rgba(40,42,90,.6);border-radius:60px;padding:14px 32px;font-weight:800;font-size:38px}
+.red{color:#ff8a8a;font-weight:700;font-size:42px;line-height:1.4;padding:0 60px}
+.sub{font-weight:600;font-size:40px;line-height:1.45;color:#d8d9f5}
+.phone{position:absolute;left:110px;top:262px;width:700px;height:1104px;background:#0c0c14;border-radius:62px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.screen{position:absolute;left:25px;top:26px;width:650px;height:1052px;border-radius:42px;overflow:hidden;background:#f4f6fa}
+.screen img{position:absolute;left:0;top:0;width:650px}
+.cap{position:absolute;left:0;right:0;top:1410px;text-align:center;z-index:4}
+.cap .t{display:inline-block;background:#6d28d9;border-radius:22px;padding:14px 36px 18px;font-family:'Inter Display';font-weight:900;font-size:76px;line-height:1.07;letter-spacing:-1px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.cap .k{display:inline-block;margin-top:22px;background:#f5c542;color:#151515;border-radius:16px;padding:10px 30px;font-weight:800;font-size:38px}
+.box{margin:0 auto;width:860px;background:rgba(30,32,78,.85);border:3px solid #3d4080;border-radius:26px;padding:24px 0 26px}
+.box .l{font-weight:700;font-size:26px;letter-spacing:6px;color:#a6a8e0}
+.box .v{margin-top:8px;font-weight:800;font-size:50px}
+.cta{display:inline-block;background:#f5c542;color:#151515;border-radius:22px;padding:22px 46px;font-family:'Inter Display';font-weight:900;font-size:58px}
+.doll{position:absolute;z-index:3}
+.doll svg{width:100%;height:100%;overflow:visible}
+.bub{position:absolute;z-index:6;background:#fff;color:#1b1446;border-radius:28px;padding:20px 28px;font-weight:800;font-size:40px;line-height:1.25;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.bub:after{content:'';position:absolute;bottom:-22px;border:14px solid transparent;border-top:22px solid #fff}
+.bub.r:after{right:60px}.bub.l:after{left:60px}
+.bub b{color:#6d28d9}
+</style></head><body>
+<div class="bg"></div>
+<div class="brand"><div class="big">AAROHAN</div><div class="qa">QA ANALYTICS</div></div>
+<div id="stage"></div>
+<template id="dollsrc"><svg id="doll" viewBox="0 0 320 420" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <linearGradient id="dTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#5b21b6"/></linearGradient>
+  <linearGradient id="dHair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1a3a"/><stop offset="1" stop-color="#170d24"/></linearGradient>
+  <radialGradient id="dSkin" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#f6d2b4"/><stop offset="1" stop-color="#e2ac86"/></radialGradient>
+  <radialGradient id="dGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f5c542" stop-opacity=".55"/><stop offset="1" stop-color="#f5c542" stop-opacity="0"/></radialGradient>
+ </defs>
+ <ellipse cx="160" cy="230" rx="160" ry="190" fill="url(#dGlow)"/>
+ <!-- body -->
+ <path d="M70 420 C70 330 105 300 160 300 C215 300 250 330 250 420 Z" fill="url(#dTop)"/>
+ <path d="M135 300 L160 340 L185 300 Z" fill="#f6d2b4"/>
+ <path d="M128 300 L160 352 L192 300 L200 306 L160 368 L120 306 Z" fill="#fff" opacity=".95"/>
+ <circle cx="205" cy="372" r="17" fill="#f5c542"/><text x="205" y="379" font-family="Inter" font-weight="900" font-size="20" text-anchor="middle" fill="#3b1a7a">A</text>
+ <!-- waving arm -->
+ <g id="dArm" style="transform-origin:78px 352px">
+  <path d="M84 338 C60 320 46 290 44 262" stroke="url(#dTop)" stroke-width="30" stroke-linecap="round" fill="none"/>
+  <circle cx="44" cy="252" r="19" fill="url(#dSkin)"/>
+ </g>
+ <!-- neck -->
+ <rect x="145" y="268" width="30" height="40" rx="12" fill="#e2ac86"/>
+ <!-- hair back -->
+ <path d="M70 170 C70 88 120 52 160 52 C200 52 250 88 250 170 C250 225 258 262 236 288 C220 300 200 292 196 280 L124 280 C120 292 100 300 84 288 C62 262 70 225 70 170 Z" fill="url(#dHair)"/>
+ <circle cx="160" cy="44" r="30" fill="url(#dHair)"/>
+ <!-- face -->
+ <ellipse cx="160" cy="180" rx="72" ry="84" fill="url(#dSkin)"/>
+ <!-- fringe -->
+ <path d="M88 165 C92 110 125 88 160 88 C200 88 230 112 232 160 C215 130 190 118 168 116 C150 128 120 142 88 165 Z" fill="url(#dHair)"/>
+ <!-- eyes -->
+ <g id="dEyes">
+  <g style="transform-origin:132px 186px" class="eye"><ellipse cx="132" cy="186" rx="13" ry="16" fill="#1d1033"/><circle cx="137" cy="180" r="5" fill="#fff"/><circle cx="128" cy="191" r="2.3" fill="#fff" opacity=".8"/></g>
+  <g style="transform-origin:188px 186px" class="eye"><ellipse cx="188" cy="186" rx="13" ry="16" fill="#1d1033"/><circle cx="193" cy="180" r="5" fill="#fff"/><circle cx="184" cy="191" r="2.3" fill="#fff" opacity=".8"/></g>
+ </g>
+ <path d="M114 162 Q132 152 148 160" stroke="#2a1a3a" stroke-width="4" fill="none" stroke-linecap="round"/>
+ <path d="M172 160 Q188 152 206 162" stroke="#2a1a3a" stroke-width="4" fill="none" stroke-linecap="round"/>
+ <ellipse cx="114" cy="214" rx="13" ry="8" fill="#f28b9a" opacity=".55"/><ellipse cx="206" cy="214" rx="13" ry="8" fill="#f28b9a" opacity=".55"/>
+ <!-- mouth -->
+ <path id="dMouth" d="M144 224 Q160 244 176 224 Q160 231 144 224 Z" fill="#c2415a"/>
+ <!-- headset -->
+ <path d="M80 178 C78 62 242 62 240 178" stroke="#f5c542" stroke-width="9" fill="none"/>
+ <rect x="74" y="166" width="20" height="40" rx="9" fill="#f5c542"/><rect x="226" y="166" width="20" height="40" rx="9" fill="#f5c542"/>
+ <path d="M86 202 C92 236 112 246 136 240" stroke="#f5c542" stroke-width="5" fill="none" stroke-linecap="round"/>
+ <circle cx="138" cy="240" r="6" fill="#f5c542"/>
+ <!-- hair bun sparkle -->
+ <path d="M196 30 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 z" fill="#f5c542"/>
+</svg></template>
+<script src="config.js"></script>
+<script>
+/* ---------- build scenes from CFG ---------- */
+const C=window.CFG, st=document.getElementById('stage');
+const DOLL=document.getElementById('dollsrc').innerHTML;
+const T=[]; let t0=0;
+function add(id,dur,html){T.push({id,a:t0,b:t0+dur});t0+=dur;st.insertAdjacentHTML('beforeend','<div class="scene" id="'+id+'">'+html+'</div>');}
+function doll(id,x,y,w){const svg=DOLL.replace(/id="(d(?:Top|Hair|Skin|Glow))"/g,'id="$1_'+id+'"').replace(/url\(#(d\w+)\)/g,'url(#$1_'+id+')');return '<div class="doll" id="'+id+'" style="left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+(w*420/320)+'px">'+svg+'</div>';}
+const H=C.hook;
+add('s1',2.4,
+ '<div class="center h pop" id="s1h" style="top:330px">'+H.title+'</div>'+
+ '<div class="center" style="top:'+(H.chipsTop||860)+'px"><div class="chips pop" id="s1c">'+H.chips.map(c=>'<div class="chip">'+c+'</div>').join('')+'</div></div>'+
+ '<div class="center red pop" id="s1r" style="top:'+(H.painTop||1110)+'px">'+H.pain+'</div>'+
+ doll('d1',700,1420,330)+'<div class="bub r pop" id="b1" style="left:120px;top:1520px;max-width:560px">'+(C.bubbleHook||'Hi! I\'m <b>Aarohi</b>,<br>your AI QA assistant')+'</div>');
+add('s2',2.0,
+ '<div class="center h pop" id="s2h" style="top:470px">There\'s an<br><span class="y">AI agent</span><br>for that.</div>'+
+ '<div class="center sub pop" id="s2s" style="top:890px">'+C.agentName+'<br>by a pharma QA professional</div>'+
+ doll('d2',90,1400,340)+'<div class="bub l pop" id="b2" style="left:420px;top:1420px;max-width:580px">'+(C.bubbleAgent||'Let me <b>show you</b>!')+'</div>');
+const P=C.phoneScenes, pd=(23.2-2.4-2.0-4.4)/P.length;
+P.forEach((s,i)=>add('p'+i,pd,
+ '<div class="phone"><div class="screen"><img id="img'+i+'" src="'+s.img+'"></div></div>'+
+ doll('dp'+i,770,1010,300)+
+ '<div class="cap pop" id="cap'+i+'"><div class="t">'+s.cap+'</div><br><div class="k">'+s.sub+'</div></div>'));
+add('s7',4.4,
+ '<div class="center h pop" id="s7h" style="top:310px;font-size:96px">Try any agent<br><span class="y">FREE for 7 days</span></div>'+
+ '<div class="center pop" id="s7b" style="top:560px">'+
+  '<div class="box"><div class="l">VISIT</div><div class="v">sumietrathod-cell.github.io</div></div>'+
+  '<div class="box" style="margin-top:28px"><div class="l">WHATSAPP</div><div class="v" style="color:#4ade80">+91 63571 15513</div></div>'+
+  '<div class="sub" style="margin-top:34px;font-size:38px">Working with QA teams in<br>India · US · UK · Canada · Europe</div></div>'+
+ '<div class="center pop" id="s7c" style="top:1150px"><div class="cta">Comment “AI” for the link</div></div>'+
+ doll('d7',90,1440,330)+'<div class="bub l pop" id="b7" style="left:420px;top:1480px;max-width:580px">'+(C.bubbleCta||'Try me <b>free</b><br>for 7 days!')+'</div>');
+const TOTAL=t0;
+/* ---------- animation ---------- */
+const ease=x=>x<0?0:x>1?1:x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+const out=x=>{x=Math.max(0,Math.min(1,x));return 1-Math.pow(1-x,3)};
+function pop(id,lt,d){const e=document.getElementById(id);if(!e)return;const p=out((lt-d)/0.3);e.style.opacity=p;e.style.transform='translateY('+((1-p)*40)+'px) scale('+(0.92+0.08*p)+')';}
+function animDoll(id,lt,t,talk,enter){
+ const e=document.getElementById(id);if(!e)return;
+ const p=enter==null?1:out((lt-enter)/0.45);
+ e.style.opacity=p;
+ e.style.transform='translateY('+((1-p)*120+Math.sin(t*Math.PI)*8)+'px)';
+ const arm=e.querySelector('#dArm');const w=lt<1.6?Math.sin(lt*Math.PI*3.2)*16:Math.sin(t*1.3)*3;
+ arm.style.transform='rotate('+w+'deg)';
+ const ph=t%3.2;const bl=(ph>2.9&&ph<3.04)?0.12:1;
+ e.querySelectorAll('.eye').forEach(g=>g.style.transform='scaleY('+bl+')');
+ const m=e.querySelector('#dMouth');m.style.transformOrigin='160px 226px';
+ m.style.transform='scaleY('+(talk&&lt>0.3&&lt<1.8?(1+0.9*Math.abs(Math.sin(lt*14))):1)+')';
+}
+function setT(t){
+ for(const s of T){const on=t>=s.a&&t<s.b;document.getElementById(s.id).style.display=on?'block':'none';
+  if(!on)continue;const lt=t-s.a,dur=s.b-s.a;
+  if(s.id=='s1'){pop('s1h',lt,0);pop('s1c',lt,.3);pop('s1r',lt,.6);animDoll('d1',lt,t,true,0.5);pop('b1',lt,0.8);}
+  else if(s.id=='s2'){pop('s2h',lt,0);pop('s2s',lt,.35);animDoll('d2',lt,t,true,0.1);pop('b2',lt,0.4);}
+  else if(s.id=='s7'){pop('s7h',lt,0);pop('s7b',lt,.3);pop('s7c',lt,.6);animDoll('d7',lt,t,true,0.3);pop('b7',lt,0.7);}
+  else{const i=+s.id.slice(1);pop('cap'+i,lt,0.05);animDoll('dp'+i,lt,t,false,null);
+   const sc=P[i],K=650/(sc.w||780),pr=ease((lt-0.4)/(dur-0.8));
+   document.getElementById('img'+i).style.top=(-(sc.y0+(sc.y1-sc.y0)*pr)*K)+'px';}
+ }
+}
+window.TOTAL=TOTAL;setT(0);
+</script></body></html>
