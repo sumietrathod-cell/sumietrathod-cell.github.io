@@ -288,7 +288,11 @@ fetch(EP,{method:'POST',body:d,headers:{'Accept':'application/json'}}).then(done
 function trial(){var t=get(KEY);if(!t){ask();return}var used=(Date.now()-t.start)/864e5;if(used>=DAYS){expired();return}bar(Math.max(1,Math.ceil(DAYS-used)))}
 
 /* ---------- start ---------- */
+/* Always-free agents: no signup, no demo limit */
+var FREE=' schedule-m-agent rca-agent training-agent ';
+function freeMode(){var b=document.createElement('div');b.className='at-bar';b.innerHTML='Free agent, no signup needed <a href="index.html#portfolio">See all agents</a><a target="_blank" rel="noopener" href="'+wa('Hello Sumit, I used the free '+agent+' and want to know about the other agents.')+'">WhatsApp</a>';document.body.appendChild(b);backupBtn()}
 function init(skipLicense){
+  if(FREE.indexOf(' '+PAGE+' ')>=0){freeMode();return}
   if(skipLicense){trial();return}
   var fromUrl=null;try{fromUrl=new URLSearchParams(location.search).get('key')}catch(e){}
   if(fromUrl){try{var u=new URL(location.href);u.searchParams.delete('key');history.replaceState(null,'',u.toString())}catch(e){}}
