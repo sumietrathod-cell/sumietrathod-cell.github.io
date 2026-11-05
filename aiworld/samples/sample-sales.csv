@@ -1,0 +1,14 @@
+Date,Region,Category,Product,Revenue,Cost,Orders
+2026-01-05,North America,Software,Automation Pilot,650,220,3
+2026-01-18,Europe,Services,Dashboard Setup,550,180,2
+2026-02-01,North America,Services,Reporting Package,450,150,2
+2026-02-11,Asia Pacific,Training,Excel Workshop,250,60,5
+2026-03-02,Europe,Software,CRM Pilot,850,260,4
+2026-03-12,North America,Software,Workflow Setup,750,270,3
+2026-04-05,Asia Pacific,Services,QA Reporting,600,220,2
+2026-04-19,Europe,Training,Power BI Workshop,300,80,6
+2026-05-02,North America,Services,Monthly Reporting,400,130,2
+2026-05-20,Asia Pacific,Software,Automation Pilot,700,230,3
+2026-06-10,Europe,Services,QA Dashboard,900,320,4
+2026-06-25,North America,Training,Analytics Class,350,120,5
+
