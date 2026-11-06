@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>APQR Pro Agent | Aarohan QA Analytics</title>
+<title>APQR Pro Agent | Aarohan AI World</title>
 <meta name="description" content="APQR Pro: upload one Excel file of batch results and quality events, get Cpk and trend for every test, control charts and a complete Annual Product Quality Review draft in Word or PDF.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -25,7 +25,7 @@ button,.btn{background:var(--navy);color:#fff;border:0;border-radius:99px;paddin
 </style>
 </head>
 <body>
-<header><div><b>AAROHAN</b> QA ANALYTICS <span class="pro">PRO</span></div><a href="index.html#pricing">&larr; Plans</a></header>
+<header><div><b>AAROHAN</b> AI WORLD <span class="pro">PRO</span></div><a href="index.html#pricing">&larr; Plans</a></header>
 <main>
 <div class="card noprint">
 <h1>APQR Pro Agent</h1>
@@ -136,7 +136,7 @@ function analyse(){
  '<h2>10. Conclusions</h2><ul>'+concl.map(function(c){return '<li>'+esc(c)+'</li>'}).join('')+'</ul>'+
  '<h2>11. Recommendations and actions</h2><ol>'+recs.map(function(c){return '<li>'+esc(c)+'</li>'}).join('')+'</ol>'+
  '<div class="sig"><div>Prepared by (QA)</div><div>Reviewed by (Production / QC)</div><div>Approved by (Head QA)</div></div>'+
- '<p class="note" style="margin-top:14px">Draft generated with APQR Pro by Aarohan QA Analytics. Verify every figure against source records before approval.</p></div>';
+ '<p class="note" style="margin-top:14px">Draft generated with APQR Pro by Aarohan AI World. Verify every figure against source records before approval.</p></div>';
  document.getElementById('res').innerHTML='<div class="card"><div class="noprint" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><h2 style="margin:0">APQR draft: '+esc(g('prod'))+'</h2><div><button type="button" onclick="window.print()">Print / save PDF</button><button type="button" class="gold" onclick="word()">Download for Word</button></div></div>'+rep+'</div>';
  document.getElementById('res').scrollIntoView({behavior:'smooth'});
 }

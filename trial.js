@@ -1,5 +1,5 @@
 (function(){
-/* Aarohan QA Analytics: 7-day free demo + signed license keys.
+/* Aarohan AI World: 7-day free demo + signed license keys.
    Only the PUBLIC key is here. License keys can be created only with Sumit's private Master Key,
    which is never stored on this website. */
 /* License server (Cloudflare Worker). Empty = signature check only. */
@@ -49,12 +49,12 @@ function licensed(info){
   clearUI();
   var w=document.createElement('div');w.className='at-lic';
   w.textContent='Licensed to '+info.n+(info.e?' · till '+info.e:'');
-  w.title='Aarohan QA Analytics license';
+  w.title='Aarohan AI World license';
   document.body.appendChild(w);
   WHO=info.n;backupBtn();
 }
 function keyBox(msg){
-  var o=overlay('<h2>Enter your license key</h2><p>'+(msg||'Paste the license key you received from Aarohan QA Analytics. It unlocks all agents on this device.')+'</p><textarea id="at-k" placeholder="AQA1-..." spellcheck="false" autocapitalize="off"></textarea><div class="at-m" id="at-e"></div><button id="at-ok">Activate</button><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I want to buy a license key for the Aarohan agents ('+agent+').')+'">Buy a license on WhatsApp</a><p style="font-size:12px;margin:10px 0 0">By activating you accept the <a href="license.html" target="_blank" rel="noopener">License Agreement</a>.</p><button class="at-l" id="at-x">Back</button>');
+  var o=overlay('<h2>Enter your license key</h2><p>'+(msg||'Paste the license key you received from Aarohan AI World. It unlocks all agents on this device.')+'</p><textarea id="at-k" placeholder="AQA1-..." spellcheck="false" autocapitalize="off"></textarea><div class="at-m" id="at-e"></div><button id="at-ok">Activate</button><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, I want to buy a license key for the Aarohan agents ('+agent+').')+'">Buy a license on WhatsApp</a><p style="font-size:12px;margin:10px 0 0">By activating you accept the <a href="license.html" target="_blank" rel="noopener">License Agreement</a>.</p><button class="at-l" id="at-x">Back</button>');
   o.querySelector('#at-x').onclick=function(){o.remove();init(true)};
   o.querySelector('#at-ok').onclick=function(){
     var b=this,e=o.querySelector('#at-e');b.disabled=true;b.textContent='Checking...';
@@ -85,7 +85,7 @@ function labelOf(el){
 function csvCell(v){v=String(v==null?'':v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function buildBackup(){
   var rows=[],d=new Date();
-  rows.push(['Aarohan QA Analytics - data backup']);
+  rows.push(['Aarohan AI World - data backup']);
   rows.push(['Agent',agent]);
   rows.push(['Exported on',d.toLocaleString()]);
   if(WHO)rows.push(['Licensed to',WHO]);
@@ -211,7 +211,7 @@ function getBrand(){return get(BK)||{}}
 var BF=[['name','Company name',/^(business|company|organi[sz]ation|firm|shop|clinic|hospital|school|institute|site)( name)?$|business name|company name|organi[sz]ation name|shop name|clinic name|your business$/i],['addr','Address',/address/i],['phone','Phone / WhatsApp',/phone|whatsapp|mobile|contact no/i],['email','Email',/e-?mail/i],['gst','GST / licence no.',/gst|gstin|licen[cs]e no|drug licen/i]];
 function applyBrand(prefill){var b=getBrand(),h=document.querySelector('header');
  if(h){var box=h.firstElementChild;if(HDR0===null&&box)HDR0=box.innerHTML;
-  if(box){if(b.name||b.logo){box.innerHTML=(b.logo?'<img src="'+b.logo+'" alt="" style="height:30px;max-width:120px;object-fit:contain;vertical-align:middle;margin-right:10px;background:#fff;border-radius:6px;padding:2px">':'')+'<span style="font-weight:800;letter-spacing:.04em;vertical-align:middle">'+esc(b.name||'')+'</span><span style="display:block;font-size:10px;letter-spacing:.08em;opacity:.7;margin-top:2px">POWERED BY AAROHAN QA ANALYTICS</span>'}else if(HDR0!==null)box.innerHTML=HDR0}}
+  if(box){if(b.name||b.logo){box.innerHTML=(b.logo?'<img src="'+b.logo+'" alt="" style="height:30px;max-width:120px;object-fit:contain;vertical-align:middle;margin-right:10px;background:#fff;border-radius:6px;padding:2px">':'')+'<span style="font-weight:800;letter-spacing:.04em;vertical-align:middle">'+esc(b.name||'')+'</span><span style="display:block;font-size:10px;letter-spacing:.08em;opacity:.7;margin-top:2px">POWERED BY AAROHAN AI WORLD</span>'}else if(HDR0!==null)box.innerHTML=HDR0}}
  var pr=document.getElementById('at-bp');if(pr)pr.remove();
  if(b.name||b.logo){pr=document.createElement('div');pr.id='at-bp';pr.className='at-bp';pr.innerHTML=(b.logo?'<img src="'+b.logo+'" alt="">':'')+'<div><b>'+esc(b.name||'')+'</b>'+[b.addr,[b.phone,b.email].filter(Boolean).join(' · '),b.gst?'GST / Licence: '+b.gst:''].filter(Boolean).map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div>';
   var m=document.querySelector('main')||document.body;m.insertBefore(pr,m.firstChild)}
@@ -272,7 +272,7 @@ function gate(r,ok){if(!LICSERVER)return ok();
  .then(function(x){return x.json()}).then(function(res){if(done)return;done=true;clearTimeout(t);
   if(res.ok){set(ck,{k:k,at:Date.now()});ok();return}
   if(res.why==='limit'||res.why==='revoked'){try{localStorage.removeItem(ck)}catch(e){}clearUI();
-   var msg=res.why==='limit'?'This license key is already active on '+res.limit+' device'+(res.limit>1?'s':'')+', the maximum for this plan. Ask the license owner to free a device, or buy an extra device.':'This license has been switched off. Please contact Aarohan QA Analytics to renew or restore it.';
+   var msg=res.why==='limit'?'This license key is already active on '+res.limit+' device'+(res.limit>1?'s':'')+', the maximum for this plan. Ask the license owner to free a device, or buy an extra device.':'This license has been switched off. Please contact Aarohan AI World to renew or restore it.';
    var o=overlay('<h2>'+(res.why==='limit'?'Device limit reached':'License switched off')+'</h2><p>'+msg+'</p><a class="at-w" target="_blank" rel="noopener" href="'+wa('Hello Sumit, my '+agent+' license shows: '+(res.why==='limit'?'device limit reached':'license switched off')+'.')+'">Contact on WhatsApp</a><button id="at-have">Enter another key</button>');o.querySelector('#at-have').onclick=function(){o.remove();keyBox()};return}
   ok()})
  .catch(function(){if(done)return;done=true;clearTimeout(t);ok()})}

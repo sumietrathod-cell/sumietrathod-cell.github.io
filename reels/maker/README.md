@@ -1,7 +1,7 @@
 # Aarohan daily Reel maker
 
 ## USE v2 (since 2026-11-02) — Sumit asked: AI doll in every video + AAROHAN name big and bold
-Folder `v2/`: `template.html` (big gold AAROHAN + "QA ANALYTICS" header, Aarohi AI doll that waves/talks/blinks in every scene, speech bubbles on hook, "AI agent" and CTA scenes), `render.js`, `config.example.js`.
+Folder `v2/`: `template.html` (big gold AAROHAN + "AI WORLD" header, Aarohi AI doll that waves/talks/blinks in every scene, speech bubbles on hook, "AI agent" and CTA scenes), `render.js`, `config.example.js`.
 1. Copy `v2/template.html` to an empty work folder. Write `config.js` there (copy `config.example.js`): agentName, hook {title, chips, pain}, 3-4 phoneScenes {img, y0, y1, cap, sub} (y in px of a 780-px-wide screenshot), optional bubbleHook/bubbleAgent/bubbleCta.
 2. Screenshots: Playwright viewport 390x577, deviceScaleFactor 2, full-page JPEG q92 of the agent page. Remove the free-demo popup first: `let e=document.getElementById('at-n');while(e&&getComputedStyle(e).position!=='fixed')e=e.parentElement;if(e)e.remove();` Fill the form with realistic fictitious example data, blur the focused field, screenshot; click "Create my prompt" and screenshot the result (expand the prompt box: max-height none). Dashboards: click "Load sample data".
 3. Check frames: render a few with `setT(t)` before the full render.
@@ -18,7 +18,7 @@ Pipeline (paths in scripts assume /home/claude/vid for screenshots and /home/cla
 3. `music.py` – synthesized royalty-free beat.
 4. `render.sh` – one mp4 per scene (still or phone-scroll with eased crop), concat with -c copy, add music.
 
-Style: navy/purple gradient, brand "AAROHAN QA ANALYTICS", yellow #f5c84b highlights, purple #6d28d9 caption band. English captions. Hook (2 frames) → 4-5 phone scenes → CTA (free 7-day demo, site URL, WhatsApp +91 63571 15513, Comment "AI").
+Style: navy/purple gradient, brand "AAROHAN AI WORLD", yellow #f5c84b highlights, purple #6d28d9 caption band. English captions. Hook (2 frames) → 4-5 phone scenes → CTA (free 7-day demo, site URL, WhatsApp +91 63571 15513, Comment "AI").
 Do not show a ₹ price in videos until the site's hero (₹999) and pricing (₹1,499) agree.
 
 ## 30-day topic rotation (day = days since 2026-10-31, mod 30)

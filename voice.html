@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#081a32">
-<title>Aarohan QA Analytics Voice Assistant</title>
+<title>Aarohan AI World Voice Assistant</title>
 <link rel="manifest" href="voice.webmanifest">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="apple-touch-icon" href="logo.svg">
@@ -43,7 +43,7 @@ dialog button{border:0;border-radius:8px;padding:10px 16px;font:inherit;cursor:p
 <body>
 <header>
   <img src="logo.svg" alt="">
-  <h1>Aarohan QA Analytics<br><small style="font-weight:400;font-size:12px;color:#f6d57a">Voice Assistant</small></h1>
+  <h1>Aarohan AI World<br><small style="font-weight:400;font-size:12px;color:#f6d57a">Voice Assistant</small></h1>
   <button id="speakBtn" title="Jawab bolva">🔊 On</button>
   <button id="setBtn">⚙️</button>
 </header>
@@ -81,7 +81,7 @@ var chat=$('chat'),inp=$('inp'),mic=$('mic'),dlg=$('dlg');
 var store={get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var speakOn=store.get('av_speak','1')==='1';$('speakBtn').textContent=speakOn?'🔊 On':'🔇 Off';
 var history=[];
-var SYSTEM="Tu Sumit Rathod no personal assistant chhe. Sumit ek Pharma QA professional chhe je Aarohan QA Analytics (Excel, Power BI, Pharma QA reporting) nu freelance kaam kare chhe ane US, UK, Canada, Europe na clients ne target kare chhe. User ne jawab hamesha saral Gujarati ma aap (Gujarati lipi ma), jyare user e bija language ma puchhyu hoy tyare te language ma. Tunk, spasht, vyavahaarik jawab aap. Kyarey company/employer na naam, real batch data ke khota daavao na aap. Pharma ma 'validated GxP system' no daavo na kar. Jyare user puchhe 'kevi rite solve karvu', tyare ek line ma kah ke kayo rasto best chhe: (1) seedho jawab/buddhi thi, (2) Excel/Power BI tool ke template, ke (3) automation, ane kem. Jyare lakhan (LinkedIn post, proposal, email) joie tyare English ma taiyar lakhaan aap sathe Gujarati ma 1 line samjuti.";
+var SYSTEM="Tu Sumit Rathod no personal assistant chhe. Sumit ek Pharma QA professional chhe je Aarohan AI World (Excel, Power BI, Pharma QA reporting) nu freelance kaam kare chhe ane US, UK, Canada, Europe na clients ne target kare chhe. User ne jawab hamesha saral Gujarati ma aap (Gujarati lipi ma), jyare user e bija language ma puchhyu hoy tyare te language ma. Tunk, spasht, vyavahaarik jawab aap. Kyarey company/employer na naam, real batch data ke khota daavao na aap. Pharma ma 'validated GxP system' no daavo na kar. Jyare user puchhe 'kevi rite solve karvu', tyare ek line ma kah ke kayo rasto best chhe: (1) seedho jawab/buddhi thi, (2) Excel/Power BI tool ke template, ke (3) automation, ane kem. Jyare lakhan (LinkedIn post, proposal, email) joie tyare English ma taiyar lakhaan aap sathe Gujarati ma 1 line samjuti.";
 var PROV={gemini:{label:"Google Gemini API key (free)",hint:"aistudio.google.com/apikey par Google account thi login karo, Create API key dabavo, copy karine ahi paste karo. Card nathi joti. Free limit chhe.",models:[["gemini-3.8-flash","Gemini 3.8 Flash (free, jhadpi)"],["gemini-3.5-flash-lite","Gemini 3.5 Flash-Lite (free, sauthi halku)"],["gemini-2.5-flash","Gemini 2.5 Flash (free)"]]},claude:{label:"Anthropic API key",hint:"console.anthropic.com par credit bharo ane monthly spending limit mukho. Key koi ne na aapsho.",models:[["claude-haiku-5-5","Haiku 5.5 (sasto)"],["claude-sonnet-5-5","Sonnet 5.5 (mongho, hushiyar)"]]}};
 function fillModels(){var pv=$("provider").value,sel=$("model");sel.innerHTML="";PROV[pv].models.forEach(function(m){var o=document.createElement("option");o.value=m[0];o.textContent=m[1];sel.appendChild(o)});$("keyLabel").textContent=PROV[pv].label;$("keyHint").textContent=PROV[pv].hint;var sm=store.get("av_model_"+pv,"");if(sm)sel.value=sm;$("key").value=store.get("av_key_"+pv,"")}
 function curProv(){return store.get("av_provider","gemini")}

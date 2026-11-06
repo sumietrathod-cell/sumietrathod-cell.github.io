@@ -28,7 +28,7 @@ button{background:var(--g);color:#fff;border:0;border-radius:9px;padding:10px 18
 <div class="card" id="res" style="display:none"><div class="kp" id="kp"></div>
 <div class="row"><b style="flex:1">Clean data preview (green = changed, red = needs your check)</b><button id="dx">Download clean Excel</button></div><div class="tw"><table id="tb"></table></div></div>
 <div class="card" id="lg" style="display:none"><b>Change log (first 40)</b><div class="tw"><table id="lt"></table></div></div></div>
-<p class="foot">Aarohan Excel Cleaner (demo) by Aarohan QA Analytics, sumietrathod-cell.github.io. Sample data is made up. Always keep your original file.</p></div>
+<p class="foot">Aarohan Excel Cleaner (demo) by Aarohan AI World, sumietrathod-cell.github.io. Sample data is made up. Always keep your original file.</p></div>
 <script>
 const $=id=>document.getElementById(id);let hdr=[],rows=[],res=null;
 const MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
@@ -77,7 +77,7 @@ $('run').onclick=()=>{res=clean(hdr,rows,opts());show()};
 $('dx').onclick=()=>{if(!res)return;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([res.H].concat(res.rows)),'Clean data');
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Row (original)','Column','Before','After','Rule']].concat(res.log.map(l=>[l.row,l.col,String(l.old),String(l.nw),l.rule]))),'Change log');
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Row (original)','Column','Why']].concat(res.chk.map(c=>[c.row,c.col,c.why]))),'Needs your check');
- XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Aarohan Excel Cleaner (demo) - Aarohan QA Analytics'],['Rows in',res.stats.rowsIn],['Rows out',res.stats.rowsOut],['Duplicates removed',res.stats.removedDup],['Cells fixed',res.stats.changes],['Needs your check',res.stats.needs],[],['Please review the Needs your check sheet before using the clean data.']]),'Summary');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Aarohan Excel Cleaner (demo) - Aarohan AI World'],['Rows in',res.stats.rowsIn],['Rows out',res.stats.rowsOut],['Duplicates removed',res.stats.removedDup],['Cells fixed',res.stats.changes],['Needs your check',res.stats.needs],[],['Please review the Needs your check sheet before using the clean data.']]),'Summary');
  XLSX.writeFile(wb,'Aarohan_Clean_'+new Date().toISOString().slice(0,10)+'.xlsx')};
 $('drop').onclick=e=>{if(e.target.id!=='samp')$('file').click()};['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('on')}));['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('on')}));
 $('drop').addEventListener('drop',e=>read(e.dataTransfer.files[0]));$('file').onchange=e=>read(e.target.files[0]);

@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Batch Release Readiness Agent | Aarohan QA Analytics</title><meta name="description" content="Demo agent: tick what is complete for a batch and get a release-readiness score, blockers and a draft QA status note."><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Batch Release Readiness Agent | Aarohan AI World</title><meta name="description" content="Demo agent: tick what is complete for a batch and get a release-readiness score, blockers and a draft QA status note."><style>
 :root{--navy:#081a32;--gold:#d5b46d;--ink:#17273c;--muted:#62718a}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
 header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}header a{color:#fff;font-size:14px;border:1px solid #ffffff44;padding:7px 14px;border-radius:99px}
 main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:18px;margin-bottom:14px}h1{font-size:22px;margin:0 0 4px}p.s{color:var(--muted);font-size:14px;margin:0 0 12px}
@@ -6,7 +6,7 @@ main{max-width:760px;margin:auto;padding:18px 16px 30px}.card{background:#fff;bo
 .bar{height:16px;background:#e5e9f0;border-radius:99px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;transition:width .4s}
 .v{font-weight:800;font-size:20px}pre{white-space:pre-wrap;background:#fffaf0;border:1px dashed var(--gold);border-radius:10px;padding:12px;font:14px/1.5 system-ui}
 button{background:var(--navy);color:#fff;border:0;border-radius:99px;padding:11px 20px;font-weight:700;cursor:pointer}.f{font-size:12px;color:var(--muted)}
-</style></head><body><header><div><b>AAROHAN</b> QA ANALYTICS</div><a href="index.html">&larr; Website</a></header><main>
+</style></head><body><header><div><b>AAROHAN</b> AI WORLD</div><a href="index.html">&larr; Website</a></header><main>
 <div class="card"><h1>Batch Release Readiness Agent</h1><p class="s">Tick what is complete for batch PT25-017 (fictitious). The agent scores readiness, lists blockers and drafts a QA status note.</p><div id="l"></div></div>
 <div class="card"><div class="v" id="v"></div><div class="bar"><i id="b"></i></div><div id="bl"></div><h3>Draft QA status note</h3><pre id="n"></pre><button onclick="navigator.clipboard.writeText(document.getElementById('n').innerText);this.textContent='Copied'">Copy note</button></div>
 <p class="f">Demonstration only. It does not replace batch record review, QA approval or Qualified Person certification. Nothing is stored or sent anywhere.</p></main>

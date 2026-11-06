@@ -38,7 +38,7 @@ def cta():
 <div style="{box}"><div style="font:700 32px Inter;color:#9fb0e0;letter-spacing:4px">WHATSAPP</div><div style="font:800 60px Inter;margin-top:10px;color:#4ade80">+91 63571 15513</div></div>
 <div style="font:700 40px Inter;color:#c9d3f5;margin-top:30px">Working with QA teams in<br>India · US · UK · Canada · Europe</div>
 <div style="margin-top:70px;display:inline-block;background:#f5c84b;color:#111;border-radius:28px;padding:22px 50px;font:900 64px Inter;box-shadow:0 14px 50px #f5c84b55">Comment “AI” for the link</div></div>''')
-CAPS={'hero':('Meet Aarohan<br>QA Analytics','75 AI agents for pharma QA &amp; business'),
+CAPS={'hero':('Meet Aarohan<br>AI World','75 AI agents for pharma QA &amp; business'),
  'demo':('Rough notes →<br>ready report','Deviation · CAPA · FMEA drafts in ~1 minute'),
  'agents':('<span style="color:#f5c84b">75</span> ready-made<br>AI agents','SOP · Training · Vendor audit · Water trend …'),
  'dash':('Auto dashboards<br>in Power BI &amp; Excel','Deviation · CAPA · OOS · APQR'),

@@ -29,7 +29,7 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:4px 5px;b
 <div class="row"><h3 style="margin:0;flex:1">Bills (you can edit every cell)</h3><button id="dx">Download Excel</button><button class="b2" id="dc">Download CSV</button></div>
 <div class="tw"><table id="tb"></table></div></div>
 <div class="card" id="sc" style="display:none"><h3 style="margin-top:0">Monthly GST summary</h3><div class="tw"><table id="sm"></table></div></div>
-<p class="foot">Aarohan Bill Scanner (demo) by Aarohan QA Analytics, sumietrathod-cell.github.io. It guesses date, bill number, shop name, GSTIN, tax and total from the text it reads. Always verify against the original bill. Sample data is made up.</p>
+<p class="foot">Aarohan Bill Scanner (demo) by Aarohan AI World, sumietrathod-cell.github.io. It guesses date, bill number, shop name, GSTIN, tax and total from the text it reads. Always verify against the original bill. Sample data is made up.</p>
 </div>
 <script>
 const $=id=>document.getElementById(id);let files=[],data=[];
@@ -73,7 +73,7 @@ function monthly(){const g={};data.forEach(r=>{const k=/^\d{4}-\d{2}/.test(r.dat
 function vendors(){const g={};data.forEach(r=>{const k=(r.shop||'Unknown').trim()||'Unknown';const o=g[k]=g[k]||{k,n:0,t:0,g:0};o.n++;o.t+=r.total;o.g+=r.gst});return Object.values(g).sort((a,b)=>b.t-a.t)}
 $('dx').onclick=()=>{const wb=XLSX.utils.book_new();
  const b=[['Date','Bill no','Shop / vendor','GSTIN','Taxable','GST','Total','Category','Photo']].concat(data.map(r=>[r.date,r.inv,r.shop,r.gstin,r.taxable,r.gst,r.total,r.cat,r.file]));b.push([],['','','','Total',data.reduce((a,r)=>a+r.taxable,0),data.reduce((a,r)=>a+r.gst,0),data.reduce((a,r)=>a+r.total,0)]);
- const w1=XLSX.utils.aoa_to_sheet([['Aarohan Bill Scanner (demo) - Aarohan QA Analytics - please verify all numbers against the original bills'],[]].concat(b));w1['!cols']=[{wch:12},{wch:14},{wch:28},{wch:18},{wch:12},{wch:12},{wch:12},{wch:14},{wch:20}];XLSX.utils.book_append_sheet(wb,w1,'Bills');
+ const w1=XLSX.utils.aoa_to_sheet([['Aarohan Bill Scanner (demo) - Aarohan AI World - please verify all numbers against the original bills'],[]].concat(b));w1['!cols']=[{wch:12},{wch:14},{wch:28},{wch:18},{wch:12},{wch:12},{wch:12},{wch:14},{wch:20}];XLSX.utils.book_append_sheet(wb,w1,'Bills');
  const m=[['Month','Bills','Taxable','GST','Total']].concat(monthly().map(x=>[x.k,x.n,x.x,x.g,x.t]));const w2=XLSX.utils.aoa_to_sheet(m);w2['!cols']=[{wch:14},{wch:8},{wch:14},{wch:14},{wch:14}];XLSX.utils.book_append_sheet(wb,w2,'Monthly GST Summary');
  const v=[['Shop / vendor','Bills','Total','GST']].concat(vendors().map(x=>[x.k,x.n,x.t,x.g]));const w3=XLSX.utils.aoa_to_sheet(v);w3['!cols']=[{wch:30},{wch:8},{wch:14},{wch:14}];XLSX.utils.book_append_sheet(wb,w3,'By Vendor');
  XLSX.writeFile(wb,'Aarohan_Bills_'+new Date().toISOString().slice(0,10)+'.xlsx')};
