@@ -175,14 +175,14 @@ td select{min-width:128px;padding:6px}footer{padding:22px 0;border-top:1px solid
  async function loadAdmin(){
    const [profiles,applications]=await Promise.all([
     client.from("partner_profiles").select("id,email,full_name,company_name,country,status,role,created_at").order("created_at",{ascending:false}).limit(100),
-    client.from("partner_applications").select("partner_id,company_name,country,whatsapp,territory,experience,industries,consent_at").limit(200)
+    client.from("partner_applications").select("partner_id,full_name,company_name,country,whatsapp,territory,experience,industries,consent_at").limit(200)
    ]);
    if(profiles.error||applications.error)throw(profiles.error||applications.error);
    const appMap=new Map((applications.data||[]).map(a=>[a.partner_id,a]));
    const tbody=$("adminRows");tbody.replaceChildren();
    for(const p of (profiles.data||[]).filter(x=>x.role==="partner")){
     const a=appMap.get(p.id);
-    const tr=row(tbody,[p.full_name||p.email,(a&&a.country||p.country||"")+" / "+(a&&a.company_name||p.company_name||""),a?"Submitted":"Not submitted",p.status,""]);
+    const tr=row(tbody,[a&&a.full_name||p.full_name||p.email,(a&&a.country||p.country||"")+" / "+(a&&a.company_name||p.company_name||""),a?"Submitted":"Not submitted",p.status,""]);
     const cell=tr.cells[4];
     if(a&&p.status!=="approved"&&p.status!=="rejected"){
      const approve=document.createElement("button");approve.className="small";approve.textContent="Approve after checks";
@@ -209,7 +209,7 @@ td select{min-width:128px;padding:6px}footer{padding:22px 0;border-top:1px solid
  $("applicationForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!me)return;
   const btn=e.target.querySelector("button");btn.disabled=true;
-  const obj={partner_id:me.id,company_name:$("agency").value.trim(),whatsapp:$("phone").value.trim(),country:$("country").value.trim(),territory:$("territory").value.trim(),experience:$("experience").value,industries:$("industries").value.trim()};
+  const obj={partner_id:me.id,full_name:$("fullName").value.trim(),company_name:$("agency").value.trim(),whatsapp:$("phone").value.trim(),country:$("country").value.trim(),territory:$("territory").value.trim(),experience:$("experience").value,industries:$("industries").value.trim()};
   try{
    if(!$("consent").checked)throw Error("Consent is required.");
    const p=await client.from("partner_applications").insert(obj);
