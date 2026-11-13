@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#08251b">
+<title>Secure Partner Access | AAROHAN AI WORLD</title>
+<meta name="description" content="Protected AAROHAN AI WORLD partner access. Activation requires an approved database and verified email sign-in.">
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#071b14;color:#ebfff3;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#1b5638 0,transparent 40%),#071b14;line-height:1.5}
+[hidden]{display:none!important}.wrap{max-width:1080px;margin:auto;padding:0 22px}
+header{border-bottom:1px solid #4c795a75;background:#082218d9;padding:18px 0}
+nav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+a{color:#bcf5a9}.brand{font-weight:900;letter-spacing:.075em;color:#f3fff1;text-decoration:none}.brand b{color:#bcf5a9}
+main{padding:48px 0 72px}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:#b4eda4;font-weight:900}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.12;margin:10px 0 14px}
+h2{font-size:24px;line-height:1.2;margin:0 0 12px}h3{font-size:18px;margin:4px 0 9px}
+p{margin:0 0 16px;color:#bad3c3}.cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.panel{padding:24px;border:1px solid #376a50;border-radius:18px;background:#122c22;margin-top:24px}
+.tag{display:inline-block;border:1px solid #6f9a65;border-radius:30px;background:#1f4734;color:#b9efae;font-size:12px;padding:6px 12px;margin:10px 0}
+.warn{border-color:#a48248;background:#3b2c20}.warn strong{color:#ffdfab}
+fieldset{padding:0;border:0;margin:0}label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}
+input,select,textarea{background:#0b2119;color:#effff1;border:1px solid #518266;border-radius:10px;padding:11px 12px;width:100%;font:inherit}
+textarea{min-height:80px}button{background:#bcf5a9;color:#0c271c;border:none;font:inherit;font-weight:850;border-radius:10px;padding:12px 18px;margin-top:16px;cursor:pointer}
+button.secondary{background:#274d39;color:#e6ffef;border:1px solid #5c8867}button.small{padding:6px 11px;font-size:12px;margin:0}
+button:disabled{cursor:not-allowed;opacity:.5}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #c7ffa8}
+.status{padding:14px 17px;border:1px solid #527b5c;border-radius:11px;margin:18px 0;background:#173b28;white-space:pre-wrap}
+.status.error{border-color:#cc9376;background:#492c25;color:#ffe1d2}
+.muted{font-size:13px;color:#bed4c7}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tablewrap{overflow:auto;border:1px solid #3d6650;border-radius:11px;margin-top:13px}
+table{border-collapse:collapse;width:100%;font-size:13px;text-align:left;min-width:530px}
+th,td{border-bottom:1px solid #385c49;padding:10px;vertical-align:top}
+th{background:#234232;color:#d7f5dc}td{max-width:300px;overflow-wrap:anywhere}
+td select{min-width:128px;padding:6px}footer{padding:22px 0;border-top:1px solid #375944;color:#b1c7b6}
+@media(max-width:760px){.cols,.grid2{grid-template-columns:1fr}main{padding-top:32px}.panel{padding:18px}table{min-width:600px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav><a class="brand" href="landing.html">AAROHAN <b>AI WORLD</b></a><div><a href="partner-portal.html">← Partner Centre</a> · <a href="landing.html">Company</a></div></nav></div></header>
+<main><div class="wrap">
+<div class="eyebrow">Independent Sales Network · Restricted Access</div>
+<h1>Partner Access <span style="color:#b9f0ae">& Security</span></h1>
+<p>Only approved partners may manage their own leads. Commission amounts, deal approvals and payment decisions remain under company control.</p>
+<div id="message" class="status" role="status" aria-live="polite">Checking secure connection...</div>
+<section id="notConfigured" class="panel warn" hidden>
+  <div class="eyebrow">Security-first activation</div><h2>Protected login is not connected yet.</h2>
+  <p>This page does <strong>not</strong> use fake browser passwords or expose the private CRM. Administrator must connect Supabase Auth and apply row-level database security before login becomes available.</p>
+  <p class="muted">Until then, partnership enquiries can continue via the existing WhatsApp application. Never share OTPs, passwords, bank details or identity documents in an unverified public form.</p>
+  <a href="partner-portal.html#apply">Return to partner application →</a>
+</section>
+<section id="authPanel" class="panel" hidden>
+ <h2>Secure email sign-in</h2><p>Enter your business email address. A one-time sign-in link will be sent if email delivery is configured.</p>
+ <form id="emailForm">
+  <label for="email">Business email address</label><input id="email" type="email" autocomplete="email" maxlength="150" required placeholder="name@agency.com">
+  <button type="submit">Send one-time sign-in link</button>
+ </form>
+ <p class="muted" style="margin-top:15px">Signing in does not approve your application. AAROHAN independently verifies every sales representative.</p>
+</section>
+<section id="accountPanel" hidden>
+<div class="panel"><nav><div><h2 id="welcome">Welcome</h2><p id="accountStatus">Account review</p></div><button type="button" id="signOut" class="secondary">Sign out</button></nav></div>
+<div class="cols">
+ <section id="applicationPanel" class="panel" hidden>
+  <h2>Partner application</h2><p>Your application will be reviewed before you can create sales leads.</p>
+  <form id="applicationForm">
+   <label for="fullName">Full name</label><input id="fullName" maxlength="85" required>
+   <label for="agency">Agency / business name</label><input id="agency" maxlength="120">
+   <label for="phone">WhatsApp with country code</label><input id="phone" maxlength="24" required>
+   <label for="country">Country</label><input id="country" maxlength="85" required>
+   <label for="territory">Sales territory</label><input id="territory" maxlength="110">
+   <label for="experience">Sales experience</label><select id="experience"><option>New to sales</option><option>1-3 years</option><option>4-7 years</option><option>8+ years</option><option>Sales agency</option></select>
+   <label for="industries">Existing client industries</label><textarea id="industries" maxlength="700"></textarea>
+   <label><input id="consent" style="width:auto" type="checkbox" required> I agree to share my business details for partner verification and understand approval is not automatic.</label>
+   <button type="submit">Submit application for review</button>
+  </form>
+ </section>
+ <section class="panel"><h2>Partnership safety</h2>
+  <p><strong>1.</strong> AAROHAN checks every application, reference and signed agreement independently.</p>
+  <p><strong>2.</strong> Partners cannot receive client payments in personal accounts or promise unapproved pricing.</p>
+  <p><strong>3.</strong> Partner dashboards show only records permitted by the secure database.</p>
+  <p><strong>4.</strong> Commissions require eligible collected customer revenue, written approval and verification.</p>
+  <p class="muted">No joining fee. Never share OTPs or banking passwords. Report suspected impersonation through the official company contact.</p>
+ </section>
+</div>
+<section id="partnerPanel" class="panel" hidden>
+ <h2>My leads</h2><p>Only approved partners may add leads. Duplicate customer claims are reviewed by the company before any deal is accepted.</p>
+ <form id="leadForm" class="grid2">
+   <div><label for="clientName">Client business name</label><input id="clientName" required maxlength="160"></div>
+   <div><label for="service">Requested service</label><input id="service" required maxlength="160"></div>
+   <div><label for="clientCountry">Country</label><input id="clientCountry" maxlength="80"></div>
+   <div><label for="clientEmail">Client business email (optional)</label><input type="email" id="clientEmail" maxlength="180"></div>
+   <div><button type="submit">Add lead securely</button></div>
+ </form>
+ <div class="tablewrap"><table><thead><tr><th>Client</th><th>Service</th><th>Country</th><th>Stage</th><th>Date</th></tr></thead><tbody id="leadRows"></tbody></table></div>
+ <h3 style="margin-top:24px">My approved deals and commission records</h3>
+ <p class="muted">The company enters deal and commission data. Figures shown are informational; payments require separate approval.</p>
+ <div class="tablewrap"><table><thead><tr><th>Client</th><th>Invoice</th><th>Invoice status</th><th>Approval</th></tr></thead><tbody id="dealRows"></tbody></table></div>
+ <div class="tablewrap"><table><thead><tr><th>Deal ID</th><th>Approved amount</th><th>Paid</th><th>Status</th></tr></thead><tbody id="commissionRows"></tbody></table></div>
+</section>
+<section id="adminPanel" class="panel" hidden>
+ <div class="eyebrow">Owner access</div><h2>Partner approval desk</h2>
+ <p>Review identity, public business presence and signed agreement <strong>outside this website</strong> before approving any application. This panel does not automatically verify KYC documents.</p>
+ <button id="refreshAdmin" class="secondary" type="button">Refresh pending partners</button>
+ <div class="tablewrap"><table><thead><tr><th>Applicant</th><th>Country / Agency</th><th>Application</th><th>Status</th><th>Action</th></tr></thead><tbody id="adminRows"></tbody></table></div>
+ <p class="muted" style="margin-top:18px">All deal/commission entries and payouts require owner review. Bank transfers are deliberately not automated.</p>
+</section>
+</section>
+</div></main>
+<footer><div class="wrap">© AAROHAN AI WORLD · Company-controlled partner approvals · <a href="partner-portal.html#fraud-protection">Fraud Protection Policy</a></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="partner-config.js"></script>
+<script>
+"use strict";
+(function(){
+ const $=id=>document.getElementById(id);
+ const show=(id,value)=>{$(id).hidden=!value;};
+ const say=(message,err)=>{$("message").textContent=message;$("message").className="status"+(err?" error":"");};
+ const cfg=window.AAROHAN_SUPABASE_CONFIG;
+ if(!cfg||!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(cfg.projectUrl||"")||!/^sb_publishable_/.test(cfg.publishableKey||"")||!window.supabase){
+  show("notConfigured",true);
+  say("Secure backend not activated. The existing WhatsApp application is still available.",true);
+  return;
+ }
+ const client=window.supabase.createClient(cfg.projectUrl,cfg.publishableKey,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+ let me=null, profile=null;
+ const text=(parent,value,tag)=>{const cell=document.createElement(tag||"td");cell.textContent=value==null?"":String(value);parent.appendChild(cell);return cell;};
+ const row=(tbody,values)=>{const tr=document.createElement("tr");for(const v of values)text(tr,v);tbody.appendChild(tr);return tr;};
+ async function load(){
+  const resp=await client.auth.getUser();me=resp.data&&resp.data.user;
+  show("authPanel",!me);show("accountPanel",!!me);
+  if(!me){say("Partner accounts require verified email sign-in.");return;}
+  const {data,error}=await client.from("partner_profiles").select("id,email,full_name,company_name,country,role,status").eq("id",me.id).maybeSingle();
+  if(error)throw error;
+  profile=data;
+  if(!profile){say("Account not initialized. Contact the company administrator.",true);return;}
+  $("welcome").textContent="Welcome, "+(profile.full_name||profile.email);
+  $("accountStatus").textContent="Account: "+profile.status+" · Role: "+profile.role;
+  show("adminPanel",profile.role==="admin"&&profile.status==="approved");
+  show("partnerPanel",profile.role==="partner"&&profile.status==="approved");
+  const appResp=await client.from("partner_applications").select("id,partner_id").eq("partner_id",me.id).maybeSingle();
+  if(appResp.error)throw appResp.error;
+  show("applicationPanel",profile.role==="partner"&&!appResp.data);
+  if(profile.role==="partner"&&profile.status!=="approved"){
+    say(appResp.data?"Your application is received. Verification and written approval are still required.":"Account created. Complete the partnership application before review.");
+  }else say("Secure session active. Data access is restricted by database policies.");
+  if(profile.role==="partner"&&profile.status==="approved")await loadPartnerData();
+  if(profile.role==="admin"&&profile.status==="approved")await loadAdmin();
+ }
+ async function loadPartnerData(){
+  const [l,d,c]=await Promise.all([
+   client.from("partner_leads").select("id,client_company,service,country,stage,created_at").order("created_at",{ascending:false}).limit(100),
+   client.from("partner_deals").select("id,client_company,invoice_reference,payment_status,approval_status").order("created_at",{ascending:false}).limit(100),
+   client.from("partner_commissions").select("id,deal_id,approved_amount,paid_amount,status").order("created_at",{ascending:false}).limit(100)
+  ]);
+  if(l.error||d.error||c.error)throw(l.error||d.error||c.error);
+  const tb=$("leadRows");tb.replaceChildren();
+  for(const lead of l.data||[]){
+    const tr=row(tb,[lead.client_company,lead.service,lead.country||"", "",new Date(lead.created_at).toLocaleDateString()]);
+    const cell=tr.cells[3];cell.replaceChildren();
+    const select=document.createElement("select");const stages=["new","contacted","demo","proposal","negotiation","won","lost"];
+    for(const stage of stages){const opt=document.createElement("option");opt.value=stage;opt.textContent=stage;select.appendChild(opt);}
+    select.value=lead.stage;
+    select.addEventListener("change",async()=>{select.disabled=true;const x=await client.from("partner_leads").update({stage:select.value,updated_at:new Date().toISOString()}).eq("id",lead.id);select.disabled=false;if(x.error){say(x.error.message,true);select.value=lead.stage;}else{lead.stage=select.value;say("Lead stage saved securely. Winning a lead does not create a commission automatically.");}});
+    cell.appendChild(select);
+  }
+  if(!(l.data||[]).length)row(tb,["No leads yet.","","","",""]);
+  const dt=$("dealRows");dt.replaceChildren();
+  for(const deal of d.data||[])row(dt,[deal.client_company,deal.invoice_reference||"",deal.payment_status,deal.approval_status]);
+  if(!(d.data||[]).length)row(dt,["No approved deals yet.","","",""]);
+  const ct=$("commissionRows");ct.replaceChildren();
+  for(const c0 of c.data||[])row(ct,[c0.deal_id,String(c0.approved_amount),String(c0.paid_amount),c0.status]);
+  if(!(c.data||[]).length)row(ct,["No commission entries yet.","","",""]);
+ }
+ async function loadAdmin(){
+   const [profiles,applications]=await Promise.all([
+    client.from("partner_profiles").select("id,email,full_name,company_name,country,status,role,created_at").order("created_at",{ascending:false}).limit(100),
+    client.from("partner_applications").select("partner_id,company_name,country,whatsapp,territory,experience,industries,consent_at").limit(200)
+   ]);
+   if(profiles.error||applications.error)throw(profiles.error||applications.error);
+   const appMap=new Map((applications.data||[]).map(a=>[a.partner_id,a]));
+   const tbody=$("adminRows");tbody.replaceChildren();
+   for(const p of (profiles.data||[]).filter(x=>x.role==="partner")){
+    const a=appMap.get(p.id);
+    const tr=row(tbody,[p.full_name||p.email,(a&&a.country||p.country||"")+" / "+(a&&a.company_name||p.company_name||""),a?"Submitted":"Not submitted",p.status,""]);
+    const cell=tr.cells[4];
+    if(a&&p.status!=="approved"&&p.status!=="rejected"){
+     const approve=document.createElement("button");approve.className="small";approve.textContent="Approve after checks";
+     approve.onclick=async()=>{
+       if(!confirm("Confirm you INDEPENDENTLY verified identity, references, signed agreement, and payment rules. Approve this exact partner?"))return;
+       approve.disabled=true;
+       const u=await client.from("partner_profiles").update({status:"approved",approved_at:new Date().toISOString()}).eq("id",p.id);
+       if(u.error){approve.disabled=false;say(u.error.message,true);return;}
+       say("Partner approved. Record supporting documents in a private business system, never this public page.");await loadAdmin();
+     };
+     cell.appendChild(approve);
+    }
+   }
+ }
+ $("emailForm").addEventListener("submit",async e=>{
+  e.preventDefault();const email=$("email").value.trim().toLowerCase();if(!email)return;
+  const btn=e.target.querySelector("button");btn.disabled=true;
+  try{
+    const r=await client.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+window.location.pathname,shouldCreateUser:true}});
+    if(r.error)throw r.error;
+    say("Check your email for a one-time sign-in link. Never share this link or the OTP with anyone.");
+  }catch(err){say(err.message||String(err),true);}finally{btn.disabled=false;}
+ });
+ $("applicationForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!me)return;
+  const btn=e.target.querySelector("button");btn.disabled=true;
+  const obj={partner_id:me.id,company_name:$("agency").value.trim(),whatsapp:$("phone").value.trim(),country:$("country").value.trim(),territory:$("territory").value.trim(),experience:$("experience").value,industries:$("industries").value.trim()};
+  try{
+   if(!$("consent").checked)throw Error("Consent is required.");
+   const p=await client.from("partner_applications").insert(obj);
+   if(p.error)throw p.error;
+   say("Application submitted. Company verification and signed approval are required.");await load();
+  }catch(err){say(err.message||String(err),true);}finally{btn.disabled=false;}
+ });
+ $("leadForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!me||!profile||profile.status!=="approved")return;
+  const btn=e.target.querySelector("button");btn.disabled=true;
+  const obj={partner_id:me.id,client_company:$("clientName").value.trim(),service:$("service").value.trim(),country:$("clientCountry").value.trim(),business_email:$("clientEmail").value.trim()||null};
+  try{
+   const x=await client.from("partner_leads").insert(obj);if(x.error)throw x.error;
+   e.target.reset();say("Lead saved securely. The company must approve any deal and commission.");await loadPartnerData();
+  }catch(err){say(err.message||String(err),true);}finally{btn.disabled=false;}
+ });
+ $("signOut").onclick=async()=>{const r=await client.auth.signOut();if(r.error)say(r.error.message,true);else await load();};
+ $("refreshAdmin").onclick=async()=>{try{await loadAdmin();say("Admin queue refreshed.");}catch(e){say(e.message,true);}};
+ client.auth.onAuthStateChange(()=>{setTimeout(()=>{load().catch(e=>say(e.message||String(e),true));},0);});
+ load().catch(e=>say(e.message||String(e),true));
+})();
+</script>
+</body></html>
