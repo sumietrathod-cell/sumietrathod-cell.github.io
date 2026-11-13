@@ -30,8 +30,8 @@ main{max-width:960px;margin:22px auto;padding:0 14px 50px}.hero{background:linea
 <div style="display:none" aria-hidden="true"><label for="website_check">Website check</label><input type="text" id="website_check" tabindex="-1" autocomplete="off"></div>
 </section>
 <section class="card"><h2>05. Instant recommendations preview</h2><p class="sub">See a suggested starting solution before sending your enquiry. Recommendations are rules-based and will be reviewed by our team.</p><button type="button" class="btn secondary" id="suggest">✨ Show Suggested AI Solutions</button><div id="instantPlan" style="white-space:pre-wrap;margin-top:14px;color:#205239" role="status"></div></section>
-<div class="actions"><button type="button" class="btn primary" id="submitCRM" hidden>🔒 Send Enquiry to AAROHAN</button><button type="button" class="btn primary" id="share">📱 Review & Share on WhatsApp</button><button type="button" class="btn secondary" id="copy">📋 Copy Answers</button><button type="button" class="btn" id="download">⬇ Download Responses</button></div>
-<div id="status" role="status" aria-live="polite"></div><div class="note"><b>How submission works:</b> This form is a requirements checklist, not a working AI agent or automatic cloud submission. When you tap WhatsApp, select your conversation with <b>Sumit at AAROHAN AI WORLD</b>, review the message, and press Send. Alternatively copy the answers or send the downloaded JSON file. Nothing is sent before you choose to share it.</div>
+<div class="actions"><button type="button" class="btn primary" id="submitWeb">📩 Submit Enquiry Online</button><button type="button" class="btn primary" id="submitCRM" hidden>🔒 Send Enquiry to AAROHAN</button><button type="button" class="btn primary" id="share">📱 Review & Share on WhatsApp</button><button type="button" class="btn secondary" id="copy">📋 Copy Answers</button><button type="button" class="btn" id="download">⬇ Download Responses</button></div>
+<div id="status" role="status" aria-live="polite"></div><div class="note"><b>How submission works:</b> Select <strong>Submit Enquiry Online</strong> to transmit your details to the website’s third-party form-processing inbox, or choose WhatsApp to review and manually send them. The form does not automatically write to the private CRM or collect payment. Only submit business information you are comfortable sharing.</div>
 <section id="reviewCard" class="card hidden"><h2>Response preview</h2><p class="sub">You may copy or share this summary with Sumit.</p><div id="review"></div></section>
 </form></main><footer>AAROHAN AI WORLD · www.aarohanaiworld.com<br>Business discovery only — no account or payment required.</footer>
 <script>
@@ -48,7 +48,21 @@ function renderCatalog(){const tiers=['BASIC','GROWTH','ADVANCED','INDUSTRY'];$(
 renderCatalog();
 $('services').addEventListener('input',()=>{$('agentCount').textContent=SERVICES.filter((s,i)=>$('service'+i).checked).length+' services selected';});
 $('agentSearch').addEventListener('input',e=>{let term=e.target.value.toLowerCase().trim();document.querySelectorAll('#services .tier-box').forEach(box=>{let hits=0;box.querySelectorAll('.service').forEach(l=>{let matched=!term||l.dataset.term.includes(term);l.style.display=matched?'':'none';if(matched)hits++;});box.style.display=hits?'':'none';if(term&&hits)box.open=true;});});
-const params=new URLSearchParams(location.search);if(params.get('name'))$('customer').value=params.get('name').slice(0,80);if(params.get('industry'))$('industry').value=params.get('industry');if(params.get('enquiries'))$('enquiries').value=params.get('enquiries');
+const params=new URLSearchParams(location.search);const chosenPlan=(params.get("plan")||"").toLowerCase();const chosenBilling=(params.get("billing")||"").toLowerCase();if(params.get('name'))$('customer').value=params.get('name').slice(0,80);if(params.get('industry'))$('industry').value=params.get('industry');if(params.get('enquiries'))$('enquiries').value=params.get('enquiries');
+const PLAN_MATCH={
+ basic:["Website AI Chatbot","FAQ Auto-Reply Agent"],
+ growth:["Lead Tracking CRM","Follow-up Reminders / Automation"],
+ advanced:["AI WhatsApp Sales Agent","AI Quotation Drafting Agent"],
+ voice:["AI Voice Receptionist"]
+};
+if(PLAN_MATCH[chosenPlan]){
+ PLAN_MATCH[chosenPlan].forEach(name=>{const i=SERVICES.indexOf(name);if(i>=0){const cb=$("service"+i);if(cb)cb.checked=true}});
+ $("agentCount").textContent=SERVICES.filter((item,i)=>$("service"+i).checked).length+" services selected";
+ if(chosenPlan!=="basic")$("services").querySelectorAll(".tier-box").forEach(d=>d.open=true);
+ const extra=document.createElement("div");extra.className="note";extra.style.margin="10px 0 20px";
+ extra.textContent="Selected from AAROHAN Agent Plans: "+chosenPlan.toUpperCase()+(["monthly","yearly"].includes(chosenBilling)?" · "+chosenBilling+" support preference":"")+". Confirm scope, pricing and integration costs with our team.";
+ $("clientForm").prepend(extra);
+}
 function valid(){if(!$('clientForm').reportValidity()){return false;}return true;}
 function data(){return{formVersion:'aarohan-customer-response-v2',createdAt:new Date().toISOString(),fields:{customer:enc($('customer').value),company:enc($('company').value),industry:$('industry').value,enquiries:$('enquiries').value,channels:$('channels').value,replyTo:enc($('replyTo').value),email:enc($('customerEmail').value),pain:enc($('challenge').value),language:$('language').value,demoTime:enc($('demoTime').value)},answers:QUESTIONS.map(([key,text])=>({key,text,answer:document.querySelector(`input[name="${key}"]:checked`)?.value||''})),services:SERVICES.filter((s,i)=>$('service'+i).checked),consent:$('consent').checked,emailConsent:$('emailConsent').checked,hp:$('website_check').value}}
 function summary(d){let out=['AAROHAN AI WORLD | BUSINESS REQUIREMENT FORM','',`Name: ${d.fields.customer}`,`Company: ${d.fields.company}`,`Industry: ${d.fields.industry}`,`Daily enquiries: ${d.fields.enquiries||'Not specified'}`,`Current contact channel: ${d.fields.channels}`,`Contact: ${d.fields.replyTo||'Not provided'}`,'','BUSINESS QUESTIONS'];let answered=d.answers.filter(a=>a.answer);if(answered.length){out.push(...answered.map((x,i)=>`${i+1}. ${x.text} — ${x.answer==='Discuss'?'Not sure':x.answer}`));}else out.push('Not specified');out.push('','SERVICES OF INTEREST',...(d.services.length?d.services.map(s=>'• '+s):['To be discussed']),'',`Biggest challenge: ${d.fields.pain||'To be discussed'}`,`Preferred language: ${d.fields.language}`,`Demo timing: ${d.fields.demoTime||'To be arranged'}`,'','Sent voluntarily for a business consultation.');return out.join('\n');}
@@ -58,6 +72,27 @@ async function copyText(t){try{await navigator.clipboard.writeText(t);return tru
 $('copy').addEventListener('click',async()=>{if(!valid())return;const d=data();preview(d);note(await copyText(summary(d))?'Answers copied. Please paste them into Sumit’s WhatsApp chat.':'Please select and copy the preview text.',true)});
 $('share').addEventListener('click',async()=>{if(!valid())return;const d=data();preview(d);const t=summary(d);try{if(navigator.share && navigator.canShare && navigator.canShare({text:t})){await navigator.share({title:'AAROHAN AI WORLD – Business Requirements',text:t});note('Share window opened. Please verify the selected WhatsApp contact and press Send.',true);return;}}catch(e){if(e.name==='AbortError'){note('Sharing was cancelled; your responses are still on this page.',false);return;}}const url='https://api.whatsapp.com/send?text='+encodeURIComponent(t);window.location.href=url;note('Select Sumit’s WhatsApp chat and press Send. This page itself does not submit data automatically.',true);});
 $('download').addEventListener('click',()=>{if(!valid())return;const d=data();preview(d);const url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='AAROHAN_Requirement_'+enc(d.fields.customer).replace(/[^a-z0-9-]/gi,'_').slice(0,40)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);note('JSON response downloaded. Send this file to Sumit so he can import it into his private CRM.',true)});
+
+
+$("submitWeb").addEventListener("click",async()=>{
+ if(!valid())return;
+ const d=data();
+ if(d.hp){note("Thank you for your enquiry.",true);return}
+ const submit=$("submitWeb");submit.disabled=true;note("Submitting your business requirements…",true);
+ try{
+  const form=new FormData();
+  form.set("_subject","AAROHAN AI WORLD: Detailed AI Requirements - "+d.fields.company);
+  form.set("name",d.fields.customer);form.set("company",d.fields.company);form.set("email",d.fields.email);
+  form.set("whatsapp",d.fields.replyTo);form.set("industry",d.fields.industry);
+  form.set("plan",chosenPlan||"Detailed requirements");form.set("billing",chosenBilling||"To discuss");
+  form.set("message",summary(d));form.set("source","client-requirements.html");
+  form.set("consent",String(d.consent));form.set("_gotcha",d.hp);
+  const response=await fetch("https://formspree.io/f/xrpervae",{method:"POST",body:form,headers:{"Accept":"application/json"}});
+  if(!response.ok)throw new Error("Form service rejected request");
+  preview(d);note("Your requirements were accepted by the form service. AAROHAN will review the information and contact you. No payment was collected.",true);
+ }catch(error){note("Online submission could not be confirmed. Please use Review & Share on WhatsApp instead.",false)}
+ finally{submit.disabled=false}
+});
 
 const AAROHAN_CRM_URL=''; // Configure after the Google Apps Script backend is deployed; do not put secrets here.
 function instantPlan(d){
