@@ -56,6 +56,7 @@ grant execute on function private.is_approved_partner() to authenticated;
 create table if not exists public.partner_applications (
   id uuid primary key default gen_random_uuid(),
   partner_id uuid not null unique references public.partner_profiles(id) on delete cascade,
+  full_name text not null,
   company_name text,
   whatsapp text not null,
   country text not null,
