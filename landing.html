@@ -276,7 +276,7 @@ const buttons=Array.from(document.querySelectorAll("[data-billing]"));
 function setBilling(period){
  buttons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.billing===period)));
  document.querySelectorAll("[data-plan-billing]").forEach(el=>{el.textContent=period==="yearly"?"Annual support available":"Monthly support available"});
- document.querySelectorAll("[data-plan-cta]").forEach(a=>{const plan=a.dataset.planCta;a.setAttribute("href","client-requirements.html?plan="+encodeURIComponent(plan)+"&billing="+period)});
+ document.querySelectorAll("[data-plan-cta]").forEach(a=>{const plan=a.dataset.planCta;if(a.dataset.planSelect){a.setAttribute("href","#quick-enquiry")}else{a.setAttribute("href","client-requirements.html?plan="+encodeURIComponent(plan)+"&billing="+period)}});
  const notes=document.querySelector(".billing-description small");
  if(notes)notes.textContent=period==="yearly"?"Annual support proposals are available on request. Setup, telephony, messages and AI usage are scoped separately; no unapproved annual discount is implied.":"Monthly support proposals are available on request. Setup, telephony, messages and AI usage are scoped separately.";
 }
