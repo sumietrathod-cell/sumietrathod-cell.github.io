@@ -1,1 +1,147 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>CRM Setup | AAROHAN AI WORLD</title><style>body{margin:0;background:#07172b;color:#eaf5ff;font:16px system-ui}main{max-width:920px;margin:7vh auto;padding:28px}h1{font-size:clamp(28px,5vw,48px)}.gold{color:#f4c66b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}.card{background:#112942;border:1px solid #315577;border-radius:16px;padding:22px}p{line-height:1.6;color:#c8d8e7}.tag{background:#654b17;color:#ffe6a7;padding:7px 12px;border-radius:30px;display:inline-block}a{color:#72d9ff}</style></head><body><main><strong class="gold">AAROHAN AI WORLD</strong><h1>Central CRM <span class="gold">Foundation</span></h1><span class="tag">Setup in progress — not a live dashboard</span><p>This page is an informational placeholder. No customer records, login credentials or sales information are stored here. Secure authentication and a protected backend must be configured before launch.</p><div class="grid"><section class="card"><h2>Admin</h2><p>Planned: leads, partners, conversations, reminders, deals, commission approvals and reporting.</p></section><section class="card"><h2>Sales Partners</h2><p>Planned: invitation-only access to assigned leads, follow-ups and personal commissions.</p></section><section class="card"><h2>Integrations</h2><p>Planned: website forms, approved Gmail mailbox, WhatsApp Business Platform and voice-agent webhooks.</p></section></div><p>Privacy first: do not enter passwords, OTPs, customer details or API keys on this page.</p><a href="/partner-portal.html">Existing Partner Portal →</a></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>CRM | AAROHAN AI WORLD</title>
+<style>
+body { margin:0; background:#07172b; color:#eaf5ff; font:16px system-ui; }
+main { max-width:1100px; margin:6vh auto; padding:24px; }
+strong { color:#f4c66b; }
+form { max-width:360px; }
+label { display:block; margin:14px 0; }
+input, select, button { box-sizing:border-box; display:block; padding:10px; border-radius:6px; font:inherit; }
+input, select { width:100%; margin-top:6px; }
+button { cursor:pointer; background:#f4c66b; color:#07172b; }
+section { margin:24px 0; }
+.scroll { overflow:auto; }
+table { width:100%; border-collapse:collapse; background:#112942; }
+td, th { text-align:left; padding:12px; border-bottom:1px solid #315577; white-space:nowrap; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<main>
+<strong>AAROHAN AI WORLD</strong>
+<h1>Sales CRM</h1>
+<p id="status" role="status">Loading CRM…</p>
+<form id="login" method="post" hidden>
+<label>Dashboard<select name="role"><option value="admin">Admin</option><option value="partner">Sales Partner</option></select></label>
+<label>Email<input name="email" type="email" autocomplete="username" required></label>
+<label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+<button type="submit">Sign in</button>
+</form>
+<div id="dashboard" hidden>
+<h2></h2>
+<button type="button">Sign out</button>
+<p>Showing up to 100 accessible records per table.</p>
+<section aria-labelledby="leads-title"><h3 id="leads-title">Leads</h3><div class="scroll"><table id="leads" aria-labelledby="leads-title"></table></div></section>
+<section aria-labelledby="deals-title"><h3 id="deals-title">Deals</h3><div class="scroll"><table id="deals" aria-labelledby="deals-title"></table></div></section>
+<section aria-labelledby="commissions-title"><h3 id="commissions-title">Commissions</h3><div class="scroll"><table id="commissions" aria-labelledby="commissions-title"></table></div></section>
+</div>
+</main>
+<script type="module">
+const config = await fetch('./config.json', {cache: 'no-store'}).then(response => {
+  if (!response.ok) throw new Error('Configuration unavailable');
+  return response.json();
+}).catch(() => null);
+const status = document.querySelector('#status');
+const login = document.querySelector('#login');
+const dashboard = document.querySelector('#dashboard');
+const fields = {
+  leads: ['company', 'contact_name', 'source', 'consent_status', 'status', 'created_at'],
+  deals: ['lead_id', 'value', 'currency', 'stage', 'closed_at'],
+  commissions: ['deal_id', 'partner_id', 'amount', 'status']
+};
+
+if (!config || !/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(config.url) ||
+    !/^sb_publishable_[\w-]+$/.test(config.publishableKey) || !window.supabase) {
+  status.textContent = 'CRM connection is awaiting configuration.';
+} else {
+  const client = window.supabase.createClient(config.url, config.publishableKey, {
+    auth: {persistSession: false, detectSessionInUrl: false}
+  });
+  const signIn = login.querySelector('button');
+  const signOut = dashboard.querySelector('button');
+  login.hidden = false;
+  status.textContent = '';
+
+  function clearDashboard() {
+    dashboard.hidden = true;
+    for (const name of Object.keys(fields)) document.getElementById(name).replaceChildren();
+  }
+
+  function renderTable(name, rows) {
+    const table = document.getElementById(name);
+    const columns = fields[name];
+    const header = table.createTHead().insertRow();
+    for (const column of columns) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = column.replaceAll('_', ' ');
+      header.append(cell);
+    }
+    const body = table.createTBody();
+    for (const record of rows) {
+      const row = body.insertRow();
+      for (const column of columns) row.insertCell().textContent = record[column] ?? '—';
+    }
+    if (!rows.length) {
+      const cell = body.insertRow().insertCell();
+      cell.colSpan = columns.length;
+      cell.textContent = 'No records to display.';
+    }
+  }
+
+  login.addEventListener('submit', async event => {
+    event.preventDefault();
+    signIn.disabled = true;
+    const form = new FormData(login);
+    login.elements.password.value = '';
+    status.textContent = 'Signing in…';
+    try {
+      const {data, error} = await client.auth.signInWithPassword({
+        email: form.get('email').trim(),
+        password: form.get('password')
+      });
+      if (error || !data.user) throw new Error('Sign-in failed');
+      const {data: profile, error: profileError} = await client.from('profiles')
+        .select('role,active').eq('id', data.user.id).maybeSingle();
+      if (profileError || !profile?.active || profile.role !== form.get('role')) {
+        throw new Error('Access unavailable');
+      }
+      const results = await Promise.all(Object.entries(fields).map(([table, columns]) =>
+        client.from(table).select(columns.join(',')).order('id').limit(100)
+      ));
+      if (results.some(result => result.error)) throw new Error('Dashboard unavailable');
+      Object.keys(fields).forEach((name, index) => renderTable(name, results[index].data));
+      dashboard.querySelector('h2').textContent = profile.role === 'admin' ? 'Admin dashboard' : 'Sales Partner dashboard';
+      login.reset();
+      login.hidden = true;
+      dashboard.hidden = false;
+      status.textContent = '';
+      signOut.focus();
+    } catch {
+      clearDashboard();
+      await client.auth.signOut({scope: 'local'}).catch(() => {});
+      status.textContent = 'Unable to open this dashboard. Check your credentials, role and access.';
+    } finally {
+      signIn.disabled = false;
+    }
+  });
+
+  signOut.addEventListener('click', async () => {
+    clearDashboard();
+    try {
+      await client.auth.signOut({scope: 'local'});
+    } finally {
+      location.reload();
+    }
+  });
+}
+
+</script>
+</body>
+</html>
