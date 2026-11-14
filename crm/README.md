@@ -26,3 +26,7 @@ Use one active Admin, two active Sales Partners, and one inactive account. Assig
 ## Integration boundary
 
 The integration receipts table is a server-side deduplication foundation. A future handler must verify provider authenticity before using a delivery ID and record the receipt and corresponding CRM changes in one transaction. Provider-specific credentials, consent mapping, handlers, and live verification are pending for website intake, Gmail, WhatsApp and voice.
+
+## Password recovery
+
+Serve the CRM directory over HTTPS on the isolated staging host. Verify that both `reset-password.html` and its sibling `config.json` load there. For recovery emails sent from the Supabase Dashboard, set the staging project's Authentication Site URL to the exact HTTPS URL of `reset-password.html`. Keep the production project's settings separate. Send a fresh recovery email to the intended staging account. Confirm the email link opens the reset form, set a new password in the browser, and verify sign-in with the corresponding role. A direct visit without a recovery session should display a recovery-link error and keep the form hidden.
