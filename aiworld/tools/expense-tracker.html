@@ -1,0 +1,98 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Business Expense Tracker | AAROHAN AI WORLD</title><link rel="stylesheet" href="../assets/portfolio.css"><style>.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:14px;margin-bottom:16px}label{display:block}input,select{display:block;width:100%;box-sizing:border-box;padding:9px;border:1px solid #7a879a;border-radius:8px;font:inherit;color:#182132;background:#fff}button{cursor:pointer;font:inherit}td button{margin:3px}#filter{max-width:240px}.table-scroll{overflow:auto}</style></head><body><header class="container nav"><a class="logo" href="../portfolio.html#business-apps">AAROHAN AI WORLD</a><nav class="links" aria-label="Main"><a href="../portfolio.html#business-apps">All business apps</a><a href="../../landing.html#quick-enquiry">Discuss your project</a></nav></header><main class="container"><section class="hero"><h1>Business Expense Tracker</h1><p>Log expenses in INR and compare spending by category. Use fictional details. Entries reset when this page reloads.</p></section><section class="panel"><h2>Manage records</h2><form><div class="fields"></div><button class="btn" id="save">Add record</button> <button type="button" id="cancel" hidden>Cancel edit</button></form><p id="status" role="status"></p></section><section class="panel"><h2>Overview</h2><p id="summary" aria-live="polite"></p><label>Filter records<select id="filter"></select></label><div class="table-scroll"><table aria-label="Demo records"><thead><tr></tr></thead><tbody></tbody></table></div></section></main><script>const config = {"slug":"expense-tracker","title":"Business Expense Tracker","description":"Log expenses in INR and compare spending by category.","fields":[["Expense","text"],["Category","select"],["Amount (₹)","money"]],"rows":[["Local delivery","Transport",450],["Packing supplies","Supplies",1200]],"choices":["Transport","Supplies","Marketing","Other"],"computed":"expenses"};
+const rows = config.rows.map(row => [...row]);
+const headings = document.querySelector('thead tr');
+const body = document.querySelector('tbody');
+const form = document.querySelector('form');
+const inputs = [];
+const status = document.getElementById('status');
+const filter = document.getElementById('filter');
+const summary = document.getElementById('summary');
+const money = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
+let editing = null;
+function cell(parent, tag, value) {
+  const el = document.createElement(tag);
+  el.textContent = value;
+  if (tag === 'th') el.scope = 'col';
+  parent.append(el);
+  return el;
+}
+function optionList(select, options) {
+  select.replaceChildren(...options.map(choice => new Option(choice,choice)));
+}
+for (const [name, type] of config.fields) {
+  cell(headings, 'th', name);
+  const label = document.createElement('label');
+  label.textContent = name;
+  const input = document.createElement(type === 'select' ? 'select' : 'input');
+  input.required = true;
+  if (type === 'select') optionList(input,config.choices);
+  else if (type === 'text') { input.maxLength = 100; input.pattern = '.*\\S.*'; }
+  else { input.type = 'number'; input.min = '0'; input.max = '10000000'; input.step = type === 'money' ? '0.01' : '1'; }
+  label.append(input);
+  form.querySelector('.fields').append(label);
+  inputs.push(input);
+}
+cell(headings,'th','Actions');
+if (config.choices.length) optionList(filter,['All',...config.choices]);
+else filter.parentElement.hidden = true;
+function describe() {
+  if (config.computed === 'reorder') return rows.filter(row => row[1] <= row[2]).length + ' of ' + rows.length + ' products need reordering';
+  if (config.computed === 'orders') return rows.filter(row => row[2] === 'Delivered').length + ' of ' + rows.length + ' orders delivered';
+  if (config.computed === 'feedback') return rows.length ? (rows.reduce((sum,row)=>sum+Number(row[1]),0)/rows.length).toFixed(1) + ' / 5 average across ' + rows.length + ' ratings' : 'No ratings yet';
+  const cents = row => Math.round(row[2]*100);
+  return 'Total ' + money.format(rows.reduce((sum,row)=>sum+cents(row),0)/100) + ' · ' +
+    config.choices.map(choice=>choice+' '+money.format(rows.filter(row=>row[1]===choice).reduce((sum,row)=>sum+cents(row),0)/100)).join(' · ');
+}
+function action(parent, label, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.addEventListener('click',onClick);
+  parent.append(button);
+}
+function resetEditor() {
+  editing = null;
+  form.reset();
+  document.getElementById('save').textContent = 'Add record';
+  document.getElementById('cancel').hidden = true;
+}
+function render() {
+  summary.textContent = describe();
+  body.replaceChildren();
+  const category = config.fields.findIndex(field => field[1] === 'select');
+  for (const row of rows) {
+    if (category >= 0 && filter.value !== 'All' && row[category] !== filter.value) continue;
+    const tr = body.insertRow();
+    row.forEach((value, index)=>cell(tr,'td',config.fields[index][1] === 'money' ? money.format(value) : value));
+    const actions = cell(tr,'td','');
+    action(actions,'Edit',()=>{
+      editing = row;
+      inputs.forEach((input,index)=>{input.value=row[index];});
+      document.getElementById('save').textContent = 'Save changes';
+      document.getElementById('cancel').hidden = false;
+      inputs[0].focus();
+    });
+    action(actions,'Remove',()=>{
+      if (editing === row) resetEditor();
+      rows.splice(rows.indexOf(row),1);
+      render();
+      status.textContent = 'Record removed.';
+      inputs[0].focus();
+    });
+  }
+  if (!body.rows.length) cell(body.insertRow(),'td','No matching records.').colSpan = config.fields.length + 1;
+}
+form.addEventListener('submit',event=>{
+  event.preventDefault();
+  const values = inputs.map((input,index)=>['number','money'].includes(config.fields[index][1]) ? input.valueAsNumber : input.value.trim());
+  if (editing) rows[rows.indexOf(editing)] = values;
+  else rows.push(values);
+  if (config.choices.length) filter.value = 'All';
+  status.textContent = editing ? 'Changes saved.' : 'Record added.';
+  resetEditor();
+  render();
+  inputs[0].focus();
+});
+document.getElementById('cancel').addEventListener('click',()=>{resetEditor();inputs[0].focus();});
+filter.addEventListener('change',render);
+render();</script></body></html>
