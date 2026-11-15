@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dispatch Readiness Planner | AAROHAN AI WORLD</title><link rel="stylesheet" href="../assets/portfolio.css"><style>.table-scroll{overflow:auto}td input{box-sizing:border-box;width:100%;min-width:100px;padding:9px;border:1px solid #78869a;border-radius:6px;background:white;color:#172032;font:inherit}td:first-child input{min-width:150px}.actions{display:flex;gap:8px;flex-wrap:wrap}button{cursor:pointer;font:inherit}button:disabled{opacity:.55}</style></head><body><header class="container nav"><a class="logo" href="../portfolio.html#business-software">AAROHAN AI WORLD</a><nav class="links" aria-label="Main"><a href="../portfolio.html#business-software">All software demos</a><a href="../../landing.html#quick-enquiry">Discuss your project</a></nav></header><main id="main" class="container"><section class="hero"><h1>Dispatch Readiness Planner</h1><p>Compare ordered, packed and shipped quantities to identify dispatch work. Use fictional data. The sample resets on reload.</p></section><section class="panel"><h2>Working records</h2><p>Shipped ≤ packed ≤ ordered. Use whole units.</p><div class="actions"><button type="button" class="btn" id="add">Add row</button><button type="button" class="btn" id="export">Export CSV</button><button type="button" class="btn" id="reset">Restore sample</button></div><p id="status" role="status"></p><div class="table-scroll" tabindex="0" role="region" aria-label="Editable Dispatch Readiness Planner records"><table><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div></section></main><script>const inputs=["Ordered","Packed incl. shipped","Shipped"], outputs=["Still to pack","Packed to ship"];
+const result=(ordered,packed,shipped)=>[ordered-packed,packed-shipped];
+const initial=[["Order 301",40,25,15],["Order 302",12,12,12]];
+const whole=new Set(['Units','Ordered','Packed incl. shipped','Shipped','Days past due']);
+const dispatch=true;
+const body=document.querySelector('tbody'), head=document.querySelector('thead tr'), foot=document.querySelector('tfoot tr');
+const status=document.querySelector('#status');
+const format=new Intl.NumberFormat('en-IN',{maximumFractionDigits:2});
+function append(parent,tag,text){
+  const cell=document.createElement(tag);cell.textContent=text;parent.append(cell);return cell;
+}
+for(const label of ['Reference',...inputs,...outputs,'Actions'])append(head,'th',label).scope='col';
+append(foot,'th','Totals').scope='row';
+for(const label of inputs)append(foot,'td','');
+const totals=outputs.map(()=>append(foot,'td',''));
+append(foot,'td','');
+function addRow(values){
+  const row=body.insertRow();
+  for(const [index,label] of ['Reference',...inputs].entries()){
+    const field=document.createElement('input');
+    field.setAttribute('aria-label',label);
+    field.required=true;
+    if(index){field.type='number';field.min='0';field.max='10000000';field.step=whole.has(label)?'1':'0.01';}
+    else field.maxLength=80;
+    field.value=values[index]??'';
+    append(row,'td','').append(field);
+  }
+  for(const label of outputs)append(row,'td','');
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
+  remove.onclick=()=>{row.remove();calculate();document.querySelector('#add').focus();};
+  append(row,'td','').append(remove);
+  return row;
+}
+function calculate(){
+  const sums=outputs.map(()=>0), records=[];
+  let flagged=0;
+  for(const row of body.rows){
+    const [reference,...fields]=row.querySelectorAll('input');
+    const values=fields.map(field=>field.valueAsNumber);
+    const valid=reference.value.trim()&&fields.every(field=>field.validity.valid)&&
+      (!dispatch||(values[2]<=values[1]&&values[1]<=values[0]));
+    const calculated=valid?result(...values).map(value=>Math.round(value*100)/100):[];
+    if(valid)records.push([reference.value.trim(),...values,...calculated]);
+    else flagged++;
+    outputs.forEach((_,index)=>{
+      row.cells[1+inputs.length+index].textContent=valid?format.format(calculated[index]):'—';
+      if(valid)sums[index]+=calculated[index];
+    });
+  }
+  totals.forEach((cell,index)=>{cell.textContent=format.format(sums[index]);});
+  status.textContent=records.length+' complete records'+(flagged?' · '+flagged+' incomplete or invalid rows excluded':'');
+  document.querySelector('#export').disabled=!records.length;
+  return records;
+}
+function reset(){
+  body.replaceChildren();initial.forEach(addRow);calculate();
+}
+document.querySelector('#add').onclick=()=>{addRow([]).querySelector('input').focus();calculate();};
+document.querySelector('#reset').onclick=reset;
+body.addEventListener('input',calculate);
+document.querySelector('#export').onclick=()=>{
+  const encode=value=>{
+    const safe=typeof value==='string'&&/^[=+@-]/.test(value)?"'"+value:String(value);
+    return '"'+safe.replaceAll('"','""')+'"';
+  };
+  const csv=[['Reference',...inputs,...outputs],...calculate()].map(row=>row.map(encode).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download='dispatch.csv';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+reset();</script></body></html>
