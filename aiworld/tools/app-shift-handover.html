@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shift Handover | AAROHAN AI WORLD</title><link rel="stylesheet" href="../assets/portfolio.css"><style>.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px;margin-bottom:14px}label{display:block}input,select{display:block;box-sizing:border-box;width:100%;padding:9px;border:1px solid #78869a;border-radius:7px;background:white;color:#172032;font:inherit}button{cursor:pointer;font:inherit;margin-right:6px}.table-scroll{overflow:auto}#filter{max-width:240px}</style></head><body><header class="container nav"><a class="logo" href="../portfolio.html#application-demos">AAROHAN AI WORLD</a><nav class="links" aria-label="Main"><a href="../portfolio.html#application-demos">All application demos</a><a href="../../landing.html#quick-enquiry">Discuss your project</a></nav></header><main class="container"><section class="hero"><h1>Shift Handover</h1><p>Record shift issues and assign the next action. Try fictional records. Changes reset on refresh.</p></section><section class="panel"><h2>Manage records</h2><form id="editor"><div class="fields"><label>Handover item<input name="name" required maxlength="100"></label><label>Next action or owner<input name="detail" required maxlength="100"></label><label>Date<input type="date" name="date"></label><label>Status<select name="stage"><option>Open</option><option>Acknowledged</option><option>Resolved</option></select></label></div><button class="btn" id="save">Add record</button><button type="button" id="cancel" hidden>Cancel edit</button></form><p id="status" role="status"></p></section><section class="panel"><h2>Overview</h2><p id="summary" aria-live="polite"></p><label>Filter by status<select id="filter"><option value="">All statuses</option></select></label><div class="table-scroll" tabindex="0" role="region" aria-label="Shift Handover records"><table><thead><tr><th scope="col">Handover item</th><th scope="col">Next action or owner</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="records"></tbody></table></div></section></main><script type="application/json" id="samples">[["Packing line label issue","Evening supervisor","","Open"]]</script><script>
+const root=document.querySelector('main');
+const by=id=>document.getElementById(id);
+const form=by('editor'), fields=form.elements;
+const states=[...fields.stage.options].map(option=>option.value);
+const rows=JSON.parse(by('samples').textContent);
+let editing=null;
+by('filter').append(...states.map(state=>new Option(state,state)));
+function reset(){editing=null;form.reset();by('save').textContent='Add record';by('cancel').hidden=true;}
+function addButton(parent,label,click){const button=document.createElement('button');button.type='button';button.textContent=label;button.onclick=click;parent.append(button);}
+function render(){
+ const body=by('records');
+ body.replaceChildren();
+ const counts=states.map(stage=>stage+': '+rows.filter(row=>row[3]===stage).length);
+ by('summary').textContent=counts.join(' · ');
+ for(const entry of rows){
+   if(by('filter').value&&entry[3]!==by('filter').value)continue;
+   const row=body.insertRow();
+   for(const value of entry)row.insertCell().textContent=value||'—';
+   const actions=row.insertCell();
+   addButton(actions,'Edit',()=>{
+      editing=entry;
+      ['name','detail','date','stage'].forEach((key,index)=>{fields[key].value=entry[index];});
+      by('save').textContent='Save changes';by('cancel').hidden=false;fields.name.focus();
+   });
+   addButton(actions,'Remove',()=>{
+     if(editing===entry)reset();
+     rows.splice(rows.indexOf(entry),1);render();
+     by('status').textContent='Record removed.';fields.name.focus();
+   });
+ }
+ if(!body.rows.length){const empty=body.insertRow().insertCell();empty.colSpan=5;empty.textContent='No matching records.';}
+}
+form.onsubmit=event=>{
+ event.preventDefault();
+ const values=['name','detail','date','stage'].map(key=>fields[key].value.trim());
+ if(!values[0]||!values[1]){by('status').textContent='Complete both text fields.';return;}
+ if(editing)rows[rows.indexOf(editing)]=values;else rows.push(values);
+ by('status').textContent=editing?'Changes saved.':'Record added.';
+ reset();by('filter').value='';render();fields.name.focus();
+};
+by('cancel').onclick=()=>{reset();fields.name.focus();};
+by('filter').onchange=render;
+render();</script></body></html>
