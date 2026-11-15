@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Field Service Job Card | AAROHAN AI WORLD</title><link rel="stylesheet" href="../assets/portfolio.css"><style>.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-bottom:14px}label{display:block}input,select{display:block;width:100%;box-sizing:border-box;padding:9px;border:1px solid #78869a;border-radius:6px;background:white;color:#172032;font:inherit}#filter{max-width:300px}button{cursor:pointer;font:inherit;margin-right:8px}#print-card{display:none}@media print{body{background:white;color:black}body>*:not(main),main>*:not(#print-card){display:none!important}#print-card:not([hidden]){display:block!important;color:black;background:white}}</style></head><body><header class="container nav"><a class="logo" href="../portfolio.html#market-demos">AAROHAN AI WORLD</a><nav class="links" aria-label="Main"><a href="../portfolio.html#market-demos">Portfolio</a><a href="../../landing.html#quick-enquiry">Request a custom demo</a></nav></header><main class="container"><section class="hero"><h1>Field Service Job Card</h1><p>Assign a technician, update the job status and print a service job card. Try the sample records below. Changes reset on refresh.</p></section><section class="panel"><h2>Manage records</h2><form id="editor"><div class="fields" id="fields"></div><button class="btn" id="save">Add record</button><button type="button" id="cancel" hidden>Cancel edit</button></form><p id="status" role="status"></p></section><section class="panel"><h2>Overview</h2><p id="summary" aria-live="polite"></p><label>Filter records<select id="filter"></select></label><div id="records"></div></section><section id="print-card" hidden><p>AAROHAN AI WORLD · Sample Service Job Card</p><h1 id="print-title"></h1><p id="print-details"></p><p>Work performed: __________________________________</p><p>Customer acknowledgement: ________________________</p></section></main><script>const config={"slug":"field-service-job-card","title":"Field Service Job Card","desc":"Assign a technician, update the job status and print a service job card.","labels":["Job and site","Technician","Status"],"options":["Scheduled","On site","Completed"],"sample":[["AC service · Demo Retail","Asha Patel","Scheduled"],["CCTV inspection · Demo Warehouse","Ravi Shah","On site"]]};
+const renewal=!config.options.length;
+const today=new Date();today.setHours(0,0,0,0);
+function dateAt(offset){const d=new Date(today);d.setDate(d.getDate()+offset);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+const rows=config.sample.map(([name,second,third])=>[name,renewal?dateAt(second):second,third]);
+const $=id=>document.getElementById(id);
+const form=$('editor'), list=$('records'), inputs=[];
+const money=new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2});
+let active=null;
+config.labels.forEach((title,index)=>{
+  const label=document.createElement('label');label.textContent=title;
+  const field=document.createElement(!renewal&&index===2?'select':'input');
+  field.required=true;
+  if(field.tagName==='SELECT')config.options.forEach(value=>field.add(new Option(value,value)));
+  else if(renewal&&index===1)field.type='date';
+  else if(renewal&&index===2){field.type='number';field.min='0';field.max='10000000';field.step='0.01';}
+  else {field.maxLength=80;field.pattern='.*\\S.*';}
+  inputs.push(field);label.append(field);$('fields').append(label);
+});
+$('filter').replaceChildren(...(renewal?['All','Overdue','Due within 30 days','Upcoming']:['All',...config.options]).map(label=>new Option(label,label)));
+function classification(row){return !renewal?row[2]:row[1]<dateAt(0)?'Overdue':row[1]<=dateAt(30)?'Due within 30 days':'Upcoming';}
+function button(parent,title,run){const el=document.createElement('button');el.type='button';el.textContent=title;el.onclick=run;parent.append(el);}
+function render(){
+  const due=rows.filter(row=>classification(row)!=='Upcoming');
+  $('summary').textContent=renewal?due.length+' contracts overdue or due within 30 days · '+money.format(due.reduce((sum,row)=>sum+Math.round(row[2]*100),0)/100):rows.filter(row=>row[2]==='Completed').length+' of '+rows.length+' jobs completed';
+  list.replaceChildren();
+  for(const row of rows){
+    const group=classification(row);
+    if($('filter').value!=='All'&&$('filter').value!==group)continue;
+    const card=document.createElement('article');card.className='notice';
+    const title=document.createElement('h3');title.textContent=row[0];
+    const detail=document.createElement('p');detail.textContent=renewal?row[1]+' · '+money.format(row[2])+' · '+group:'Technician '+row[1]+' · '+group;
+    card.append(title,detail);
+    button(card,'Edit',()=>{active=row;inputs.forEach((field,i)=>{field.value=row[i];});$('save').textContent='Save changes';$('cancel').hidden=false;inputs[0].focus();});
+    if(!renewal)button(card,'Print job card',()=>{
+      $('print-title').textContent=row[0];$('print-details').textContent=detail.textContent;$('print-card').hidden=false;
+      window.print();
+    });
+    list.append(card);
+  }
+  if(!list.children.length)list.textContent='No matching records.';
+}
+function clear(){active=null;form.reset();$('save').textContent='Add record';$('cancel').hidden=true;}
+form.onsubmit=event=>{
+  event.preventDefault();
+  const record=inputs.map(field=>field.type==='number'?field.valueAsNumber:field.value.trim());
+  if(active)rows[rows.indexOf(active)]=record;else rows.push(record);
+  $('status').textContent=active?'Changes saved.':'Record added.';
+  clear();$('filter').value='All';render();inputs[0].focus();
+};
+$('cancel').onclick=()=>{clear();inputs[0].focus();};
+$('filter').onchange=render;
+window.addEventListener('afterprint',()=>{$('print-card').hidden=true;});
+render();</script></body></html>
