@@ -41,6 +41,7 @@ function resultsFor(text,group){
      else if(name.includes(term)||keys.includes(term)||(' '+path+' ').includes(' '+term+' '))score+=3;
      else return {item,score:0};
    }
+   if(score&&item.path==='/whatsapp-business-automation.html'&&terms.includes('whatsapp'))score+=10;
    if(score&&item.category==='Basic to advanced plans'&&terms.some(term=>['basic','starter','growth','advanced','advance','એડવાન્સ','बेसिक','एडवांस'].includes(term)))score+=20;
    return {item,score};
  }).filter(result=>!terms.length||result.score>0).sort((a,b)=>b.score-a.score);
