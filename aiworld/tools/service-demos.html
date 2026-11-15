@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Booking and Quotation Demos | AAROHAN AI WORLD</title><meta name="description" content="Try an appointment booking app and create a printable service quote with interactive AAROHAN AI WORLD demos."><link rel="stylesheet" href="../assets/portfolio.css"><style>
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px;align-items:start}.demo-grid .panel{margin:0;scroll-margin-top:24px}.fields,.items{display:grid;gap:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.line{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end}.fields label,.line label{display:grid;gap:4px;min-width:0}.fields input,.fields select{width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid #78869a;border-radius:8px;background:white;color:#182132;font:inherit}.fields button{cursor:pointer;font:inherit}.secondary{background:white;color:#182132;border:1px solid #78869a;padding:8px 12px;border-radius:8px}.actions{display:flex;flex-wrap:wrap;gap:8px}.receipt{overflow-wrap:anywhere}.receipt[hidden]{display:none}@media(max-width:490px){.line{grid-template-columns:1fr 1fr}.line label:first-child{grid-column:1/-1}}@media print{body{background:white;color:black}body>*:not(main),main>*:not(.demo-grid),.demo-grid>*:not(#quote),#quote>*:not(#receipt){display:none!important}.demo-grid{display:block}#quote,#receipt{background:white!important;color:black!important;box-shadow:none!important;border:none!important;width:100%}}
+</style></head><body><header class="container nav"><a class="logo" href="../portfolio.html">AAROHAN AI WORLD</a><nav class="links" aria-label="Main"><a href="../portfolio.html">Portfolio</a><a href="../../landing.html#quick-enquiry">Discuss your project</a></nav></header>
+<main class="container"><section class="hero"><h1>Book a visit.<br><em>Build a quote.</em></h1><p>Try two workflows for service businesses. Use the sample values or enter fictional details. Demo entries stay in this page and reset on reload.</p></section>
+<div class="demo-grid">
+<section class="panel" id="booking"><h2>Service Booking App</h2><p>Pick a service and reserve a sample slot. Cancel a booking to free the slot again. All sample times are India Standard Time.</p>
+<form id="booking-form" class="fields"><label>Service<select name="service"><option>Discovery call</option><option>On-site consultation</option><option>Software demonstration</option></select></label><label>Sample customer name<input name="customer" required maxlength="60" value="Demo Customer"></label><div class="pair"><label>Date (IST)<input type="date" name="date" required></label><label>Available time<select name="slot" required></select></label></div><button class="btn">Reserve sample slot</button></form><p id="booking-status" role="status"></p><h3>Sample bookings</h3><ul id="bookings"></ul><p id="booking-empty">No bookings yet.</p></section>
+<section class="panel" id="quote"><h2>Service Quote Builder</h2><p>Add your services, apply a discount and generate a printable quote in INR.</p><form id="quote-form" class="fields"><label>Sample client name<input name="client" value="Demo Retail Store" required maxlength="80"></label><div class="items" id="items"></div><label>Discount (%)<input type="number" name="discount" min="0" max="100" step="0.01" value="5" required></label><div class="actions"><button class="secondary" type="button" id="add-item">Add service</button><button class="btn">Generate quote</button><button class="secondary" type="button" id="print" disabled>Print / Save PDF</button></div></form>
+<div id="receipt" class="receipt notice" hidden><h3>AAROHAN AI WORLD · Sample Quote</h3><p id="quote-client"></p><ul id="quote-lines"></ul><p id="quote-totals"></p></div><p id="quote-status" role="status"></p></section></div>
+<section class="panel"><h2>Want this for your business?</h2><a class="btn" href="../../landing.html#quick-enquiry">Request a custom demo →</a></section></main>
+<script>
+const byId = id => document.getElementById(id);
+const bookingForm = byId('booking-form');
+const booking = bookingForm.elements;
+const bookings = new Map();
+const times = ['10:00', '11:30', '14:00', '16:00'];
+function setAvailableSlots() {
+  const available = times.filter(time => !bookings.has(booking.date.value + ' ' + time));
+  booking.slot.replaceChildren(...available.map(time => new Option(time, time)));
+  if (!available.length) booking.slot.add(new Option('Fully booked', ''));
+  bookingForm.querySelector('button').disabled = !available.length;
+}
+booking.date.min = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Kolkata' }).format(new Date());
+booking.date.value = booking.date.min;
+booking.date.addEventListener('change', setAvailableSlots);
+setAvailableSlots();
+function renderBookings() {
+  const list = byId('bookings');
+  list.replaceChildren();
+  for (const [slot, entry] of bookings) {
+    const row = document.createElement('li');
+    row.textContent = slot + ' · ' + entry + ' ';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'secondary';
+    cancel.textContent = 'Cancel';
+    cancel.setAttribute('aria-label', 'Cancel booking for ' + slot);
+    cancel.addEventListener('click', () => {
+      bookings.delete(slot);
+      renderBookings();
+      byId('booking-status').textContent = 'Cancelled booking for ' + slot + '.';
+      booking.slot.focus();
+    });
+    row.append(cancel);
+    list.append(row);
+  }
+  byId('booking-empty').hidden = bookings.size > 0;
+  setAvailableSlots();
+}
+bookingForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const name = booking.customer.value.trim();
+  if (!name) {
+    byId('booking-status').textContent = 'Enter a sample customer name.';
+    booking.customer.focus();
+    return;
+  }
+  const slot = booking.date.value + ' ' + booking.slot.value;
+  if (!booking.slot.value || bookings.has(slot)) return;
+  bookings.set(slot, booking.service.value + ' · ' + name);
+  renderBookings();
+  byId('booking-status').textContent = 'Reserved ' + slot + ' IST.';
+});
+const quote = byId('quote-form');
+const items = byId('items');
+const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+function invalidateQuote() {
+  byId('receipt').hidden = true;
+  byId('print').disabled = true;
+  byId('quote-status').textContent = '';
+}
+function syncItemButtons() {
+  for (const button of items.querySelectorAll('button')) button.disabled = items.children.length === 1;
+  byId('add-item').disabled = items.children.length >= 20;
+}
+function addItem(description = '', quantity = 1, rate = '') {
+  const row = document.createElement('div');
+  row.className = 'line';
+  row.innerHTML = '<label>Service<input name="description" required maxlength="80"></label><label>Qty<input name="quantity" type="number" required min="1" max="999"></label><label>Rate (₹)<input name="rate" type="number" required min="0" max="10000000" step="0.01"></label><button type="button" class="secondary">Remove</button>';
+  const inputs = row.querySelectorAll('input');
+  [description, quantity, rate].forEach((value, index) => { inputs[index].value = value; });
+  row.querySelector('button').addEventListener('click', () => {
+    row.remove();
+    syncItemButtons();
+    invalidateQuote();
+    byId('add-item').focus();
+  });
+  items.append(row);
+  syncItemButtons();
+  return inputs[0];
+}
+addItem('Workflow setup', 1, 12500);
+addItem('Staff onboarding', 2, 1500);
+byId('add-item').addEventListener('click', () => {
+  invalidateQuote();
+  addItem().focus();
+});
+quote.addEventListener('input', invalidateQuote);
+quote.addEventListener('submit', event => {
+  event.preventDefault();
+  const client = quote.elements.client.value.trim();
+  const data = new FormData(quote);
+  const descriptions = data.getAll('description').map(value => value.trim());
+  if (!client || descriptions.some(value => !value)) {
+    byId('quote-status').textContent = 'Enter a client name and a name for every service.';
+    return;
+  }
+  const quantities = data.getAll('quantity').map(Number);
+  const rates = data.getAll('rate').map(value => Math.round(Number(value) * 100));
+  const lines = byId('quote-lines');
+  lines.replaceChildren();
+  let subtotal = 0;
+  descriptions.forEach((description, index) => {
+    const amount = quantities[index] * rates[index];
+    subtotal += amount;
+    const row = document.createElement('li');
+    row.textContent = description + ' · ' + quantities[index] + ' × ' + money.format(rates[index] / 100) + ' = ' + money.format(amount / 100);
+    lines.append(row);
+  });
+  const discount = Math.round(subtotal * Math.round(Number(data.get('discount')) * 100) / 10000);
+  byId('quote-client').textContent = 'Prepared for ' + client;
+  byId('quote-totals').textContent = 'Subtotal ' + money.format(subtotal / 100) + ' · Discount ' + money.format(discount / 100) + ' · Total before taxes ' + money.format((subtotal - discount) / 100);
+  byId('receipt').hidden = false;
+  byId('print').disabled = false;
+  byId('quote-status').textContent = 'Sample quote ready to print.';
+});
+byId('print').addEventListener('click', () => window.print());
+</script></body></html>
