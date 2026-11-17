@@ -15,6 +15,7 @@ This contract is the boundary between the dashboard and the trusted backend. It 
 | POST | /v1/organizations | Create organization and owner membership through trusted provisioning |
 | GET/POST | /v1/campaigns | List/create campaigns |
 | GET/PATCH | /v1/campaigns/{id} | Read/update campaign |
+| POST | /functions/v1/campaign-api/contacts/{id}/opt-out | Record a channel-specific withdrawal, add suppression and append a self-attributed audit event |
 | GET | /functions/v1/campaign-api/campaigns/{id}/contacts?limit=50&offset=0 | List paginated campaign contacts with permission and suppression flags (read-only) |
 | POST | /functions/v1/campaign-api/campaigns/{id}/contacts/import | Import CSV contacts into a draft dry-run campaign; channel permission defaults to unknown unless explicit granted status plus evidence are supplied |
 | POST | /v1/campaigns/{id}/preview | Return eligible, blocked and invalid contact counts |
@@ -63,6 +64,7 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - `GET /functions/v1/campaign-api/me`: authenticated user and RLS-visible memberships.
 - `GET /functions/v1/campaign-api/campaigns?organization_id=<uuid>`: list visible campaigns.
 - `GET /functions/v1/campaign-api/campaigns/{id}/contacts?limit=50&offset=0`: list up to 100 campaign contacts per page with contact details, channel permission status, evidence-present flag and suppression flag. This route is read-only.
+- `POST /functions/v1/campaign-api/contacts/{id}/opt-out`: accepts `{ "channel": "voice|whatsapp|email", "reason": "..." }`; inserts a suppression record, marks channel permission withdrawn and records a limited audit event. A failed later step never removes the already-inserted suppression.
 - `POST /functions/v1/campaign-api/campaigns`: create a draft with `dry_run=true`.
 - `POST /functions/v1/campaign-api/campaigns/{id}/contacts/import`: accepts JSON `{ "csv_text": "..." }`; CSV headers must be `full_name,phone_e164,email,consent_status,consent_evidence`. Maximum 1 MB and 500 contact rows. Phone values must already be E.164 (for example, +14155550123); ambiguous/local numbers are rejected.
 - The import endpoint only accepts voice or WhatsApp draft campaigns. It stores contacts and channel permission status. Only a row with `consent_status=granted` and non-empty evidence is recorded as granted; all other rows are recorded as unknown. A phone/email alone is never treated as consent.
@@ -72,3 +74,9 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - The schema now adds composite organization keys and composite foreign keys so campaign contacts, contact permissions, suppression entries and outreach attempts cannot point across organizations.
 - These constraints are included in the schema for a fresh database. If the original schema was already applied, review and test `supabase/migrations/20261117_tenant_integrity.sql`; do not assume `CREATE TABLE IF NOT EXISTS` retrofits constraints.
 - CSV consent evidence is supplied by the importing organization and is not independently verified by this API. Review the evidence and applicable law before any future live campaign.
+
+## Opt-out and permission protections
+- Any authenticated organization member may submit an opt-out. RLS only permits member opt-out writes to set permission status to `withdrawn`, add a channel-specific suppression record from this endpoint, and append a self-attributed `contact_permission_withdrawn` audit event.
+- CSV import accepts only `granted`, `unknown` or `withdrawn`. A granted row requires evidence text. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import does not overwrite a previously granted permission/evidence.
+- Suppression is checked separately from permission status and remains a block even if a permission row is later changed. Suppression records are not deleted by the customer API.
+- Preview returns `campaign_dispatch_ready`; it is false for draft, paused, completed, cancelled or dry-run campaigns. Contact-level `eligible` is not permission to dispatch.
