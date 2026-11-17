@@ -33,6 +33,10 @@ Deno.serve(async (req) => {
     },
   });
 
+  if (!["GET", "POST"].includes(req.method)) {
+    return json({ error: "Method not allowed." }, 405);
+  }
+
   const authorization = req.headers.get("authorization") ?? "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Authentication required." }, 401);
 
@@ -99,7 +103,7 @@ Deno.serve(async (req) => {
 
 
   // Paginated campaign contact workspace. This route is read-only and never dispatches outreach.
-  if (req.method === "GET" && segments.length >= 2 &&
+  if (req.method === "GET" && segments.length >= 3 &&
       segments[segments.length - 1] === "contacts" &&
       segments[segments.length - 3] === "campaigns") {
     const campaignId = segments[segments.length - 2];
