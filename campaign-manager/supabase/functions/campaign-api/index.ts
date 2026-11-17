@@ -113,7 +113,10 @@ Deno.serve(async (req) => {
       .eq("id", campaignId)
       .single();
     if (campaignError || !campaign) return json({ error: "Campaign not found or access denied." }, 404);
-    if (!["voice", "whatsapp"].includes(campaign.channel)) {\n      return json({ error: "CSV permission import currently supports voice or WhatsApp campaigns only." }, 400);\n    }\n    if (campaign.status !== "draft" || campaign.dry_run !== true) {
+    if (!["voice", "whatsapp"].includes(campaign.channel)) {
+      return json({ error: "CSV permission import currently supports voice or WhatsApp campaigns only." }, 400);
+    }
+    if (campaign.status !== "draft" || campaign.dry_run !== true) {
       return json({ error: "Contacts can only be imported into a draft dry-run campaign." }, 409);
     }
 
