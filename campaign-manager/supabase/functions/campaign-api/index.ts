@@ -98,6 +98,74 @@ Deno.serve(async (req) => {
   }
 
 
+  // Paginated campaign contact workspace. This route is read-only and never dispatches outreach.
+  if (req.method === "GET" && segments.length >= 2 &&
+      segments[segments.length - 1] === "contacts" &&
+      segments[segments.length - 3] === "campaigns") {
+    const campaignId = segments[segments.length - 2];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
+      return json({ error: "Invalid campaign id." }, 400);
+    }
+    const { data: campaign, error: campaignError } = await supabase
+      .from("campaigns").select("id, organization_id, channel")
+      .eq("id", campaignId).single();
+    if (campaignError || !campaign) return json({ error: "Campaign not found or access denied." }, 404);
+
+    const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+    const offsetRaw = Number(url.searchParams.get("offset") ?? 0);
+    if (!Number.isInteger(limitRaw) || limitRaw < 1 || limitRaw > 100 ||
+        !Number.isInteger(offsetRaw) || offsetRaw < 0 || offsetRaw > 100000) {
+      return json({ error: "limit must be 1-100 and offset must be 0-100000." }, 400);
+    }
+    const { data: enrolled, error: enrolledError, count } = await supabase
+      .from("campaign_contacts")
+      .select("id, contact_id, status, attempts, next_attempt_at, last_outcome, created_at", { count: "exact" })
+      .eq("organization_id", campaign.organization_id)
+      .eq("campaign_id", campaign.id)
+      .order("created_at", { ascending: false })
+      .range(offsetRaw, offsetRaw + limitRaw - 1);
+    if (enrolledError) return json({ error: "Could not load campaign contacts; check RLS policies." }, 403);
+
+    const ids = (enrolled ?? []).map((row: any) => row.contact_id);
+    const [contactResult, permissionResult, suppressionResult] = ids.length ? await Promise.all([
+      supabase.from("contacts").select("id, full_name, phone_e164, email")
+        .eq("organization_id", campaign.organization_id).in("id", ids),
+      supabase.from("contact_channel_permissions")
+        .select("contact_id, permission_status, evidence_reference")
+        .eq("organization_id", campaign.organization_id)
+        .eq("channel", campaign.channel).in("contact_id", ids),
+      supabase.from("suppression_list").select("contact_id, phone_e164, channel")
+        .eq("organization_id", campaign.organization_id),
+    ]) : [
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+    ];
+    if (contactResult.error || permissionResult.error || suppressionResult.error) {
+      return json({ error: "Could not load contact permission or suppression details; request failed closed." }, 403);
+    }
+    const contactById = new Map((contactResult.data ?? []).map((c: any) => [c.id, c]));
+    const permissionById = new Map((permissionResult.data ?? []).map((p: any) => [p.contact_id, p]));
+    const suppressionRows = suppressionResult.data ?? [];
+    const contacts = (enrolled ?? []).map((row: any) => {
+      const contact: any = contactById.get(row.contact_id);
+      const permission: any = permissionById.get(row.contact_id);
+      const suppressed = suppressionRows.some((item: any) =>
+        (!item.channel || item.channel === campaign.channel) &&
+        ((item.contact_id && item.contact_id === row.contact_id) ||
+         (item.phone_e164 && item.phone_e164 === contact?.phone_e164)));
+      return {
+        ...row,
+        contact: contact ?? null,
+        permission_status: permission?.permission_status ?? "missing",
+        permission_evidence_present: Boolean(String(permission?.evidence_reference ?? "").trim()),
+        suppressed,
+      };
+    });
+    return json({ campaign: { id: campaign.id, channel: campaign.channel },
+      contacts, pagination: { limit: limitRaw, offset: offsetRaw, total: count ?? 0 } });
+  }
+
   // Read-only eligibility preview. This route never queues or dispatches outreach.
   if (req.method === "POST" && segments.length >= 3 &&
       segments[segments.length - 1] === "preview" &&
