@@ -88,7 +88,7 @@ create table if not exists public.campaign_contacts (
 create table if not exists public.suppression_list (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  contact_id uuid references public.contacts(id) on delete cascade,
+  contact_id uuid references public.contacts(id) on delete restrict,
   phone_e164 text,
   channel text check (channel in ('voice','whatsapp','email') or channel is null),
   reason text not null,
@@ -96,7 +96,7 @@ create table if not exists public.suppression_list (
   created_at timestamptz not null default now(),
   check (contact_id is not null or phone_e164 is not null),
   constraint suppression_org_contact_fk foreign key (organization_id, contact_id)
-    references public.contacts(organization_id, id) on delete cascade
+    references public.contacts(organization_id, id) on delete restrict
 );
 
 create table if not exists public.outreach_attempts (
