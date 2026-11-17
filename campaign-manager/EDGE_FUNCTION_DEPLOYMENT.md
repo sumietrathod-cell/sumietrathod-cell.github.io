@@ -24,6 +24,12 @@ All requests require a Supabase Auth access token. The function uses the caller'
 9. Create test users and provision organization memberships through a trusted admin process. There is intentionally no public self-join endpoint.
 10. Test expired tokens, viewer-role writes, invalid UUIDs, oversized fields, cross-tenant access and CORS behavior.
 
+## Dashboard connection
+- The first authenticated UI is `campaign-manager-dashboard.html` at the repository root. It uses the Supabase public anon key and Supabase Auth in the browser; the service-role key must never be entered here.
+- After staging deployment, open the dashboard over HTTPS, enter the staging Project URL and public anon key, then sign in with a user whose organization membership has been provisioned.
+- Set `APP_ORIGIN` to the exact origin serving this HTML page (scheme + hostname, no path). If the page is served from the custom domain, use that exact origin. The dashboard and Edge Function are not connected until this configuration and deployment are completed.
+- Dashboard source does not embed project credentials. Its connection values are held in the current browser session only.
+
 ## Current limitations
 - This is an API starter, not a deployed service. No Supabase project is linked or configured by this repository change.
 - The starter exposes authenticated `me`, campaign list/create, paginated campaign contact reads, CSV contact import and read-only campaign eligibility preview. It still does not schedule or send outreach.
