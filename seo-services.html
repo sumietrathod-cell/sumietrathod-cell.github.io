@@ -35,6 +35,24 @@
 <label>Your goal <textarea name="goal" maxlength="600" placeholder="Target city, audience and what you want to improve"></textarea></label>
 <button class="button" type="submit">Send enquiry via WhatsApp →</button>
 <p class="form-note">WhatsApp opens in a new tab/app. Your enquiry is sent only after you confirm it in WhatsApp. Please do not include passwords or confidential information.</p></form></section>
+
+<section id="payment-invoice"><h2>Online payment &amp; invoice desk</h2>
+<p>After your SEO scope and quotation are approved, you can pay securely through our Razorpay payment page. For now, payments are initiated on Razorpay; this website does not receive payment confirmation automatically.</p>
+<div class="cards">
+<article class="card"><h3>Pay online</h3><p>Use the secure Razorpay page to pay by the payment methods shown there. Confirm the final amount on your approved quotation before paying.</p><a class="button" href="https://razorpay.me/@aarohanaiworld" target="_blank" rel="noopener noreferrer">Pay securely with Razorpay →</a><p class="form-note">Payment link opens in a new tab. Keep the Razorpay receipt / payment ID for your records.</p></article>
+<article class="card"><h3>Create an invoice draft</h3><p>Enter the approved service and customer details to prepare a printable invoice draft. Use your browser's Print option and choose “Save as PDF”.</p><form id="seo-invoice-form">
+<label>Customer / business name<input name="customer" required maxlength="120" placeholder="Customer name"></label>
+<label>Customer email or phone<input name="contact" maxlength="120" placeholder="Email or phone"></label>
+<label>Customer billing address<textarea name="address" maxlength="400" placeholder="Billing address"></textarea></label>
+<label>Invoice / reference number<input name="invoice" maxlength="40" placeholder="e.g. AAW-SEO-001"></label>
+<label>SEO service<select name="service"><option>Basic SEO — ₹4,999 / month</option><option>Standard SEO — ₹7,999 / month</option><option>Premium SEO — ₹14,999 / month</option><option>Advanced SEO — ₹24,999 / month</option><option>Custom SEO scope</option></select></label>
+<label>Approved amount (INR)<input name="amount" type="number" min="1" step="0.01" required placeholder="Enter approved quotation amount"></label>
+<label>Payment status<select name="status"><option>Payment pending</option><option>Paid — verify against Razorpay receipt</option><option>Part payment — verify against receipt</option></select></label>
+<button class="button" type="submit">Generate printable invoice draft →</button>
+</form><p class="form-note">This browser-only tool creates a draft for printing; it does not store customer records, issue a legally validated tax invoice, verify payments, or sync with an admin dashboard. Do not mark an invoice Paid until the payment is independently verified.</p></article></div>
+<div id="seo-invoice-output" class="card" hidden aria-live="polite"></div>
+<p class="note"><strong>Tax note:</strong> No GST number or tax configuration has been provided, so this draft does not add GST or claim to be a GST tax invoice. Confirm the correct legal business details and tax treatment with your accountant before issuing customer invoices.</p>
+</section>
 <section id="client-reviews"><h2>Customer feedback</h2><p>We publish customer testimonials only after verifying they come from real customers and receiving permission to display them. No unverified ratings are shown.</p><p>Completed a project with us? <a href="https://wa.me/916357115513?text=Hello%20AAROHAN%20AI%20WORLD%2C%20I%20would%20like%20to%20share%20genuine%20feedback%20about%20my%20project." target="_blank" rel="noopener noreferrer">Share your feedback via WhatsApp ↗</a>. We will confirm whether you want it displayed publicly.</p></section><section id="process"><h2>How an SEO project works</h2><ol><li><strong>Discovery:</strong> We review your business goals, target markets, existing website and available analytics.</li><li><strong>Audit:</strong> We identify issues and prioritize fixes based on impact and effort.</li><li><strong>Implementation:</strong> Approved updates are made with appropriate access, testing and rollback plans.</li><li><strong>Measurement:</strong> We report what changed and monitor organic search trends.</li></ol>
 <p class="note">Search rankings and traffic depend on many factors outside any provider's control. We do not guarantee first-page rankings, traffic increases or lead volume.</p></section>
 <section><h2>Who can benefit?</h2><p>Small businesses, service providers, ecommerce brands and teams with websites that need clearer service pages, better crawlability or consistent search performance reporting. Work can be scoped for India or international audiences based on business relevance.</p></section>
@@ -46,4 +64,24 @@
 </section>
 <section class="other"><h2>Explore related solutions</h2><a href="ai-chatbot-development.html">AI Chatbot Development</a><a href="whatsapp-business-automation.html">WhatsApp Business Automation</a><a href="ai-business-automation.html">AI Agents &amp; Automation</a></section>
 <div class="cta"><h2>Request an SEO assessment</h2><p>Share your website URL, target customers and goals to discuss a practical scope and quote.</p><a href="#free-audit">Request an assessment →</a> · <a href="seo-audit-tool.html">Open SEO Audit Tool →</a> · <a href="aiworld/portfolio.html">See our portfolio →</a></div></main>
-<footer>© 2026 AAROHAN AI WORLD · <a href="aiworld/privacy.html">Privacy</a> · <a href="aiworld/terms.html">Terms</a></footer><script>(function(){var f=document.getElementById('seo-enquiry');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();if(!f.reportValidity())return;var v=new FormData(f);var msg='Hello AAROHAN AI WORLD, I would like an SEO assessment.\nName: '+v.get('name')+'\nWebsite: '+v.get('website')+'\nService: '+v.get('service')+'\nGoal: '+(v.get('goal')||'Not specified');window.open('https://wa.me/916357115513?text='+encodeURIComponent(msg),'_blank','noopener,noreferrer');});})();</script></body></html>
+<footer>© 2026 AAROHAN AI WORLD · <a href="aiworld/privacy.html">Privacy</a> · <a href="aiworld/terms.html">Terms</a></footer><script>(function(){var f=document.getElementById('seo-enquiry');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();if(!f.reportValidity())return;var v=new FormData(f);var msg='Hello AAROHAN AI WORLD, I would like an SEO assessment.\nName: '+v.get('name')+'\nWebsite: '+v.get('website')+'\nService: '+v.get('service')+'\nGoal: '+(v.get('goal')||'Not specified');window.open('https://wa.me/916357115513?text='+encodeURIComponent(msg),'_blank','noopener,noreferrer');});})();</script><script>
+(function(){
+const form=document.getElementById('seo-invoice-form'),out=document.getElementById('seo-invoice-output');
+if(!form||!out)return;
+form.addEventListener('submit',function(e){
+e.preventDefault();if(!form.reportValidity())return;
+const d=new FormData(form),today=new Date(),date=today.toLocaleDateString('en-IN');
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const amount=Number(d.get('amount'));
+if(!Number.isFinite(amount)||amount<=0)return;
+const inv=d.get('invoice')||'Draft-'+today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
+out.hidden=false;
+out.innerHTML='<div class="invoice-print"><p class="eyebrow">AAROHAN AI WORLD · INVOICE DRAFT</p><h2>Service Invoice / Payment Request</h2><p><strong>Reference:</strong> '+esc(inv)+' &nbsp; <strong>Date:</strong> '+esc(date)+'</p><hr><h3>Bill to</h3><p><strong>'+esc(d.get('customer'))+'</strong><br>'+esc(d.get('contact'))+'<br>'+esc(d.get('address')).replace(/\n/g,'<br>')+'</p><h3>Service details</h3><p>'+esc(d.get('service'))+'</p><p><strong>Approved amount:</strong> ₹'+amount.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</p><p><strong>Payment status:</strong> '+esc(d.get('status'))+'</p><p>Payment page: https://razorpay.me/@aarohanaiworld</p><hr><p><strong>Important:</strong> Draft generated in the browser. This is not a GST tax invoice or proof of payment. Payment status must be verified against the Razorpay dashboard / receipt.</p><p>AAROHAN AI WORLD</p><button class="button no-print" type="button" onclick="window.print()">Print / Save as PDF</button></div>';
+out.scrollIntoView({behavior:'smooth',block:'start'});
+});
+})();
+</script>
+<style>
+.invoice-print{background:#fff;color:#173820;border-radius:12px;padding:26px}.invoice-print h2,.invoice-print h3{color:#173820}.invoice-print p{color:#284b34}.invoice-print hr{border:0;border-top:1px solid #cbd9ca;margin:18px 0}
+@media print{body *{visibility:hidden!important}.invoice-print,.invoice-print *{visibility:visible!important}.invoice-print{position:absolute;left:0;top:0;width:100%;background:#fff!important;color:#111!important;box-shadow:none!important}.invoice-print h2,.invoice-print h3,.invoice-print p{color:#111!important}.no-print{display:none!important}}
+</style></body></html>
