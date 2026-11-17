@@ -39,5 +39,11 @@ All requests require a Supabase Auth access token. The function uses the caller'
 - Campaign creation always forces draft + dry-run. There is no route to activate outreach.
 - Never add service-role keys or provider secrets to GitHub or browser code.
 
+## Automated checks
+- A GitHub Actions workflow runs `deno check` on the Edge Function and a Node-based static dashboard/DOM reference check on pushes to the feature branch and relevant pull requests.
+- A passing CI run has not yet been observed from this conversation. Check the Actions tab before treating the code as validated.
+
 ## Database integrity note
-The RLS policy script is re-runnable in staging, does not expose client campaign status/dry-run updates, and narrowly permits member opt-out writes. The revised schema adds composite foreign keys to enforce that linked contacts, campaigns, permissions, suppressions and attempts belong to the same organization. These are present for a fresh schema install. If an earlier schema has already been applied, prepare a reviewed migration rather than rerunning `CREATE TABLE IF NOT EXISTS` and assuming existing tables are altered.
+The RLS policy script is re-runnable in staging, does not expose client campaign status/dry-run updates, permits narrowly scoped member opt-out writes, and makes suppression rows append-only for authenticated users. The revised schema adds composite foreign keys to enforce that linked contacts, campaigns, permissions, suppressions and attempts belong to the same organization. These are present for a fresh schema install. If an earlier schema has already been applied, prepare a reviewed migration rather than rerunning `CREATE TABLE IF NOT EXISTS` and assuming existing tables are altered.
+
+See `campaign-manager/SECURITY_TEST_PLAN.md` for the required two-tenant staging test matrix and release gate.
