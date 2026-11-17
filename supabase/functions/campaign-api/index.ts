@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     // Bound the preview size. Large campaigns must be previewed in a future paginated job.
     const { data: enrolled, error: enrolledError } = await supabase
       .from("campaign_contacts")
-      .select("id, contact_id, status, attempts, contacts(id, phone_e164)")
+      .select("id, contact_id, status, attempts")
       .eq("organization_id", campaign.organization_id)
       .eq("campaign_id", campaign.id)
       .order("created_at", { ascending: true })
@@ -209,6 +209,15 @@ Deno.serve(async (req) => {
     }
 
     const contactIds = (enrolled ?? []).map((row: any) => row.contact_id);
+    const { data: previewContacts, error: previewContactsError } = contactIds.length
+      ? await supabase.from("contacts")
+          .select("id, phone_e164")
+          .eq("organization_id", campaign.organization_id)
+          .in("id", contactIds)
+      : { data: [], error: null };
+    if (previewContactsError) return json({ error: "Could not load contact details; preview failed closed." }, 403);
+    const previewContactById = new Map((previewContacts ?? []).map((contact: any) => [contact.id, contact]));
+
     const { data: permissions, error: permissionError } = contactIds.length
       ? await supabase.from("contact_channel_permissions")
           .select("contact_id, permission_status, evidence_reference")
@@ -244,7 +253,7 @@ Deno.serve(async (req) => {
     const examples: Array<{ campaign_contact_id: string; reason: string }> = [];
 
     for (const row of enrolled ?? []) {
-      const contact = Array.isArray(row.contacts) ? row.contacts[0] : row.contacts;
+      const contact: any = previewContactById.get(row.contact_id);
       const phone = contact?.phone_e164 ?? "";
       let reason = "";
       if (!contact?.id || !/^\+[1-9]\d{7,14}$/.test(phone)) {
