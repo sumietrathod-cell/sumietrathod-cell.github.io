@@ -15,7 +15,7 @@ This contract is the boundary between the dashboard and the trusted backend. It 
 | POST | /v1/organizations | Create organization and owner membership through trusted provisioning |
 | GET/POST | /v1/campaigns | List/create campaigns |
 | GET/PATCH | /v1/campaigns/{id} | Read/update campaign |
-| POST | /v1/campaigns/{id}/contacts/import | Validate and import CSV rows |
+| POST | /functions/v1/campaign-api/campaigns/{id}/contacts/import | Import CSV contacts into a draft dry-run campaign; channel permission defaults to unknown unless explicit granted status plus evidence are supplied |
 | POST | /v1/campaigns/{id}/preview | Return eligible, blocked and invalid contact counts |
 | POST | /v1/campaigns/{id}/approve | Explicitly approve a dry-run or live campaign |
 | POST | /v1/campaigns/{id}/pause | Pause future jobs |
@@ -57,3 +57,11 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - Provider business accounts, approved templates/scripts, verified webhooks and jurisdictional compliance.
 - Consent evidence, suppression process, quiet hours and human escalation tested.
 - Explicit owner approval for each live campaign. Default is dry-run.
+
+## Implemented Edge Function starter (not deployed)
+- `GET /functions/v1/campaign-api/me`: authenticated user and RLS-visible memberships.
+- `GET /functions/v1/campaign-api/campaigns?organization_id=<uuid>`: list visible campaigns.
+- `POST /functions/v1/campaign-api/campaigns`: create a draft with `dry_run=true`.
+- `POST /functions/v1/campaign-api/campaigns/{id}/contacts/import`: accepts JSON `{ "csv_text": "..." }`; CSV headers must be `full_name,phone_e164,email,consent_status,consent_evidence`. Maximum 1 MB and 500 contact rows. Phone values must already be E.164 (for example, +14155550123); ambiguous/local numbers are rejected.
+- The import endpoint only accepts voice or WhatsApp draft campaigns. It stores contacts and channel permission status. Only a row with `consent_status=granted` and non-empty evidence is recorded as granted; all other rows are recorded as unknown. A phone/email alone is never treated as consent.
+- Import is not a transactional bulk operation yet: row-level failures are returned and partial writes may exist. Review results before proceeding. The endpoint does not send messages or place calls.
