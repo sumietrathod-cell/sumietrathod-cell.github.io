@@ -70,7 +70,7 @@ begin
       and cc.status in ('queued', 'callback', 'no_answer')
       and cc.attempts < c.max_attempts
       and j.attempts < c.max_attempts
-      and ct.phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'
+      and ct.phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
       and exists (
         select 1
         from public.contact_channel_permissions as p
