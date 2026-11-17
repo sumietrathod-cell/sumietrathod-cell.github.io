@@ -267,9 +267,12 @@ Deno.serve(async (req) => {
         } else if (permission.permission_status === "withdrawn") {
           counts.permission_withdrawn++;
           reason = "permission_withdrawn";
-        } else if (permission.permission_status !== "granted" || !String(permission.evidence_reference ?? "").trim()) {
+        } else if (permission.permission_status !== "granted") {
           counts.permission_unknown++;
-          reason = "permission_unknown_or_evidence_missing";
+          reason = "permission_not_granted";
+        } else if (!String(permission.evidence_reference ?? "").trim()) {
+          counts.missing_permission_or_evidence++;
+          reason = "permission_evidence_missing";
         } else if (suppressionRows.some((item: any) =>
           (!item.channel || item.channel === campaign.channel) &&
           ((item.contact_id && item.contact_id === row.contact_id) ||
