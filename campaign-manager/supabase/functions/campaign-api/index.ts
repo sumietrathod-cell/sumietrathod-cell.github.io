@@ -36,6 +36,10 @@ Deno.serve(async (req) => {
   if (!["GET", "POST"].includes(req.method)) {
     return json({ error: "Method not allowed." }, 405);
   }
+  const declaredLength = Number(req.headers.get("content-length") ?? 0);
+  if (req.method === "POST" && declaredLength > 1_100_000) {
+    return json({ error: "Request body exceeds the 1.1 MB limit." }, 413);
+  }
 
   const authorization = req.headers.get("authorization") ?? "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Authentication required." }, 401);
@@ -63,7 +67,7 @@ Deno.serve(async (req) => {
 
   if (req.method === "GET" && route === "campaigns") {
     const organizationId = url.searchParams.get("organization_id");
-    if (!organizationId) return json({ error: "organization_id is required." }, 400);
+    if (!organizationId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId)) return json({ error: "A valid organization_id is required." }, 400);
     const { data, error } = await supabase
       .from("campaigns")
       .select("id, name, goal, channel, status, dry_run, created_at, updated_at")
@@ -82,9 +86,12 @@ Deno.serve(async (req) => {
     const goal = typeof body.goal === "string" ? body.goal.trim() : "";
     const channel = body.channel;
     const timezone = typeof body.timezone === "string" ? body.timezone : "Asia/Kolkata";
-    if (!organizationId || !name || !goal || name.length > 120 || goal.length > 1000 ||
+    let timezoneValid = false;
+    try { new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date()); timezoneValid = true; } catch { /* invalid IANA timezone */ }
+    if (!organizationId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId) ||
+        !name || !goal || name.length > 120 || goal.length > 1000 || timezone.length > 80 || !timezoneValid ||
         !["voice", "whatsapp", "manual"].includes(String(channel))) {
-      return json({ error: "Valid organization_id, name, goal and channel are required." }, 400);
+      return json({ error: "Valid organization_id, name, goal, IANA timezone and channel are required." }, 400);
     }
     // RLS enforces membership and operator-level permissions. New campaigns remain drafts.
     const { data, error } = await supabase.from("campaigns").insert({
@@ -278,11 +285,12 @@ Deno.serve(async (req) => {
 
     return json({
       campaign: { id: campaign.id, channel: campaign.channel, status: campaign.status, dry_run: campaign.dry_run },
+      campaign_dispatch_ready: campaign.status === "running" && campaign.dry_run === false,
       counts,
       blocked_examples: examples,
       truncated_examples: counts.blocked > examples.length,
       dispatch_enabled: false,
-      note: "Read-only preview only. Eligibility must be rechecked immediately before any future dispatch; this endpoint never sends calls or messages.",
+      note: "Read-only preview only. Eligible counts describe contact-level checks; campaign_dispatch_ready remains false for draft, paused, completed, cancelled or dry-run campaigns. This endpoint never sends calls or messages.",
     });
   }
 
@@ -309,9 +317,12 @@ Deno.serve(async (req) => {
     }
 
     let body: Record<string, unknown>;
-    try { body = await req.json(); } catch { return json({ error: "Send JSON containing csv_text." }, 400); }
+    let rawBody = "";
+    try { rawBody = await req.text(); } catch { return json({ error: "Could not read request body." }, 400); }
+    if (new TextEncoder().encode(rawBody).byteLength > 1_100_000) return json({ error: "Import request must be at most 1.1 MB including JSON overhead." }, 413);
+    try { body = JSON.parse(rawBody); } catch { return json({ error: "Send valid JSON containing csv_text." }, 400); }
     const csv = typeof body.csv_text === "string" ? body.csv_text : "";
-    if (!csv || csv.length > 1_000_000) return json({ error: "CSV is required and must be at most 1 MB." }, 413);
+    if (!csv || new TextEncoder().encode(csv).byteLength > 1_000_000) return json({ error: "CSV is required and must be at most 1 MB in UTF-8." }, 413);
 
     // Small RFC-4180-style parser supporting quoted commas, escaped quotes and CRLF.
     const parseCsv = (input: string): string[][] => {
