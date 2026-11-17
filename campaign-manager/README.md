@@ -24,7 +24,8 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Draft tenant-scoped RLS policies (staging validation still required)
 - [ ] Auth, tenant provisioning and RLS verification (API starter added; staging validation pending)
 - [x] API contract and CSV validation requirements drafted
-- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [ ] Customer-facing contact management UI connected to the authenticated API
+- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [x] Initial authenticated dashboard UI (connect, sign in, organizations, draft creation, CSV import, paginated contacts, eligibility preview; staging connection pending)
+- [ ] Production-ready customer-facing contact management UI and staging validation
 - [ ] Durable scheduler/worker and idempotency
 - [ ] Callback and suppression workflows
 - [ ] Provider adapters and webhook verification
