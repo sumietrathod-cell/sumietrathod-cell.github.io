@@ -14,7 +14,7 @@ All requests require a Supabase Auth access token. The function uses the caller'
 
 ## Staging deployment
 1. Create a separate Supabase staging project; do not use production data.
-2. Review and apply `campaign-manager/supabase/schema.sql`, then `campaign-manager/supabase/rls-policies.sql` in the staging SQL editor.
+2. Review and apply `campaign-manager/supabase/schema.sql`, then `campaign-manager/supabase/rls-policies.sql` in the staging SQL editor. If the original schema was already applied, review and apply `campaign-manager/supabase/migrations/20261117_tenant_integrity.sql` instead of assuming the revised schema file alters existing tables.
 3. Run RLS tests with at least two organizations and separate users. Verify cross-tenant SELECT/INSERT/UPDATE/DELETE attempts fail.
 4. Install the Supabase CLI and link the staging project locally.
 5. From the repository root, run `supabase login` and `supabase link --project-ref <STAGING_PROJECT_REF>`.
