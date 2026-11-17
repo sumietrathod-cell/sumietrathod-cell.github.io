@@ -99,10 +99,10 @@ Deno.serve(async (req) => {
 
 
   // Read-only eligibility preview. This route never queues or dispatches outreach.
-  if (req.method === "POST" && segments.length >= 2 &&
+  if (req.method === "POST" && segments.length >= 3 &&
       segments[segments.length - 1] === "preview" &&
-      segments[segments.length - 2] === "campaigns") {
-    const campaignId = segments[segments.length - 3];
+      segments[segments.length - 3] === "campaigns") {
+    const campaignId = segments[segments.length - 2];
     if (!campaignId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
       return json({ error: "Invalid campaign id." }, 400);
     }
