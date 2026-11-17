@@ -38,3 +38,10 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 
 ## Local development (planned)
 The backend framework and deployment target will be finalized before production implementation. Do not treat this prototype or schema draft as production-ready.
+
+
+## Browser demos
+- Campaign overview and simulated outreach: `../campaign-manager-demo.html`
+- Contact workspace (CSV import, permission review, filtering and export): `../campaign-contacts-demo.html`
+
+Both pages are browser-only demonstrations. They do not connect to the database or send calls/messages.
