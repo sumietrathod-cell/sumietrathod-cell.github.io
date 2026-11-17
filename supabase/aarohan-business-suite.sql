@@ -6,7 +6,7 @@ create table if not exists public.business_profiles (
   id uuid primary key default gen_random_uuid(), owner_user_id uuid not null references auth.users(id) on delete cascade,
   business_name text not null default 'AAROHAN AI WORLD', contact_email text, phone text,
   currency text not null default 'INR' check (currency in ('INR','USD','EUR')),
-  gstin text, pan_encrypted text, bank_details_encrypted text,
+  gstin text, -- Store tax identifiers and bank data only in an approved encrypted secret store, not this table.
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 create table if not exists public.customers (
