@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       const contact = Array.isArray(row.contacts) ? row.contacts[0] : row.contacts;
       const phone = contact?.phone_e164 ?? "";
       let reason = "";
-      if (!contact?.id || !/^\\+[1-9]\\d{7,14}$/.test(phone)) {
+      if (!contact?.id || !/^\+[1-9]\d{7,14}$/.test(phone)) {
         counts.invalid_contact++;
         reason = "invalid_contact";
       } else {
