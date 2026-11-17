@@ -285,12 +285,13 @@ Deno.serve(async (req) => {
 
     return json({
       campaign: { id: campaign.id, channel: campaign.channel, status: campaign.status, dry_run: campaign.dry_run },
-      campaign_dispatch_ready: campaign.status === "running" && campaign.dry_run === false,
+      campaign_state_allows_dispatch: campaign.status === "running" && campaign.dry_run === false,
+      campaign_dispatch_ready: false,
       counts,
       blocked_examples: examples,
       truncated_examples: counts.blocked > examples.length,
       dispatch_enabled: false,
-      note: "Read-only preview only. Eligible counts describe contact-level checks; campaign_dispatch_ready remains false for draft, paused, completed, cancelled or dry-run campaigns. This endpoint never sends calls or messages.",
+      note: "Read-only preview only. Eligible counts describe contact-level checks; campaign_dispatch_ready is always false in this release because no provider dispatch worker exists; campaign_state_allows_dispatch only reports the database campaign state. This endpoint never sends calls or messages.",
     });
   }
 
