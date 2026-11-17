@@ -25,7 +25,7 @@ Do not run against production data. Use a fresh Supabase staging project and two
 ## Campaign state safety
 - Campaign creation always stores `status=draft` and `dry_run=true`, regardless of client-supplied values.
 - Authenticated users cannot update campaign `status` or `dry_run` directly through the Supabase REST API.
-- Preview is read-only and always returns `dispatch_enabled=false`.
+- Preview is read-only, always returns `dispatch_enabled=false` and `campaign_dispatch_ready=false`; `campaign_state_allows_dispatch` only describes campaign status/dry-run fields.
 - `campaign_dispatch_ready` is false for draft, paused, completed, cancelled and dry-run campaigns.
 - No endpoint in this starter schedules, queues or dispatches calls/messages.
 
