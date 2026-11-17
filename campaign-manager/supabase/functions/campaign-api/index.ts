@@ -366,13 +366,19 @@ Deno.serve(async (req) => {
     for (let i = 1; i < rows.length; i++) {
       const values = rows[i];
       const get = (key: string) => (values[index[key]] ?? "").trim();
-      const fullName = get("full_name").slice(0, 160);
+      const fullName = get("full_name");
       const phone = get("phone_e164");
-      const email = get("email").slice(0, 254);
+      const email = get("email");
       const consentStatus = get("consent_status").toLowerCase();
-      const consentEvidence = get("consent_evidence").slice(0, 500);
+      const consentEvidence = get("consent_evidence");
       const rowNumber = i + 1;
 
+      if (values.length > headers.length || fullName.length > 160 || email.length > 254 || consentEvidence.length > 500 ||
+          !["granted", "unknown", "withdrawn"].includes(consentStatus)) {
+        result.rejected++;
+        result.rows.push({ row: rowNumber, status: "rejected", reason: "Invalid column count, field length or consent_status. Use granted, unknown or withdrawn." });
+        continue;
+      }
       if (!/^\+[1-9]\d{7,14}$/.test(phone) || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
         result.rejected++;
         result.rows.push({ row: rowNumber, status: "rejected", reason: "Use a valid E.164 phone number and valid email if supplied." });
