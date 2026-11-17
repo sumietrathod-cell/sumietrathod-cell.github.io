@@ -1,6 +1,6 @@
 # Supabase Edge Function deployment notes
 
-The first authenticated API starter is at `supabase/functions/campaign-api/index.ts`.
+The authenticated API source is at `supabase/functions/campaign-api/index.ts`, the standard Supabase CLI deployment path. The root `supabase/config.toml` sets `verify_jwt=false` so OPTIONS preflight reaches the function; the handler validates Bearer tokens itself with `auth.getUser()` on every non-OPTIONS route.
 
 ## Routes
 - `GET /functions/v1/campaign-api/me` — returns the authenticated user and memberships visible under RLS.
