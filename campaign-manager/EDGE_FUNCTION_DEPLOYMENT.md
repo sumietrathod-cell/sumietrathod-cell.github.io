@@ -25,8 +25,8 @@ All requests require a Supabase Auth access token. The function uses the caller'
 
 ## Current limitations
 - This is an API starter, not a deployed service. No Supabase project is linked or configured by this repository change.
-- The starter currently exposes only `me`, campaign list, and draft campaign creation. It does not import contacts or schedule/send outreach.
+- The starter exposes authenticated `me`, campaign list/create, CSV contact import and read-only campaign eligibility preview. It still does not schedule or send outreach.
 - CORS is restricted to the exact `APP_ORIGIN`; requests without an Origin header are still protected by bearer-token authentication and database RLS.
-- Organization provisioning/invitations, contact import, campaign preview/approval, pause, opt-out, queue worker, provider webhooks, rate limits and automated tests are not implemented yet.
+- Organization provisioning/invitations, campaign approval, pause, opt-out, queue worker, provider webhooks, rate limits and automated tests are not implemented yet.
 - Campaign creation always forces draft + dry-run. There is no route to activate outreach.
 - Never add service-role keys or provider secrets to GitHub or browser code.
