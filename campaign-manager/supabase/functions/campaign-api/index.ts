@@ -294,6 +294,67 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Contact opt-out: immediately suppress this channel and record a self-attributed audit event.
+  if (req.method === "POST" && segments.length >= 3 &&
+      segments[segments.length - 1] === "opt-out" &&
+      segments[segments.length - 3] === "contacts") {
+    const contactId = segments[segments.length - 2];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(contactId)) {
+      return json({ error: "Invalid contact id." }, 400);
+    }
+    let body: Record<string, unknown>;
+    try { body = await req.json(); } catch { return json({ error: "Invalid JSON body." }, 400); }
+    const channel = typeof body.channel === "string" ? body.channel : "";
+    const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 300) : "contact_request";
+    if (!["voice", "whatsapp", "email"].includes(channel)) {
+      return json({ error: "channel must be voice, whatsapp or email." }, 400);
+    }
+    const { data: contact, error: contactError } = await supabase.from("contacts")
+      .select("id, organization_id, phone_e164")
+      .eq("id", contactId).single();
+    if (contactError || !contact) return json({ error: "Contact not found or access denied." }, 404);
+
+    const now = new Date().toISOString();
+    const { error: suppressionError } = await supabase.from("suppression_list").insert({
+      organization_id: contact.organization_id,
+      contact_id: contact.id,
+      phone_e164: contact.phone_e164,
+      channel,
+      reason: reason || "contact_request",
+      source: "campaign_manager_opt_out",
+    });
+    if (suppressionError) return json({ error: "Could not save suppression. No success was recorded; retry or contact the workspace administrator." }, 403);
+
+    const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
+      organization_id: contact.organization_id,
+      contact_id: contact.id,
+      channel,
+      permission_status: "withdrawn",
+      evidence_reference: null,
+      captured_at: now,
+      captured_by: authData.user.id,
+    }, { onConflict: "contact_id,channel" });
+    if (permissionError) {
+      return json({ error: "Suppression was saved, but permission status update failed. The suppression record still blocks outreach; ask an administrator to reconcile this contact." }, 207);
+    }
+
+    const { error: auditError } = await supabase.from("audit_events").insert({
+      organization_id: contact.organization_id,
+      actor_user_id: authData.user.id,
+      event_type: "contact_permission_withdrawn",
+      entity_type: "contact",
+      entity_id: contact.id,
+      details: { channel, source: "campaign_manager_opt_out" },
+    });
+    return json({
+      success: true,
+      suppressed: true,
+      permission_status: "withdrawn",
+      audit_recorded: !auditError,
+      note: auditError ? "Opt-out suppression is saved. Audit event could not be recorded; administrator review is required." : "This contact is suppressed for the selected channel. No further campaign messages or calls should be sent on this channel.",
+    }, auditError ? 207 : 200);
+  }
+
   // CSV import is limited to draft campaigns and never starts outreach.
   if (req.method === "POST" && segments.length >= 4 &&
       segments[segments.length - 1] === "import" &&
