@@ -65,7 +65,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 <section class="card span12">
 <div class="row"><div><h2>5. Campaign contacts</h2><p class="muted">Read-only contact list with permission and suppression indicators.</p></div><button id="contactsBtn" class="secondary right" disabled>Load contacts</button></div>
-<div class="tablewrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Campaign status</th><th>Permission</th><th>Evidence</th><th>Suppressed</th><th>Attempts</th><th>Opt-out</th></tr></thead><tbody id="contactsBody"><tr><td colspan="8" class="muted">Select a campaign to load contacts.</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Campaign status</th><th>Permission</th><th>Evidence</th><th>Suppressed</th><th>Attempts</th><th>Opt-out</th></tr></thead><tbody id="contactsBody"><tr><td colspan="9" class="muted">Select a campaign to load contacts.</td></tr></tbody></table></div>
 <div class="row" style="margin-top:12px"><button id="prevPageBtn" class="ghost" disabled>Previous</button><span id="pageInfo" class="muted">Page 1</span><button id="nextPageBtn" class="ghost" disabled>Next</button></div>
 </section>
 <section class="card span12">
@@ -151,7 +151,7 @@ async function loadContacts() {
     const c=row.contact||{}, perm=row.permission_status||"missing";
     const isBlocked = row.suppressed || perm === "withdrawn";
     return '<tr><td>'+escapeHtml(c.full_name||"—")+'</td><td>'+escapeHtml(c.phone_e164||"—")+'</td><td>'+escapeHtml(c.email||"—")+'</td><td>'+escapeHtml(row.status)+'</td><td><span class="pill '+escapeHtml(perm)+'">'+escapeHtml(perm)+'</span></td><td>'+(row.permission_evidence_present?"Yes":"No")+'</td><td>'+(row.suppressed?"Yes":"No")+'</td><td>'+Number(row.attempts||0)+'</td><td><button class="danger optoutBtn" data-contact-id="'+escapeHtml(row.contact_id)+'" '+(isBlocked?"disabled":"")+'>'+(isBlocked?"Suppressed":"Opt out")+'</button></td></tr>';
-  }).join(""):'<tr><td colspan="8" class="muted">No contacts enrolled in this campaign yet.</td></tr>';
+  }).join(""):'<tr><td colspan="9" class="muted">No contacts enrolled in this campaign yet.</td></tr>';
   $("pageInfo").textContent="Showing "+(totalContacts?pageOffset+1:0)+"–"+Math.min(pageOffset+data.contacts.length,totalContacts)+" of "+totalContacts;
   $("prevPageBtn").disabled=pageOffset===0; $("nextPageBtn").disabled=pageOffset+pageLimit>=totalContacts;
   setSignedIn(true);
