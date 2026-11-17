@@ -1,0 +1,33 @@
+name: Campaign Manager checks
+
+on:
+  pull_request:
+    paths:
+      - "campaign-manager/**"
+      - "campaign-manager-dashboard.html"
+      - "scripts/check-campaign-dashboard.mjs"
+      - ".github/workflows/campaign-manager-check.yml"
+  push:
+    branches:
+      - feature/aarohan-campaign-manager-demo
+    paths:
+      - "campaign-manager/**"
+      - "campaign-manager-dashboard.html"
+      - "scripts/check-campaign-dashboard.mjs"
+      - ".github/workflows/campaign-manager-check.yml"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Type-check Supabase Edge Function
+        run: deno check campaign-manager/supabase/functions/campaign-api/index.ts
+      - name: Check dashboard script and DOM references
+        run: node scripts/check-campaign-dashboard.mjs
