@@ -1,0 +1,122 @@
+-- AAROHAN AI Campaign Manager: tenant-isolated RLS policies.
+-- Apply AFTER schema.sql in a staging Supabase project. Review with real test users.
+-- Membership creation must happen through a trusted server/admin invite flow; no self-join policy.
+
+create or replace function public.is_org_member(target_org uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.organization_members m
+    where m.organization_id = target_org
+      and m.user_id = (select auth.uid())
+  );
+$$;
+
+create or replace function public.has_org_role(target_org uuid, allowed_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.organization_members m
+    where m.organization_id = target_org
+      and m.user_id = (select auth.uid())
+      and m.role = any(allowed_roles)
+  );
+$$;
+
+revoke all on function public.is_org_member(uuid) from public;
+revoke all on function public.has_org_role(uuid, text[]) from public;
+grant execute on function public.is_org_member(uuid) to authenticated;
+grant execute on function public.has_org_role(uuid, text[]) to authenticated;
+
+-- Organization and membership visibility
+create policy organizations_member_select
+on public.organizations for select to authenticated
+using (public.is_org_member(id));
+
+create policy members_same_org_select
+on public.organization_members for select to authenticated
+using (public.is_org_member(organization_id));
+
+-- Only trusted server-side provisioning (service role) can insert/update memberships.
+-- No authenticated INSERT/UPDATE/DELETE policy is intentionally provided.
+
+create policy campaigns_member_select
+on public.campaigns for select to authenticated
+using (public.is_org_member(organization_id));
+create policy campaigns_manager_insert
+on public.campaigns for insert to authenticated
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy campaigns_manager_update
+on public.campaigns for update to authenticated
+using (public.has_org_role(organization_id, array['owner','admin','operator']))
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy campaigns_admin_delete
+on public.campaigns for delete to authenticated
+using (public.has_org_role(organization_id, array['owner','admin']));
+
+create policy contacts_member_select
+on public.contacts for select to authenticated
+using (public.is_org_member(organization_id));
+create policy contacts_operator_insert
+on public.contacts for insert to authenticated
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy contacts_operator_update
+on public.contacts for update to authenticated
+using (public.has_org_role(organization_id, array['owner','admin','operator']))
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy contacts_admin_delete
+on public.contacts for delete to authenticated
+using (public.has_org_role(organization_id, array['owner','admin']));
+
+create policy permissions_member_select
+on public.contact_channel_permissions for select to authenticated
+using (public.is_org_member(organization_id));
+create policy permissions_operator_write
+on public.contact_channel_permissions for all to authenticated
+using (public.has_org_role(organization_id, array['owner','admin','operator']))
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+
+create policy campaign_contacts_member_select
+on public.campaign_contacts for select to authenticated
+using (public.is_org_member(organization_id));
+create policy campaign_contacts_operator_write
+on public.campaign_contacts for all to authenticated
+using (public.has_org_role(organization_id, array['owner','admin','operator']))
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+
+create policy suppression_member_select
+on public.suppression_list for select to authenticated
+using (public.is_org_member(organization_id));
+create policy suppression_operator_write
+on public.suppression_list for all to authenticated
+using (public.has_org_role(organization_id, array['owner','admin','operator']))
+with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+
+create policy attempts_member_select
+on public.outreach_attempts for select to authenticated
+using (public.is_org_member(organization_id));
+-- Attempt creation/status updates are reserved for trusted server-side workers.
+
+create policy audit_admin_select
+on public.audit_events for select to authenticated
+using (public.has_org_role(organization_id, array['owner','admin']));
+-- Audit events are written by trusted server-side functions only.
+
+-- Helpful integrity indexes. The partial unique index prevents duplicate provider callbacks.
+create unique index if not exists idx_attempts_provider_reference_unique
+on public.outreach_attempts(provider, provider_reference)
+where provider is not null and provider_reference is not null;
+
+-- NOTE: The app must still validate that contact_id/campaign_id belong to the same
+-- organization in every server-side write. RLS alone does not enforce cross-table
+-- organization consistency for arbitrary client-supplied foreign keys.
