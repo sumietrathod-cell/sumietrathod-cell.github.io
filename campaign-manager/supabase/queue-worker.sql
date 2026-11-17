@@ -21,6 +21,20 @@ create table if not exists public.campaign_jobs (
     references public.campaign_contacts(organization_id, id) on delete cascade
 );
 
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'campaign_jobs_org_contact_fk'
+      and conrelid = 'public.campaign_jobs'::regclass
+  ) then
+    alter table public.campaign_jobs
+      add constraint campaign_jobs_org_contact_fk
+      foreign key (organization_id, campaign_contact_id)
+      references public.campaign_contacts(organization_id, id) on delete cascade;
+  end if;
+end $;
+
 create index if not exists idx_campaign_jobs_due
   on public.campaign_jobs(status, available_at, created_at);
 
