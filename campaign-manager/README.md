@@ -45,3 +45,7 @@ The backend framework and deployment target will be finalized before production 
 - Contact workspace (CSV import, permission review, filtering and export): `../campaign-contacts-demo.html`
 
 Both pages are browser-only demonstrations. They do not connect to the database or send calls/messages.
+
+
+## Latest backend increment
+- Added authenticated read-only `POST /functions/v1/campaign-api/campaigns/{id}/preview` eligibility checks for voice/WhatsApp campaigns. It reports permission/evidence, suppression, invalid-contact, processed-status and attempt-limit blocks. It never dispatches outreach and is limited to 4,999 enrolled contacts per request.
