@@ -138,26 +138,33 @@ Deno.serve(async (req) => {
     if (enrolledError) return json({ error: "Could not load campaign contacts; check RLS policies." }, 403);
 
     const ids = (enrolled ?? []).map((row: any) => row.contact_id);
-    const [contactResult, permissionResult, suppressionResult] = ids.length ? await Promise.all([
+    const [contactResult, permissionResult] = ids.length ? await Promise.all([
       supabase.from("contacts").select("id, full_name, phone_e164, email")
         .eq("organization_id", campaign.organization_id).in("id", ids),
       supabase.from("contact_channel_permissions")
         .select("contact_id, permission_status, evidence_reference")
         .eq("organization_id", campaign.organization_id)
         .eq("channel", campaign.channel).in("contact_id", ids),
-      supabase.from("suppression_list").select("contact_id, phone_e164, channel")
-        .eq("organization_id", campaign.organization_id),
     ]) : [
       { data: [], error: null },
       { data: [], error: null },
-      { data: [], error: null },
     ];
-    if (contactResult.error || permissionResult.error || suppressionResult.error) {
-      return json({ error: "Could not load contact permission or suppression details; request failed closed." }, 403);
+    if (contactResult.error || permissionResult.error) {
+      return json({ error: "Could not load contact permission details; request failed closed." }, 403);
     }
     const contactById = new Map((contactResult.data ?? []).map((c: any) => [c.id, c]));
     const permissionById = new Map((permissionResult.data ?? []).map((p: any) => [p.contact_id, p]));
-    const suppressionRows = suppressionResult.data ?? [];
+    const phones = (contactResult.data ?? []).map((c: any) => c.phone_e164).filter((phone: any) => typeof phone === "string");
+    const suppressionQueries = [];
+    if (ids.length) suppressionQueries.push(supabase.from("suppression_list").select("contact_id, phone_e164, channel")
+      .eq("organization_id", campaign.organization_id).in("contact_id", ids));
+    if (phones.length) suppressionQueries.push(supabase.from("suppression_list").select("contact_id, phone_e164, channel")
+      .eq("organization_id", campaign.organization_id).in("phone_e164", phones));
+    const suppressionResults = await Promise.all(suppressionQueries);
+    if (suppressionResults.some((result: any) => result.error)) {
+      return json({ error: "Could not load suppression details; preview failed closed." }, 403);
+    }
+    const suppressionRows = suppressionResults.flatMap((result: any) => result.data ?? []);
     const contacts = (enrolled ?? []).map((row: any) => {
       const contact: any = contactById.get(row.contact_id);
       const permission: any = permissionById.get(row.contact_id);
