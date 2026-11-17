@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const html = readFileSync(new URL("../campaign-manager-dashboard.html", import.meta.url), "utf8");
+const api = readFileSync(new URL("../supabase/functions/campaign-api/index.ts", import.meta.url), "utf8");
 const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
   .map((match) => match[1])
   .filter((script) => script.trim().length > 0);
@@ -21,10 +22,11 @@ for (const required of [
   "/opt-out",
   "/contacts/import",
   "/preview",
-  "campaign_dispatch_ready",
+  "campaign_state_allows_dispatch",
   "dry_run",
 ]) {
   assert.ok(html.includes(required), "Dashboard is missing expected integration marker: " + required);
 }
 
-console.log("Campaign dashboard checks passed.");
+assert.ok(api.includes("campaign_dispatch_ready: false"), "Backend must keep actual dispatch disabled.");
+console.log("Campaign dashboard and API static checks passed.");
