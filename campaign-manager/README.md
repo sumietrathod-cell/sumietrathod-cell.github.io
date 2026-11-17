@@ -24,10 +24,11 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Draft tenant-scoped RLS policies (staging validation still required)
 - [ ] Auth, tenant provisioning and RLS verification (API starter added; staging validation pending)
 - [x] API contract and CSV validation requirements drafted
-- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [x] Initial authenticated dashboard UI (connect, sign in, organizations, draft creation, CSV import, paginated contacts, eligibility preview; staging connection pending)
+- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [x] Initial authenticated dashboard UI (connect, sign in, organizations, draft creation, CSV import, paginated contacts, eligibility preview and channel opt-out; staging connection pending)
 - [ ] Production-ready customer-facing contact management UI and staging validation
 - [ ] Durable scheduler/worker and idempotency
-- [ ] Callback and suppression workflows
+- [x] Initial channel-specific opt-out/suppression endpoint (staging tests pending)
+- [ ] Callback and provider webhook workflows
 - [ ] Provider adapters and webhook verification
 - [ ] Automated tests, deployment and monitoring
 - [ ] Security and compliance review before live use
@@ -52,3 +53,6 @@ Both pages are browser-only demonstrations. They do not connect to the database 
 - Added authenticated read-only `POST /functions/v1/campaign-api/campaigns/{id}/preview` eligibility checks for voice/WhatsApp campaigns. It reports permission/evidence, suppression, invalid-contact, processed-status and attempt-limit blocks. It never dispatches outreach and is limited to 4,999 enrolled contacts per request.
 
 - Latest API increment: paginated `GET /campaigns/{id}/contacts` now returns campaign contact details plus channel permission/evidence-present and suppression flags. Composite organization foreign keys were added to the fresh-install schema to reduce cross-tenant reference risks. Staging validation and any required migration for an already-existing database remain outstanding.
+
+- Consent handling increment: CSV import accepts granted/unknown/withdrawn; granted requires evidence text; withdrawn records are not re-enabled by CSV import; an unknown import preserves an existing grant. Contact opt-out can be recorded by any organization member and adds a channel-specific suppression plus a restricted audit event.
+- Dashboard script syntax and DOM-id consistency checks passed in the current repository snapshot. This is not a browser-to-Supabase integration test.
