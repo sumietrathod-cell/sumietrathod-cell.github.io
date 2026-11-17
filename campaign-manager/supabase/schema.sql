@@ -45,7 +45,8 @@ create table if not exists public.contacts (
   email text,
   source text,
   created_at timestamptz not null default now(),
-  unique (organization_id, phone_e164)
+  unique (organization_id, phone_e164),
+  unique (organization_id, id)
 );
 
 create table if not exists public.contact_channel_permissions (
@@ -58,7 +59,9 @@ create table if not exists public.contact_channel_permissions (
   captured_at timestamptz,
   captured_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
-  unique (contact_id, channel)
+  unique (contact_id, channel),
+  foreign key (organization_id, contact_id)
+    references public.contacts(organization_id, id) on delete cascade
 );
 
 create table if not exists public.campaign_contacts (
@@ -73,7 +76,12 @@ create table if not exists public.campaign_contacts (
   last_outcome text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (campaign_id, contact_id)
+  unique (campaign_id, contact_id),
+  unique (organization_id, id),
+  foreign key (organization_id, campaign_id)
+    references public.campaigns(organization_id, id) on delete cascade,
+  foreign key (organization_id, contact_id)
+    references public.contacts(organization_id, id) on delete cascade
 );
 
 create table if not exists public.suppression_list (
@@ -85,7 +93,9 @@ create table if not exists public.suppression_list (
   reason text not null,
   source text,
   created_at timestamptz not null default now(),
-  check (contact_id is not null or phone_e164 is not null)
+  check (contact_id is not null or phone_e164 is not null),
+  foreign key (organization_id, contact_id)
+    references public.contacts(organization_id, id) on delete cascade
 );
 
 create table if not exists public.outreach_attempts (
@@ -102,7 +112,9 @@ create table if not exists public.outreach_attempts (
   started_at timestamptz,
   ended_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (provider, provider_reference)
+  unique (provider, provider_reference),
+  foreign key (organization_id, campaign_contact_id)
+    references public.campaign_contacts(organization_id, id) on delete cascade
 );
 
 create table if not exists public.audit_events (
