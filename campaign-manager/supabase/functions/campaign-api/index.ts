@@ -355,6 +355,7 @@ Deno.serve(async (req) => {
     if (rows.length > 501) return json({ error: "A maximum of 500 contacts can be imported per request." }, 413);
     const headers = rows[0].map((h) => h.trim().toLowerCase());
     const required = ["full_name", "phone_e164", "email", "consent_status", "consent_evidence"];
+    if (new Set(headers).size !== headers.length) return json({ error: "CSV headers must be unique." }, 400);
     if (!required.every((h) => headers.includes(h))) {
       return json({ error: "Required CSV headers: full_name, phone_e164, email, consent_status, consent_evidence." }, 400);
     }
@@ -383,8 +384,13 @@ Deno.serve(async (req) => {
         continue;
       }
       seen.add(phone);
-      const granted = consentStatus === "granted" && consentEvidence.length > 0;
-      const permissionStatus = granted ? "granted" : "unknown";
+      if (consentStatus === "granted" && !consentEvidence.trim()) {
+        result.rejected++;
+        result.rows.push({ row: rowNumber, status: "rejected", reason: "Granted permission requires a non-empty evidence reference." });
+        continue;
+      }
+      const granted = consentStatus === "granted";
+      const permissionStatus = consentStatus === "withdrawn" ? "withdrawn" : (granted ? "granted" : "unknown");
 
       const { data: existing } = await supabase.from("contacts")
         .select("id").eq("organization_id", campaign.organization_id).eq("phone_e164", phone).maybeSingle();
@@ -405,19 +411,54 @@ Deno.serve(async (req) => {
         contactId = created.id;
       }
 
+      const { data: priorPermission, error: priorPermissionError } = await supabase.from("contact_channel_permissions")
+        .select("permission_status, evidence_reference")
+        .eq("organization_id", campaign.organization_id)
+        .eq("contact_id", contactId)
+        .eq("channel", campaign.channel)
+        .maybeSingle();
+      if (priorPermissionError) {
+        result.rejected++;
+        result.rows.push({ row: rowNumber, status: "rejected", reason: "Existing permission state could not be verified; import failed closed." });
+        continue;
+      }
+      if (priorPermission?.permission_status === "withdrawn" && permissionStatus !== "withdrawn") {
+        result.rejected++;
+        result.rows.push({ row: rowNumber, status: "rejected", reason: "This contact previously withdrew permission. A CSV import cannot reinstate it." });
+        continue;
+      }
+      const preservePriorGrant = priorPermission?.permission_status === "granted" && permissionStatus === "unknown";
+      const effectiveStatus = preservePriorGrant ? "granted" : permissionStatus;
+      const effectiveEvidence = preservePriorGrant ? priorPermission.evidence_reference : (granted ? consentEvidence : null);
       const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
         organization_id: campaign.organization_id,
         contact_id: contactId,
         channel: campaign.channel,
-        permission_status: permissionStatus,
-        evidence_reference: granted ? consentEvidence : null,
-        captured_at: granted ? new Date().toISOString() : null,
+        permission_status: effectiveStatus,
+        evidence_reference: effectiveEvidence,
+        captured_at: (granted && !preservePriorGrant) || effectiveStatus === "withdrawn" ? new Date().toISOString() : null,
         captured_by: authData.user.id,
       }, { onConflict: "contact_id,channel" });
       if (permissionError) {
         result.rejected++;
         result.rows.push({ row: rowNumber, status: "rejected", reason: "Contact saved, but channel permission record failed. Review this contact before use." });
         continue;
+      }
+
+      if (effectiveStatus === "withdrawn") {
+        const { error: suppressionError } = await supabase.from("suppression_list").upsert({
+          organization_id: campaign.organization_id,
+          contact_id: contactId,
+          phone_e164: phone,
+          channel: campaign.channel,
+          reason: "permission_withdrawn",
+          source: "csv_import",
+        }, { onConflict: "organization_id,contact_id,channel" });
+        if (suppressionError) {
+          result.rejected++;
+          result.rows.push({ row: rowNumber, status: "rejected", reason: "Withdrawal recorded, but suppression record failed. Manually verify before any future use." });
+          continue;
+        }
       }
 
       const { error: enrollError } = await supabase.from("campaign_contacts").upsert({
@@ -432,8 +473,8 @@ Deno.serve(async (req) => {
         continue;
       }
       result.imported++;
-      if (granted) result.consent_granted++;
-      result.rows.push({ row: rowNumber, status: "imported", permission: permissionStatus });
+      if (effectiveStatus === "granted") result.consent_granted++;
+      result.rows.push({ row: rowNumber, status: "imported", permission: effectiveStatus });
     }
     return json({ ...result, note: "Import only stores contacts and permission evidence. It does not send calls or messages; unknown permission is not consent." }, 200);
   }
