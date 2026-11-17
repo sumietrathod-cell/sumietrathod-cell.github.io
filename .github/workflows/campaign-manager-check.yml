@@ -31,5 +31,9 @@ jobs:
           node-version: 22
       - name: Type-check Supabase Edge Function
         run: deno check supabase/functions/campaign-api/index.ts
+      - name: Parse PostgreSQL schema and policy SQL
+        run: |
+          python -m pip install --disable-pip-version-check sqlfluff
+          sqlfluff parse --dialect postgres campaign-manager/supabase/schema.sql campaign-manager/supabase/rls-policies.sql campaign-manager/supabase/migrations/20261117_tenant_integrity.sql campaign-manager/supabase/queue-worker.sql
       - name: Check dashboard script and DOM references
         run: node scripts/check-campaign-dashboard.mjs
