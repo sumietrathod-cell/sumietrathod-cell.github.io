@@ -12,7 +12,7 @@ const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "Dashboard DOM ids must be unique");
 const referencedIds = [...scripts[0].matchAll(/\$\("([^"]+)"\)/g)].map((match) => match[1]);
 for (const id of referencedIds) {
-  assert.ok(ids.includes(id), \`Dashboard script references missing DOM id: \${id}\`);
+  assert.ok(ids.includes(id), "Dashboard script references missing DOM id: " + id);
 }
 
 for (const required of [
@@ -24,7 +24,7 @@ for (const required of [
   "campaign_dispatch_ready",
   "dry_run",
 ]) {
-  assert.ok(html.includes(required), \`Dashboard is missing expected integration marker: \${required}\`);
+  assert.ok(html.includes(required), "Dashboard is missing expected integration marker: " + required);
 }
 
 console.log("Campaign dashboard checks passed.");
