@@ -21,13 +21,20 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 ## Build status
 - [x] Browser simulation prototype
 - [x] Initial database schema draft
+- [x] Draft tenant-scoped RLS policies (staging validation still required)
 - [ ] Auth, tenant provisioning and RLS verification
-- [ ] API and CSV import validation
+- [x] API contract and CSV validation requirements drafted
+- [ ] API implementation and CSV import validation
 - [ ] Durable scheduler/worker and idempotency
 - [ ] Callback and suppression workflows
 - [ ] Provider adapters and webhook verification
 - [ ] Automated tests, deployment and monitoring
 - [ ] Security and compliance review before live use
+
+## Security and API design notes
+- `supabase/rls-policies.sql` adds fail-closed tenant membership policies; apply only in staging and test with multiple organizations.
+- `API_CONTRACT.md` defines the required authenticated API, import validation, last-moment eligibility gate, queue guarantees and live activation checklist.
+- The SQL policies are a draft, not a substitute for independent security review or integration tests.
 
 ## Local development (planned)
 The backend framework and deployment target will be finalized before production implementation. Do not treat this prototype or schema draft as production-ready.
