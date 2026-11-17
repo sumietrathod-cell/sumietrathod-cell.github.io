@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       .eq("id", campaignId)
       .single();
     if (campaignError || !campaign) return json({ error: "Campaign not found or access denied." }, 404);
-    if (campaign.status !== "draft" || campaign.dry_run !== true) {
+    if (!["voice", "whatsapp"].includes(campaign.channel)) {\n      return json({ error: "CSV permission import currently supports voice or WhatsApp campaigns only." }, 400);\n    }\n    if (campaign.status !== "draft" || campaign.dry_run !== true) {
       return json({ error: "Contacts can only be imported into a draft dry-run campaign." }, 409);
     }
 
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       return json({ error: "Required CSV headers: full_name, phone_e164, email, consent_status, consent_evidence." }, 400);
     }
     const index = Object.fromEntries(headers.map((h, i) => [h, i]));
-    const result = { imported: 0, enrolled: 0, rejected: 0, rows: [] as Array<Record<string, unknown>> };
+    const result = { imported: 0, consent_granted: 0, rejected: 0, rows: [] as Array<Record<string, unknown>> };
     const seen = new Set<string>();
 
     for (let i = 1; i < rows.length; i++) {
@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
         continue;
       }
       result.imported++;
-      if (granted) result.enrolled++;
+      if (granted) result.consent_granted++;
       result.rows.push({ row: rowNumber, status: "imported", permission: permissionStatus });
     }
     return json({ ...result, note: "Import only stores contacts and permission evidence. It does not send calls or messages; unknown permission is not consent." }, 200);
