@@ -30,7 +30,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Initial channel-specific opt-out/suppression endpoint (staging tests pending)
 - [ ] Callback and provider webhook workflows
 - [ ] Provider adapters and webhook verification
-- [x] Dashboard static validation script and GitHub Actions type-check workflow added (CI result pending)
+- [x] GitHub Actions Deno type-check, PostgreSQL SQL parse and dashboard static checks pass on current draft PR head
 - [ ] Automated integration/RLS tests, deployment and monitoring
 - [ ] Security and compliance review before live use
 
@@ -59,4 +59,4 @@ Both pages are browser-only demonstrations. They do not connect to the database 
 - Dashboard script syntax and DOM-id consistency checks passed in the current repository snapshot. This is not a browser-to-Supabase integration test.
 
 - Security increment: suppression rows are append-only for authenticated users; direct campaign status/dry-run updates are not permitted by the customer RLS policy. The opt-out route is available to any organization member and cannot grant permission.
-- See `SECURITY_TEST_PLAN.md` for staging security tests and `SUPABASE_STAGING_SETUP.md` for staging project, owner provisioning and deployment steps. CI is configured but must run successfully before release.
+- See `SECURITY_TEST_PLAN.md` for staging security tests and `SUPABASE_STAGING_SETUP.md` for staging project, owner provisioning and deployment steps. CI static/type/SQL checks are green on the current draft PR head; staging integration/RLS tests remain pending.
