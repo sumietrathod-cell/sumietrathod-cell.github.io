@@ -51,10 +51,13 @@ drop policy if exists contacts_operator_update on public.contacts;
 drop policy if exists contacts_admin_delete on public.contacts;
 drop policy if exists permissions_member_select on public.contact_channel_permissions;
 drop policy if exists permissions_operator_write on public.contact_channel_permissions;
+drop policy if exists permissions_member_withdraw_insert on public.contact_channel_permissions;
+drop policy if exists permissions_member_withdraw_update on public.contact_channel_permissions;
 drop policy if exists campaign_contacts_member_select on public.campaign_contacts;
 drop policy if exists campaign_contacts_operator_write on public.campaign_contacts;
 drop policy if exists suppression_member_select on public.suppression_list;
 drop policy if exists suppression_operator_write on public.suppression_list;
+drop policy if exists suppression_member_optout_insert on public.suppression_list;
 drop policy if exists attempts_member_select on public.outreach_attempts;
 drop policy if exists audit_admin_select on public.audit_events;
 drop policy if exists audit_actor_insert on public.audit_events;
@@ -104,6 +107,13 @@ create policy permissions_operator_write
 on public.contact_channel_permissions for all to authenticated
 using (public.has_org_role(organization_id, array['owner','admin','operator']))
 with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy permissions_member_withdraw_insert
+on public.contact_channel_permissions for insert to authenticated
+with check (public.is_org_member(organization_id) and permission_status = 'withdrawn');
+create policy permissions_member_withdraw_update
+on public.contact_channel_permissions for update to authenticated
+using (public.is_org_member(organization_id))
+with check (public.is_org_member(organization_id) and permission_status = 'withdrawn');
 
 create policy campaign_contacts_member_select
 on public.campaign_contacts for select to authenticated
@@ -120,6 +130,13 @@ create policy suppression_operator_write
 on public.suppression_list for all to authenticated
 using (public.has_org_role(organization_id, array['owner','admin','operator']))
 with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+create policy suppression_member_optout_insert
+on public.suppression_list for insert to authenticated
+with check (
+  public.is_org_member(organization_id)
+  and source = 'campaign_manager_opt_out'
+  and channel is not null
+);
 
 create policy attempts_member_select
 on public.outreach_attempts for select to authenticated
@@ -133,8 +150,8 @@ create policy audit_actor_insert
 on public.audit_events for insert to authenticated
 with check (
   actor_user_id = (select auth.uid())
-  and public.has_org_role(organization_id, array['owner','admin','operator'])
-  and event_type in ('contact_permission_withdrawn','contact_suppressed')
+  and public.is_org_member(organization_id)
+  and event_type = 'contact_permission_withdrawn'
 );
 -- Clients may append only narrowly scoped, self-attributed opt-out audit events; no update/delete.
 
