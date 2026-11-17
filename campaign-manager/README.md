@@ -24,7 +24,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Draft tenant-scoped RLS policies (staging validation still required)
 - [ ] Auth, tenant provisioning and RLS verification (API starter added; staging validation pending)
 - [x] API contract and CSV validation requirements drafted
-- [x] Initial authenticated campaign API routes (me, list/create draft campaigns; staging deployment pending)\n- [ ] CSV import validation
+- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, guarded CSV import; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [ ] Customer-facing contact management UI
 - [ ] Durable scheduler/worker and idempotency
 - [ ] Callback and suppression workflows
 - [ ] Provider adapters and webhook verification
@@ -33,7 +33,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 
 ## Security and API design notes
 - `supabase/rls-policies.sql` adds fail-closed tenant membership policies; apply only in staging and test with multiple organizations.
-- `API_CONTRACT.md` defines the required authenticated API, import validation, last-moment eligibility gate, queue guarantees and live activation checklist.\n- `supabase/functions/campaign-api/index.ts` is an initial JWT-verified, user-scoped Edge Function starter; it uses RLS and creates draft campaigns only.\n- `EDGE_FUNCTION_DEPLOYMENT.md` documents staging setup and tests. The function has not been deployed.
+- `API_CONTRACT.md` defines the required authenticated API, import validation, last-moment eligibility gate, queue guarantees and live activation checklist.\n- `supabase/functions/campaign-api/index.ts` is an initial JWT-verified, user-scoped Edge Function starter; it uses RLS, creates draft campaigns only, and imports contacts with channel permission evidence. It does not send outreach.\n- `EDGE_FUNCTION_DEPLOYMENT.md` documents staging setup and tests. The function has not been deployed.
 - The SQL policies are a draft, not a substitute for independent security review or integration tests.
 
 ## Local development (planned)
