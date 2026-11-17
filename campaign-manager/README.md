@@ -24,7 +24,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Draft tenant-scoped RLS policies (staging validation still required)
 - [ ] Auth, tenant provisioning and RLS verification (API starter added; staging validation pending)
 - [x] API contract and CSV validation requirements drafted
-- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, guarded CSV import; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [ ] Customer-facing contact management UI
+- [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [ ] Customer-facing contact management UI connected to the authenticated API
 - [ ] Durable scheduler/worker and idempotency
 - [ ] Callback and suppression workflows
 - [ ] Provider adapters and webhook verification
@@ -49,3 +49,5 @@ Both pages are browser-only demonstrations. They do not connect to the database 
 
 ## Latest backend increment
 - Added authenticated read-only `POST /functions/v1/campaign-api/campaigns/{id}/preview` eligibility checks for voice/WhatsApp campaigns. It reports permission/evidence, suppression, invalid-contact, processed-status and attempt-limit blocks. It never dispatches outreach and is limited to 4,999 enrolled contacts per request.
+
+- Latest API increment: paginated `GET /campaigns/{id}/contacts` now returns campaign contact details plus channel permission/evidence-present and suppression flags. Composite organization foreign keys were added to the fresh-install schema to reduce cross-tenant reference risks. Staging validation and any required migration for an already-existing database remain outstanding.
