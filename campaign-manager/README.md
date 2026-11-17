@@ -30,7 +30,8 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [x] Initial channel-specific opt-out/suppression endpoint (staging tests pending)
 - [ ] Callback and provider webhook workflows
 - [ ] Provider adapters and webhook verification
-- [ ] Automated tests, deployment and monitoring
+- [x] Dashboard static validation script and GitHub Actions type-check workflow added (CI result pending)
+- [ ] Automated integration/RLS tests, deployment and monitoring
 - [ ] Security and compliance review before live use
 
 ## Security and API design notes
@@ -56,3 +57,6 @@ Both pages are browser-only demonstrations. They do not connect to the database 
 
 - Consent handling increment: CSV import accepts granted/unknown/withdrawn; granted requires evidence text; withdrawn records are not re-enabled by CSV import; an unknown import preserves an existing grant. Contact opt-out can be recorded by any organization member and adds a channel-specific suppression plus a restricted audit event.
 - Dashboard script syntax and DOM-id consistency checks passed in the current repository snapshot. This is not a browser-to-Supabase integration test.
+
+- Security increment: suppression rows are append-only for authenticated users; direct campaign status/dry-run updates are not permitted by the customer RLS policy. The opt-out route is available to any organization member and cannot grant permission.
+- See `SECURITY_TEST_PLAN.md` for staging security tests. CI is configured but must run successfully before release.
