@@ -38,6 +38,26 @@ revoke all on function public.has_org_role(uuid, text[]) from public;
 grant execute on function public.is_org_member(uuid) to authenticated;
 grant execute on function public.has_org_role(uuid, text[]) to authenticated;
 
+-- Make this policy script safe to re-run in staging.
+drop policy if exists organizations_member_select on public.organizations;
+drop policy if exists members_same_org_select on public.organization_members;
+drop policy if exists campaigns_member_select on public.campaigns;
+drop policy if exists campaigns_manager_insert on public.campaigns;
+drop policy if exists campaigns_manager_update on public.campaigns;
+drop policy if exists campaigns_admin_delete on public.campaigns;
+drop policy if exists contacts_member_select on public.contacts;
+drop policy if exists contacts_operator_insert on public.contacts;
+drop policy if exists contacts_operator_update on public.contacts;
+drop policy if exists contacts_admin_delete on public.contacts;
+drop policy if exists permissions_member_select on public.contact_channel_permissions;
+drop policy if exists permissions_operator_write on public.contact_channel_permissions;
+drop policy if exists campaign_contacts_member_select on public.campaign_contacts;
+drop policy if exists campaign_contacts_operator_write on public.campaign_contacts;
+drop policy if exists suppression_member_select on public.suppression_list;
+drop policy if exists suppression_operator_write on public.suppression_list;
+drop policy if exists attempts_member_select on public.outreach_attempts;
+drop policy if exists audit_admin_select on public.audit_events;
+
 -- Organization and membership visibility
 create policy organizations_member_select
 on public.organizations for select to authenticated
@@ -56,10 +76,8 @@ using (public.is_org_member(organization_id));
 create policy campaigns_manager_insert
 on public.campaigns for insert to authenticated
 with check (public.has_org_role(organization_id, array['owner','admin','operator']));
-create policy campaigns_manager_update
-on public.campaigns for update to authenticated
-using (public.has_org_role(organization_id, array['owner','admin','operator']))
-with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+-- Campaign status and dry_run are intentionally not client-updatable. Future approval/pause
+-- must use dedicated audited server-side endpoints with explicit owner authorization.
 create policy campaigns_admin_delete
 on public.campaigns for delete to authenticated
 using (public.has_org_role(organization_id, array['owner','admin']));
@@ -117,6 +135,5 @@ create unique index if not exists idx_attempts_provider_reference_unique
 on public.outreach_attempts(provider, provider_reference)
 where provider is not null and provider_reference is not null;
 
--- NOTE: The app must still validate that contact_id/campaign_id belong to the same
--- organization in every server-side write. RLS alone does not enforce cross-table
--- organization consistency for arbitrary client-supplied foreign keys.
+-- Composite organization foreign keys in schema.sql additionally enforce same-tenant
+-- references. Never add a broad client update policy for campaign status or dry_run.
