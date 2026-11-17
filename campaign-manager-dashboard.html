@@ -184,10 +184,10 @@ function downloadTemplate(){
  const blob=new Blob([csv],{type:"text/csv"}), url=URL.createObjectURL(blob), a=document.createElement("a");
  a.href=url;a.download="aarohan-campaign-contacts-template.csv";a.click();URL.revokeObjectURL(url);
 }
-function disconnect(){client=null;session=null;apiBase="";anon="";memberships=[];campaigns=[];sessionStorage.removeItem("aarohan_campaign_url");sessionStorage.removeItem("aarohan_campaign_anon");setStatus("connection","Not connected");$("authStatus").textContent="Disconnected.";setSignedIn(false);}
+async function disconnect(){if(client) await client.auth.signOut();client=null;session=null;apiBase="";anon="";memberships=[];campaigns=[];sessionStorage.removeItem("aarohan_campaign_url");sessionStorage.removeItem("aarohan_campaign_anon");setStatus("connection","Not connected");$("authStatus").textContent="Disconnected and signed out.";setSignedIn(false);}
 async function run(fn){try{await fn();}catch(e){console.error(e);$("workspaceStatus").textContent=e.message||"Something went wrong."; $("authStatus").textContent=e.message||"Something went wrong.";}}
 $("connectBtn").addEventListener("click",()=>run(connect));
-$("disconnectBtn").addEventListener("click",disconnect);
+$("disconnectBtn").addEventListener("click",()=>run(disconnect));
 $("loginBtn").addEventListener("click",()=>run(login));
 $("logoutBtn").addEventListener("click",()=>run(async()=>{if(client) await client.auth.signOut();session=null;setSignedIn(false);$("authStatus").textContent="Signed out.";}));
 $("orgSelect").addEventListener("change",()=>run(loadCampaigns));
