@@ -412,7 +412,7 @@ Deno.serve(async (req) => {
       }
 
       const { data: priorPermission, error: priorPermissionError } = await supabase.from("contact_channel_permissions")
-        .select("permission_status, evidence_reference")
+        .select("permission_status, evidence_reference, captured_at, captured_by")
         .eq("organization_id", campaign.organization_id)
         .eq("contact_id", contactId)
         .eq("channel", campaign.channel)
@@ -436,8 +436,8 @@ Deno.serve(async (req) => {
         channel: campaign.channel,
         permission_status: effectiveStatus,
         evidence_reference: effectiveEvidence,
-        captured_at: (granted && !preservePriorGrant) || effectiveStatus === "withdrawn" ? new Date().toISOString() : null,
-        captured_by: authData.user.id,
+        captured_at: preservePriorGrant ? priorPermission.captured_at : new Date().toISOString(),
+        captured_by: preservePriorGrant ? priorPermission.captured_by : authData.user.id,
       }, { onConflict: "contact_id,channel" });
       if (permissionError) {
         result.rejected++;
@@ -446,14 +446,14 @@ Deno.serve(async (req) => {
       }
 
       if (effectiveStatus === "withdrawn") {
-        const { error: suppressionError } = await supabase.from("suppression_list").upsert({
+        const { error: suppressionError } = await supabase.from("suppression_list").insert({
           organization_id: campaign.organization_id,
           contact_id: contactId,
           phone_e164: phone,
           channel: campaign.channel,
           reason: "permission_withdrawn",
           source: "csv_import",
-        }, { onConflict: "organization_id,contact_id,channel" });
+        });
         if (suppressionError) {
           result.rejected++;
           result.rows.push({ row: rowNumber, status: "rejected", reason: "Withdrawal recorded, but suppression record failed. Manually verify before any future use." });
