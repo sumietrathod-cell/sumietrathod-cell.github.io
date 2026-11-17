@@ -98,6 +98,122 @@ Deno.serve(async (req) => {
   }
 
 
+  // Read-only eligibility preview. This route never queues or dispatches outreach.
+  if (req.method === "POST" && segments.length >= 2 &&
+      segments[segments.length - 1] === "preview" &&
+      segments[segments.length - 2] === "campaigns") {
+    const campaignId = segments[segments.length - 3];
+    if (!campaignId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
+      return json({ error: "Invalid campaign id." }, 400);
+    }
+    const { data: campaign, error: campaignError } = await supabase
+      .from("campaigns")
+      .select("id, organization_id, channel, status, dry_run, max_attempts")
+      .eq("id", campaignId)
+      .single();
+    if (campaignError || !campaign) return json({ error: "Campaign not found or access denied." }, 404);
+    if (!["voice", "whatsapp"].includes(campaign.channel)) {
+      return json({ error: "Preview currently supports voice or WhatsApp campaigns only." }, 400);
+    }
+
+    // Bound the preview size. Large campaigns must be previewed in a future paginated job.
+    const { data: enrolled, error: enrolledError } = await supabase
+      .from("campaign_contacts")
+      .select("id, contact_id, status, attempts, contacts(id, phone_e164)")
+      .eq("organization_id", campaign.organization_id)
+      .eq("campaign_id", campaign.id)
+      .order("created_at", { ascending: true })
+      .range(0, 4999);
+    if (enrolledError) return json({ error: "Could not load campaign contacts; check RLS policies." }, 403);
+    if ((enrolled ?? []).length >= 5000) {
+      return json({ error: "This preview is limited to 4,999 contacts. Use a paginated preview for larger campaigns." }, 413);
+    }
+
+    const contactIds = (enrolled ?? []).map((row: any) => row.contact_id);
+    const { data: permissions, error: permissionError } = contactIds.length
+      ? await supabase.from("contact_channel_permissions")
+          .select("contact_id, permission_status, evidence_reference")
+          .eq("organization_id", campaign.organization_id)
+          .eq("channel", campaign.channel)
+          .in("contact_id", contactIds)
+      : { data: [], error: null };
+    if (permissionError) return json({ error: "Could not verify channel permissions; preview failed closed." }, 403);
+
+    const { data: suppressions, error: suppressionError } = await supabase
+      .from("suppression_list")
+      .select("contact_id, phone_e164, channel")
+      .eq("organization_id", campaign.organization_id);
+    if (suppressionError) return json({ error: "Could not verify suppression list; preview failed closed." }, 403);
+
+    const permissionByContact = new Map((permissions ?? []).map((p: any) => [p.contact_id, p]));
+    const blockedByContact = new Map<string, string>();
+    const suppressionRows = suppressions ?? [];
+    const maxAttempts = Number(campaign.max_attempts ?? 3);
+    const terminalStatuses = new Set(["reached", "qualified", "do_not_contact", "failed", "skipped"]);
+    const counts = {
+      total: (enrolled ?? []).length,
+      eligible: 0,
+      blocked: 0,
+      permission_unknown: 0,
+      permission_withdrawn: 0,
+      missing_permission_or_evidence: 0,
+      suppressed: 0,
+      invalid_contact: 0,
+      already_processed: 0,
+      max_attempts_reached: 0,
+    };
+    const examples: Array<{ campaign_contact_id: string; reason: string }> = [];
+
+    for (const row of enrolled ?? []) {
+      const contact = Array.isArray(row.contacts) ? row.contacts[0] : row.contacts;
+      const phone = contact?.phone_e164 ?? "";
+      let reason = "";
+      if (!contact?.id || !/^\\+[1-9]\\d{7,14}$/.test(phone)) {
+        counts.invalid_contact++;
+        reason = "invalid_contact";
+      } else {
+        const permission: any = permissionByContact.get(row.contact_id);
+        if (!permission) {
+          counts.missing_permission_or_evidence++;
+          reason = "missing_permission";
+        } else if (permission.permission_status === "withdrawn") {
+          counts.permission_withdrawn++;
+          reason = "permission_withdrawn";
+        } else if (permission.permission_status !== "granted" || !String(permission.evidence_reference ?? "").trim()) {
+          counts.permission_unknown++;
+          reason = "permission_unknown_or_evidence_missing";
+        } else if (suppressionRows.some((item: any) =>
+          (!item.channel || item.channel === campaign.channel) &&
+          ((item.contact_id && item.contact_id === row.contact_id) ||
+           (item.phone_e164 && item.phone_e164 === phone)))) {
+          counts.suppressed++;
+          reason = "suppressed";
+        } else if (terminalStatuses.has(row.status)) {
+          counts.already_processed++;
+          reason = "already_processed";
+        } else if (Number(row.attempts ?? 0) >= maxAttempts) {
+          counts.max_attempts_reached++;
+          reason = "max_attempts_reached";
+        }
+      }
+      if (reason) {
+        counts.blocked++;
+        if (examples.length < 100) examples.push({ campaign_contact_id: row.id, reason });
+      } else {
+        counts.eligible++;
+      }
+    }
+
+    return json({
+      campaign: { id: campaign.id, channel: campaign.channel, status: campaign.status, dry_run: campaign.dry_run },
+      counts,
+      blocked_examples: examples,
+      truncated_examples: counts.blocked > examples.length,
+      dispatch_enabled: false,
+      note: "Read-only preview only. Eligibility must be rechecked immediately before any future dispatch; this endpoint never sends calls or messages.",
+    });
+  }
+
   // CSV import is limited to draft campaigns and never starts outreach.
   if (req.method === "POST" && segments.length >= 4 &&
       segments[segments.length - 1] === "import" &&
