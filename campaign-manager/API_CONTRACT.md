@@ -70,5 +70,5 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 
 ## Tenant integrity hardening
 - The schema now adds composite organization keys and composite foreign keys so campaign contacts, contact permissions, suppression entries and outreach attempts cannot point across organizations.
-- These constraints are included in the schema for a fresh database. If an earlier version of the schema was already applied, create and test an explicit migration before applying the revised schema; do not assume `CREATE TABLE IF NOT EXISTS` retrofits constraints.
+- These constraints are included in the schema for a fresh database. If the original schema was already applied, review and test `supabase/migrations/20261117_tenant_integrity.sql`; do not assume `CREATE TABLE IF NOT EXISTS` retrofits constraints.
 - CSV consent evidence is supplied by the importing organization and is not independently verified by this API. Review the evidence and applicable law before any future live campaign.
