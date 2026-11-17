@@ -30,6 +30,6 @@ jobs:
         with:
           node-version: 22
       - name: Type-check Supabase Edge Function
-        run: deno check campaign-manager/supabase/functions/campaign-api/index.ts
+        run: deno check supabase/functions/campaign-api/index.ts
       - name: Check dashboard script and DOM references
         run: node scripts/check-campaign-dashboard.mjs
