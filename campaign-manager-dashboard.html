@@ -65,7 +65,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 <section class="card span12">
 <div class="row"><div><h2>5. Campaign contacts</h2><p class="muted">Read-only contact list with permission and suppression indicators.</p></div><button id="contactsBtn" class="secondary right" disabled>Load contacts</button></div>
-<div class="tablewrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Campaign status</th><th>Permission</th><th>Evidence</th><th>Suppressed</th><th>Attempts</th></tr></thead><tbody id="contactsBody"><tr><td colspan="8" class="muted">Select a campaign to load contacts.</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Campaign status</th><th>Permission</th><th>Evidence</th><th>Suppressed</th><th>Attempts</th><th>Opt-out</th></tr></thead><tbody id="contactsBody"><tr><td colspan="8" class="muted">Select a campaign to load contacts.</td></tr></tbody></table></div>
 <div class="row" style="margin-top:12px"><button id="prevPageBtn" class="ghost" disabled>Previous</button><span id="pageInfo" class="muted">Page 1</span><button id="nextPageBtn" class="ghost" disabled>Next</button></div>
 </section>
 <section class="card span12">
@@ -77,7 +77,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <script>
 (() => {
 const $ = id => document.getElementById(id);
-let client = null, session = null, apiBase = "", anon = "", memberships = [], campaigns = [], pageOffset = 0, pageLimit = 50, totalContacts = 0;
+let client = null, session = null, apiBase = "", anon = "", memberships = [], campaigns = [], pageOffset = 0, pageLimit = 50, totalContacts = 0, activeCampaignChannel = "";
 const setStatus = (id, text, kind="") => { $(id).textContent=text; $(id).className="status "+kind; };
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const campaignId = () => $("campaignSelect").value;
@@ -102,6 +102,7 @@ async function connect() {
   if (!window.supabase?.createClient) throw new Error("Supabase client library did not load. Refresh and try again.");
   apiBase=url+"/functions/v1/campaign-api"; anon=key;
   client=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  client.auth.onAuthStateChange((_event,newSession)=>{ session=newSession; if(!newSession) setSignedIn(false); });
   sessionStorage.setItem("aarohan_campaign_url",url); sessionStorage.setItem("aarohan_campaign_anon",key);
   const {data,error}=await client.auth.getSession(); if(error) throw error;
   session=data.session;
@@ -144,10 +145,12 @@ async function createCampaign() {
 async function loadContacts() {
   if(!campaignId()) return;
   const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/contacts?limit="+pageLimit+"&offset="+pageOffset);
+  activeCampaignChannel=data.campaign.channel;
   totalContacts=data.pagination.total; $("metricContacts").textContent=data.contacts.length;
   $("contactsBody").innerHTML=data.contacts.length?data.contacts.map(row=>{
     const c=row.contact||{}, perm=row.permission_status||"missing";
-    return '<tr><td>'+escapeHtml(c.full_name||"—")+'</td><td>'+escapeHtml(c.phone_e164||"—")+'</td><td>'+escapeHtml(c.email||"—")+'</td><td>'+escapeHtml(row.status)+'</td><td><span class="pill '+escapeHtml(perm)+'">'+escapeHtml(perm)+'</span></td><td>'+(row.permission_evidence_present?"Yes":"No")+'</td><td>'+(row.suppressed?"Yes":"No")+'</td><td>'+Number(row.attempts||0)+'</td></tr>';
+    const isBlocked = row.suppressed || perm === "withdrawn";
+    return '<tr><td>'+escapeHtml(c.full_name||"—")+'</td><td>'+escapeHtml(c.phone_e164||"—")+'</td><td>'+escapeHtml(c.email||"—")+'</td><td>'+escapeHtml(row.status)+'</td><td><span class="pill '+escapeHtml(perm)+'">'+escapeHtml(perm)+'</span></td><td>'+(row.permission_evidence_present?"Yes":"No")+'</td><td>'+(row.suppressed?"Yes":"No")+'</td><td>'+Number(row.attempts||0)+'</td><td><button class="danger optoutBtn" data-contact-id="'+escapeHtml(row.contact_id)+'" '+(isBlocked?"disabled":"")+'>'+(isBlocked?"Suppressed":"Opt out")+'</button></td></tr>';
   }).join(""):'<tr><td colspan="8" class="muted">No contacts enrolled in this campaign yet.</td></tr>';
   $("pageInfo").textContent="Showing "+(totalContacts?pageOffset+1:0)+"–"+Math.min(pageOffset+data.contacts.length,totalContacts)+" of "+totalContacts;
   $("prevPageBtn").disabled=pageOffset===0; $("nextPageBtn").disabled=pageOffset+pageLimit>=totalContacts;
@@ -161,11 +164,17 @@ async function importCsv() {
   $("importResult").textContent=JSON.stringify(data,null,2);
   pageOffset=0; await loadContacts();
 }
+async function optOut(contactId) {
+  if(!confirm("Record opt-out for this contact on the "+activeCampaignChannel+" channel? This blocks future outreach on this channel.")) return;
+  const data=await api("/contacts/"+encodeURIComponent(contactId)+"/opt-out",{method:"POST",body:JSON.stringify({channel:activeCampaignChannel,reason:"operator_requested_opt_out"})});
+  $("workspaceStatus").textContent=data.note||"Contact suppressed.";
+  await loadContacts();
+}
 async function preview() {
   const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/preview",{method:"POST",body:JSON.stringify({})});
   const c=data.counts||{};
   $("metricEligible").textContent=c.eligible??"—"; $("metricBlocked").textContent=c.blocked??"—";
-  $("previewResult").innerHTML='<div class="metrics">'+[
+  $("previewResult").innerHTML='<p><b>Campaign dispatch ready: </b>'+(data.campaign_dispatch_ready?"Yes":"No — draft, paused or dry-run campaigns cannot dispatch")+"</p>"+'<div class="metrics">'+[
     ["Total",c.total],["Eligible",c.eligible],["Blocked",c.blocked],["Permission unknown",c.permission_unknown],
     ["Withdrawn",c.permission_withdrawn],["Missing evidence",c.missing_permission_or_evidence],["Suppressed",c.suppressed],["Invalid",c.invalid_contact]
   ].map(x=>'<div class="metric"><strong>'+escapeHtml(x[1]??0)+'</strong><span>'+escapeHtml(x[0])+'</span></div>').join("")+'</div><p class="muted">'+escapeHtml(data.note||"Read-only preview.")+'</p>';
