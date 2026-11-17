@@ -34,7 +34,8 @@ create table if not exists public.campaigns (
   dry_run boolean not null default true,
   created_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (organization_id, id)
 );
 
 create table if not exists public.contacts (
