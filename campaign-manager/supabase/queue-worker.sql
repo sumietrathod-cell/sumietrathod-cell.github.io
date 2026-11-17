@@ -75,10 +75,11 @@ begin
           and (s.channel is null or s.channel = c.channel)
       )
       and (
-        c.calling_window_start is null
-        or c.calling_window_end is null
+        (c.calling_window_start is null and c.calling_window_end is null)
         or (
-          (now() at time zone c.timezone)::time >= c.calling_window_start
+          c.calling_window_start is not null
+          and c.calling_window_end is not null
+          and (now() at time zone c.timezone)::time >= c.calling_window_start
           and (now() at time zone c.timezone)::time < c.calling_window_end
         )
       )
