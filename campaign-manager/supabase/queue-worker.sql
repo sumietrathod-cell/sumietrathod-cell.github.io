@@ -88,8 +88,8 @@ begin
         )
       )
     order by j.available_at, j.created_at
-    for update of j skip locked
     limit requested_batch_size
+    for update of j skip locked
   ),
   claimed as (
     update public.campaign_jobs j
