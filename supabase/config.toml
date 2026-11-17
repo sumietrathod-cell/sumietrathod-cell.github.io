@@ -1,2 +1,4 @@
 [functions.campaign-api]
-verify_jwt = true
+# The function handles OPTIONS preflight itself and validates Bearer tokens with auth.getUser().
+# Do not rely on gateway JWT enforcement for preflight requests.
+verify_jwt = false
