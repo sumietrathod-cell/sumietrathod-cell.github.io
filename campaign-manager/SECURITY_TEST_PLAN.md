@@ -46,6 +46,7 @@ Do not run against production data. Use a fresh Supabase staging project and two
 - Opt-out writes a suppression row, sets permission to withdrawn and attempts to append a self-attributed audit event.
 - Viewer-role opt-out is allowed because it only restricts future contact; it cannot grant permission.
 - Authenticated users cannot update or delete suppression rows.
+- Deleting a contact with a suppression record is rejected so the do-not-contact history cannot disappear; organization-level deletion is a separate administrative action.
 - If the permission/audit write fails after suppression succeeds, the API reports partial success and suppression remains active.
 - Preview blocks contacts present in suppression list, even if another permission record appears granted.
 
