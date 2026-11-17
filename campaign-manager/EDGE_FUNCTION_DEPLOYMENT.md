@@ -6,6 +6,7 @@ The first authenticated API starter is at `supabase/functions/campaign-api/index
 - `GET /functions/v1/campaign-api/me` — returns the authenticated user and memberships visible under RLS.
 - `GET /functions/v1/campaign-api/campaigns?organization_id=<uuid>` — lists campaigns for a member organization.
 - `POST /functions/v1/campaign-api/campaigns` — creates a draft campaign with `dry_run=true`.
+- `POST /functions/v1/campaign-api/campaigns/{id}/preview` — read-only eligibility preview. Checks permission status/evidence, suppression list, phone validity, campaign contact state and attempt cap; returns counts and up to 100 blocked examples. Maximum 4,999 contacts per request; never sends or queues outreach.
 - `POST /functions/v1/campaign-api/campaigns/{id}/contacts/import` — imports a CSV payload as JSON (`{ "csv_text": "..." }`) into a draft voice/WhatsApp campaign. It accepts up to 500 rows and 1 MB; unknown consent remains unknown. No outreach is sent.
 
 All requests require a Supabase Auth access token. The function uses the caller's JWT and anon key, so database operations remain subject to RLS. It deliberately does not use a service-role key.
