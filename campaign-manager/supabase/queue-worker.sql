@@ -21,7 +21,7 @@ create table if not exists public.campaign_jobs (
     references public.campaign_contacts(organization_id, id) on delete cascade
 );
 
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -33,7 +33,7 @@ begin
       foreign key (organization_id, campaign_contact_id)
       references public.campaign_contacts(organization_id, id) on delete cascade;
   end if;
-end $;
+end $$;
 
 create index if not exists idx_campaign_jobs_due
   on public.campaign_jobs(status, available_at, created_at);
