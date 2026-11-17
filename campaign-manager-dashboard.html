@@ -174,7 +174,7 @@ async function preview() {
   const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/preview",{method:"POST",body:JSON.stringify({})});
   const c=data.counts||{};
   $("metricEligible").textContent=c.eligible??"—"; $("metricBlocked").textContent=c.blocked??"—";
-  $("previewResult").innerHTML='<p><b>Campaign dispatch ready: </b>'+(data.campaign_state_allows_dispatch?"Yes":"No — draft, paused or dry-run campaign")+"</p>"+'<div class="metrics">'+[
+  $("previewResult").innerHTML='<p><b>Campaign state permits dispatch: </b>'+(data.campaign_state_allows_dispatch?"Yes":"No — draft, paused or dry-run campaign")+"</p>"+'<div class="metrics">'+[
     ["Total",c.total],["Eligible",c.eligible],["Blocked",c.blocked],["Permission unknown",c.permission_unknown],
     ["Withdrawn",c.permission_withdrawn],["Missing evidence",c.missing_permission_or_evidence],["Suppressed",c.suppressed],["Invalid",c.invalid_contact]
   ].map(x=>'<div class="metric"><strong>'+escapeHtml(x[1]??0)+'</strong><span>'+escapeHtml(x[0])+'</span></div>').join("")+'</div><p class="muted">'+escapeHtml(data.note||"Read-only preview.")+'</p>';
