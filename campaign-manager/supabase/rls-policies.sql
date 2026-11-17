@@ -57,6 +57,7 @@ drop policy if exists campaign_contacts_member_select on public.campaign_contact
 drop policy if exists campaign_contacts_operator_write on public.campaign_contacts;
 drop policy if exists suppression_member_select on public.suppression_list;
 drop policy if exists suppression_operator_write on public.suppression_list;
+drop policy if exists suppression_operator_insert on public.suppression_list;
 drop policy if exists suppression_member_optout_insert on public.suppression_list;
 drop policy if exists attempts_member_select on public.outreach_attempts;
 drop policy if exists audit_admin_select on public.audit_events;
@@ -126,9 +127,8 @@ with check (public.has_org_role(organization_id, array['owner','admin','operator
 create policy suppression_member_select
 on public.suppression_list for select to authenticated
 using (public.is_org_member(organization_id));
-create policy suppression_operator_write
-on public.suppression_list for all to authenticated
-using (public.has_org_role(organization_id, array['owner','admin','operator']))
+create policy suppression_operator_insert
+on public.suppression_list for insert to authenticated
 with check (public.has_org_role(organization_id, array['owner','admin','operator']));
 create policy suppression_member_optout_insert
 on public.suppression_list for insert to authenticated
