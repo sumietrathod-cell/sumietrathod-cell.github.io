@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
     const blockedByContact = new Map<string, string>();
     const suppressionRows = suppressions ?? [];
     const maxAttempts = Number(campaign.max_attempts ?? 3);
-    const terminalStatuses = new Set(["reached", "qualified", "do_not_contact", "failed", "skipped"]);
+    const terminalStatuses = new Set(["in_progress", "reached", "qualified", "do_not_contact", "failed", "skipped"]);
     const counts = {
       total: (enrolled ?? []).length,
       eligible: 0,
