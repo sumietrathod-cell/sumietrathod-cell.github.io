@@ -57,6 +57,7 @@ drop policy if exists suppression_member_select on public.suppression_list;
 drop policy if exists suppression_operator_write on public.suppression_list;
 drop policy if exists attempts_member_select on public.outreach_attempts;
 drop policy if exists audit_admin_select on public.audit_events;
+drop policy if exists audit_actor_insert on public.audit_events;
 
 -- Organization and membership visibility
 create policy organizations_member_select
@@ -128,7 +129,14 @@ using (public.is_org_member(organization_id));
 create policy audit_admin_select
 on public.audit_events for select to authenticated
 using (public.has_org_role(organization_id, array['owner','admin']));
--- Audit events are written by trusted server-side functions only.
+create policy audit_actor_insert
+on public.audit_events for insert to authenticated
+with check (
+  actor_user_id = (select auth.uid())
+  and public.has_org_role(organization_id, array['owner','admin','operator'])
+  and event_type in ('contact_permission_withdrawn','contact_suppressed')
+);
+-- Clients may append only narrowly scoped, self-attributed opt-out audit events; no update/delete.
 
 -- Helpful integrity indexes. The partial unique index prevents duplicate provider callbacks.
 create unique index if not exists idx_attempts_provider_reference_unique
