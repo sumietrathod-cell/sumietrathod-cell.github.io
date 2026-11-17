@@ -36,12 +36,15 @@ begin
       foreign key (organization_id, contact_id)
       references public.contacts (organization_id, id) on delete cascade;
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'suppression_org_contact_fk') then
-    alter table public.suppression_list
-      add constraint suppression_org_contact_fk
-      foreign key (organization_id, contact_id)
-      references public.contacts (organization_id, id) on delete cascade;
-  end if;
+  -- Preserve DNC history: contact deletion must not cascade away a suppression record.
+  alter table public.suppression_list
+    drop constraint if exists suppression_list_contact_id_fkey;
+  alter table public.suppression_list
+    drop constraint if exists suppression_org_contact_fk;
+  alter table public.suppression_list
+    add constraint suppression_org_contact_fk
+    foreign key (organization_id, contact_id)
+    references public.contacts (organization_id, id) on delete restrict;
   if not exists (select 1 from pg_constraint where conname = 'attempts_org_campaign_contact_fk') then
     alter table public.outreach_attempts
       add constraint attempts_org_campaign_contact_fk
