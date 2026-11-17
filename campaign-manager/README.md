@@ -59,4 +59,4 @@ Both pages are browser-only demonstrations. They do not connect to the database 
 - Dashboard script syntax and DOM-id consistency checks passed in the current repository snapshot. This is not a browser-to-Supabase integration test.
 
 - Security increment: suppression rows are append-only for authenticated users; direct campaign status/dry-run updates are not permitted by the customer RLS policy. The opt-out route is available to any organization member and cannot grant permission.
-- See `SECURITY_TEST_PLAN.md` for staging security tests. CI is configured but must run successfully before release.
+- See `SECURITY_TEST_PLAN.md` for staging security tests and `SUPABASE_STAGING_SETUP.md` for staging project, owner provisioning and deployment steps. CI is configured but must run successfully before release.
