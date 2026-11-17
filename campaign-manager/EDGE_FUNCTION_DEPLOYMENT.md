@@ -6,6 +6,7 @@ The first authenticated API starter is at `supabase/functions/campaign-api/index
 - `GET /functions/v1/campaign-api/me` — returns the authenticated user and memberships visible under RLS.
 - `GET /functions/v1/campaign-api/campaigns?organization_id=<uuid>` — lists campaigns for a member organization.
 - `POST /functions/v1/campaign-api/campaigns` — creates a draft campaign with `dry_run=true`.
+- `GET /functions/v1/campaign-api/campaigns/{id}/contacts?limit=50&offset=0` — read-only, paginated contact workspace data (up to 100 rows), including channel permission status, evidence-present and suppression flags.
 - `POST /functions/v1/campaign-api/campaigns/{id}/preview` — read-only eligibility preview. Checks permission status/evidence, suppression list, phone validity, campaign contact state and attempt cap; returns counts and up to 100 blocked examples. Maximum 4,999 contacts per request; never sends or queues outreach.
 - `POST /functions/v1/campaign-api/campaigns/{id}/contacts/import` — imports a CSV payload as JSON (`{ "csv_text": "..." }`) into a draft voice/WhatsApp campaign. It accepts up to 500 rows and 1 MB; unknown consent remains unknown. No outreach is sent.
 
@@ -25,8 +26,11 @@ All requests require a Supabase Auth access token. The function uses the caller'
 
 ## Current limitations
 - This is an API starter, not a deployed service. No Supabase project is linked or configured by this repository change.
-- The starter exposes authenticated `me`, campaign list/create, CSV contact import and read-only campaign eligibility preview. It still does not schedule or send outreach.
+- The starter exposes authenticated `me`, campaign list/create, paginated campaign contact reads, CSV contact import and read-only campaign eligibility preview. It still does not schedule or send outreach.
 - CORS is restricted to the exact `APP_ORIGIN`; requests without an Origin header are still protected by bearer-token authentication and database RLS.
-- Organization provisioning/invitations, campaign approval, pause, opt-out, queue worker, provider webhooks, rate limits and automated tests are not implemented yet.
+- Organization provisioning/invitations, a connected frontend/contact UI, campaign approval, pause, opt-out, queue worker, provider webhooks, rate limits and automated tests are not implemented yet.
 - Campaign creation always forces draft + dry-run. There is no route to activate outreach.
 - Never add service-role keys or provider secrets to GitHub or browser code.
+
+## Database integrity note
+The revised schema adds composite foreign keys to enforce that linked contacts, campaigns, permissions, suppressions and attempts belong to the same organization. These are present for a fresh schema install. If an earlier schema has already been applied, prepare a reviewed migration rather than rerunning `CREATE TABLE IF NOT EXISTS` and assuming existing tables are altered.
