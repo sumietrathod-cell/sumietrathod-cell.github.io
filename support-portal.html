@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>AAROHAN Customer Support Portal | Staging</title>
+<style>
+:root{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;color:#17324a;background:#f4f8fb}
+*{box-sizing:border-box}body{margin:0}header{background:#091c2f;color:#fff;padding:18px max(16px,calc((100% - 1060px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header a{color:#fff}main{max-width:1060px;margin:auto;padding:25px 16px 70px}
+h1{font-size:clamp(25px,4vw,37px);margin:0 0 8px}h2{font-size:20px;margin:0 0 13px}
+.card{background:#fff;border:1px solid #d7e4ed;border-radius:14px;padding:20px;margin:16px 0;box-shadow:0 3px 20px #081f3310}
+.warn{background:#fff4df;border:1px solid #e9c98e;border-radius:10px;padding:12px 14px;margin:16px 0;color:#604317}
+.muted{color:#5a7180;font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-weight:700;font-size:13px;margin:8px 0}
+input,textarea,select{display:block;width:100%;padding:11px;border:1px solid #b7cbd8;border-radius:9px;margin-top:6px;font:inherit;color:#18364b;background:#fff}
+textarea{min-height:110px;resize:vertical}.wide{grid-column:1/-1}
+button{background:#0b3657;color:white;border:0;border-radius:9px;padding:11px 15px;cursor:pointer;font:700 13px system-ui,Arial;margin:5px 7px 5px 0}
+button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#e7f0f5;color:#153a54}
+#message{min-height:25px;font-weight:700;color:#0b6942}.row{border-bottom:1px solid #e0eaf0;padding:12px 0}
+.row:last-child{border:0}.row button{float:right}.tag{display:inline-block;background:#e8f1f7;padding:3px 9px;border-radius:20px;font-size:12px}
+small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;padding-left:15px}
+.timeline>div{padding:7px 0}.actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+[hidden]{display:none!important}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header><strong>AAROHAN AI WORLD · Support Portal</strong><a href="index.html">Website</a></header>
+<main>
+<h1>Customer Support Portal</h1>
+<p class="muted">Authenticated ticket management · staging implementation</p>
+<div class="warn"><strong>Staging only.</strong> Use test data. Customer sign-in requires an approved redirect URL and verified email delivery.</div>
+<p id="message" role="status" aria-live="polite">Checking your session…</p>
+<section class="card" id="loginCard" hidden>
+<h2>Sign in by email</h2>
+<p class="muted">A secure sign-in link will be sent to your inbox if email delivery and redirects are configured.</p>
+<form id="loginForm"><label>Email address<input type="email" name="email" required autocomplete="email" maxlength="200"></label><button type="submit">Email me a sign-in link</button></form>
+</section>
+<section id="workspace" hidden>
+<div class="actions"><p>Signed in as <strong id="identity"></strong> <span class="tag" id="role"></span></p><button id="signout" class="secondary" type="button">Sign out</button></div>
+<div class="card"><h2>Raise a ticket</h2>
+<form id="createForm"><div class="grid">
+<label>Your name<input name="customer_name" required maxlength="80"></label>
+<label>Contact reference (optional)<input name="contact_reference" maxlength="100"></label>
+<label>Service<select name="service" required><option value="">Select service</option><option>AI Voice Agent</option><option>WhatsApp Automation</option><option>AI Chatbot</option><option>CRM & Dashboard</option><option>Website & SEO</option><option>Billing Software</option><option>Pharma QA Tools</option><option>Other</option></select></label>
+<label>Category<select name="category"><option>Technical issue</option><option>Setup request</option><option>Billing question</option><option>Feature request</option><option>Other</option></select></label>
+<label>Priority<select name="priority"><option>Normal</option><option>High</option><option>Low</option></select></label>
+<label>Subject<input name="subject" required maxlength="140"></label>
+<label class="wide">Description<textarea name="details" required maxlength="3000"></textarea></label>
+</div><button type="submit">Submit ticket</button></form></div>
+<div class="card"><div class="actions"><h2 id="listHeading">My tickets</h2><button class="secondary" id="refresh" type="button">Refresh</button></div><div class="grid"><label>Search tickets<input id="ticketSearch" type="search" placeholder="Ticket number, subject or service" maxlength="140"></label><label>Filter by status<select id="ticketStatusFilter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Waiting for Customer</option><option>Resolved</option><option>Closed</option></select></label></div><p class="muted" id="ticketSummary" aria-live="polite"></p><div id="ticketList"></div><button id="loadMore" class="secondary" type="button" hidden>Load more tickets</button></div>
+<div class="card" id="ticketDetail" hidden></div>
+</section>
+</main>
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const $=id=>document.getElementById(id);
+const cfg={
+ url: 'https://aubzgcgljfszbgnnlzbn.supabase.co',
+ publishableKey: 'sb_publishable_Uf-jMsWUPV80yFlKHZBpcg_L-eGKEzY',
+};
+const note=s=>{$('message').textContent=s};
+const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
+let client=null,user=null,isAdmin=false,selectedId=null,loadedTickets=[];
+let sessionRequest=0,detailRequest=0,listRequest=0,hasMoreTickets=false;
+const ticketPageSize=100;
+client=createClient(cfg.url,cfg.publishableKey,{
+ auth:{
+   persistSession:true,
+   autoRefreshToken:true,
+   detectSessionInUrl:true,
+   storageKey:'aarohan-support-staging-auth',
+ },
+});
+function displayError(e){note(e?.message||String(e))}
+function clearWorkspace(){
+ $('workspace').hidden=true;
+ $('loginCard').hidden=true;
+ $('identity').textContent='';
+ $('role').textContent='';
+ $('createForm').reset();
+ loadedTickets=[];
+ hasMoreTickets=false;
+ $('loadMore').hidden=true;
+ listRequest++;
+ $('ticketSearch').value='';
+ $('ticketStatusFilter').value='';
+ $('ticketSummary').textContent='';
+ $('ticketList').replaceChildren();
+ $('ticketDetail').replaceChildren();
+ $('ticketDetail').hidden=true;
+ user=null;
+ isAdmin=false;
+ selectedId=null;
+ detailRequest++;
+}
+function showLogin(message=''){
+ clearWorkspace();
+ $('loginCard').hidden=false;
+ note(message);
+}
+async function loadSession(request,expectedUserId){
+ try{
+   const {data,error}=await client.auth.getUser();
+   if(request!==sessionRequest)return;
+   if(error&&error.name!=='AuthSessionMissingError')throw error;
+   const current=data?.user;
+   if(!current||current.id!==expectedUserId){
+     showLogin('Your session could not be verified. Please sign in again.');
+     return;
+   }
+   const res=await client.rpc('aarohan_support_is_admin');
+   if(request!==sessionRequest)return;
+   if(res.error)throw res.error;
+   if(typeof res.data!=='boolean')throw new Error('Your support access could not be verified.');
+   if(user?.id!==current.id||isAdmin!==!!res.data)clearWorkspace();
+   user=current;
+   isAdmin=!!res.data;
+   $('identity').textContent=user.email||'Account';
+   $('role').textContent=isAdmin?'Owner / support admin':'Customer';
+   $('listHeading').textContent=isAdmin?'Support desk — all tickets':'My tickets';
+   $('loginCard').hidden=true;
+   $('workspace').hidden=false;
+   note('');
+   await listTickets();
+ }catch(e){
+   if(request!==sessionRequest)return;
+   showLogin('Your support access could not be verified. Please sign in again.');
+ }
+}
+$('loginForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const form=event.currentTarget;
+ const email=String(new FormData(form).get('email')).trim();
+ const button=form.querySelector('button');
+ button.disabled=true;
+ try{
+   const {error}=await client.auth.signInWithOtp({
+     email,
+     options:{emailRedirectTo:location.origin+location.pathname},
+   });
+   if(error)throw error;
+   note('If permitted, a sign-in link has been sent. Check your inbox.');
+ }catch(error){
+   displayError(error);
+ }finally{
+   button.disabled=false;
+ }
+});
+$('signout').addEventListener('click',async event=>{
+ const button=event.currentTarget;
+ button.disabled=true;
+ try{
+   const {error}=await client.auth.signOut({scope:'local'});
+   if(error)throw error;
+ }catch(error){
+   displayError(error);
+ }finally{
+   button.disabled=false;
+ }
+});
+$('refresh').addEventListener('click',listTickets);
+$('loadMore').addEventListener('click',()=>loadTicketsPage(false));
+$('ticketSearch').addEventListener('input',renderTickets);
+$('ticketStatusFilter').addEventListener('change',renderTickets);
+$('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
+ const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
+function renderTickets(){
+ if(!user)return;
+ const q=$('ticketSearch').value.trim().toLowerCase();
+ const status=$('ticketStatusFilter').value;
+ const visible=loadedTickets.filter(t=>
+   (!status||t.status===status) &&
+   (!q||[t.ticket_number,t.subject,t.service,t.customer_name].some(v=>String(v||'').toLowerCase().includes(q)))
+ );
+ const list=$('ticketList');list.replaceChildren();
+ const open=loadedTickets.filter(t=>!['Resolved','Closed'].includes(t.status)).length;
+ $('ticketSummary').textContent=visible.length+' shown · '+loadedTickets.length+' loaded · '+open+' active';
+ if(!visible.length){list.append(element('p','No matching tickets.'));return}
+ for(const t of visible){
+   const row=element('div');row.className='row';
+   const btn=element('button','View');btn.type='button';btn.className='secondary';
+   btn.addEventListener('click',()=>openTicket(t.id));
+   row.append(btn);
+   row.append(element('strong',t.ticket_number+' · '+t.subject));
+   row.append(element('div',t.service+' · '+t.status+' · '+t.priority));
+   row.append(element('small',new Date(t.created_at).toLocaleString()+(isAdmin?' · '+t.customer_name:'')));
+   list.append(row);
+ }
+}
+async function listTickets(){await loadTicketsPage(true)}
+async function loadTicketsPage(reset){
+ if(!user)return;
+ const request=++listRequest;
+ const accountId=user.id;
+ const button=$('loadMore');
+ const start=reset?0:loadedTickets.length;
+ button.disabled=true;
+ try{
+   const {data,error}=await client.from('aarohan_support_tickets')
+     .select('id,ticket_number,subject,service,priority,status,created_at,customer_name')
+     .order('created_at',{ascending:false}).order('id',{ascending:false})
+     .range(start,start+ticketPageSize-1);
+   if(request!==listRequest||user?.id!==accountId)return;
+   if(error)throw error;
+   const page=data||[];
+   loadedTickets=reset?page:loadedTickets.concat(page.filter(t=>!loadedTickets.some(existing=>existing.id===t.id)));
+   hasMoreTickets=page.length===ticketPageSize;
+   button.hidden=!hasMoreTickets;
+   renderTickets();
+   if(reset&&selectedId)await openTicket(selectedId);
+ }catch(err){if(request===listRequest&&user?.id===accountId)displayError(err)}
+ finally{if(request===listRequest)button.disabled=false}
+}
+async function openTicket(id){if(!user)return;const request=++detailRequest;try{
+ const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
+ const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(request!==detailRequest)return;if(events.error)throw events.error;
+ selectedId=id;const box=$('ticketDetail');box.hidden=false;box.replaceChildren(element('h2',t.ticket_number+' · '+t.subject),element('p','Status: '+t.status+' · Priority: '+t.priority),element('p','Service: '+t.service+' · Category: '+t.category),element('p',t.details),element('h3','Activity history'));
+ const timeline=element('div');timeline.className='timeline';timeline.append(element('div','Ticket created · '+new Date(t.created_at).toLocaleString()));
+ for(const h of events.data){const line=element('div');line.append(element('strong',h.action),element('small',' · '+new Date(h.created_at).toLocaleString()));if(h.note)line.append(element('p',h.note));timeline.append(line)}box.append(timeline);
+ if(isAdmin){const form=element('form'),label=element('label','Update status'),select=element('select');for(const s of ['Open','In Progress','Waiting for Customer','Resolved','Closed']){const option=element('option',s);option.value=s;select.append(option)}select.value=t.status;label.append(select);form.append(label);
+ const nlabel=element('label','Reply to customer (visible in ticket history)'),textarea=element('textarea');textarea.maxLength=800;nlabel.append(textarea);form.append(nlabel);
+ const save=element('button','Save update');save.type='submit';form.append(save);
+ form.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{const {error}=await client.rpc('aarohan_support_update_ticket',{p_ticket_id:id,p_status:select.value,p_note:textarea.value.trim()||null});if(error)throw error;note('Ticket updated.');await listTickets()}catch(err){displayError(err)}finally{save.disabled=false}});box.append(form)}
+ else if(t.status!=='Closed'){
+   const replyForm=element('form');
+   const replyLabel=element('label','Reply to support');
+   const replyText=element('textarea');
+   replyText.required=true;replyText.maxLength=800;replyText.minLength=1;
+   replyText.placeholder='Provide an update or answer the support team’s question';
+   replyLabel.append(replyText);replyForm.append(replyLabel);
+   const replyButton=element('button','Send reply');replyButton.type='submit';replyForm.append(replyButton);
+   replyForm.addEventListener('submit',async e=>{
+     e.preventDefault();
+     if(!replyText.value.trim())return;
+     replyButton.disabled=true;
+     try{
+       const {error}=await client.rpc('aarohan_support_customer_reply',{p_ticket_id:id,p_message:replyText.value.trim()});
+       if(error)throw error;
+       note('Reply saved to ticket history.');
+       await listTickets();
+     }catch(err){displayError(err)}
+     finally{replyButton.disabled=false}
+   });
+   box.append(replyForm);
+ }else{box.append(element('p','This ticket is closed. Please create a new ticket for additional help.'))}
+ box.scrollIntoView({behavior:'smooth',block:'start'});
+}catch(err){if(request!==detailRequest)return;selectedId=null;$('ticketDetail').replaceChildren();$('ticketDetail').hidden=true;displayError(err)}}
+client.auth.onAuthStateChange((event,session)=>{
+ const expectedUserId=session?.user?.id;
+ const request=++sessionRequest;
+ if(!expectedUserId||event==='SIGNED_OUT'){
+   showLogin(event==='SIGNED_OUT'?'Signed out.':'');
+   return;
+ }
+ if(user?.id!==expectedUserId)clearWorkspace();
+ $('workspace').hidden=true;
+ $('loginCard').hidden=true;
+ note('Checking your session…');
+ // Run Supabase calls after the auth callback releases its lock.
+ setTimeout(()=>{
+   if(request===sessionRequest)void loadSession(request,expectedUserId);
+ },0);
+});
+</script>
+</body></html>
