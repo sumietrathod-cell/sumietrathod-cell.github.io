@@ -1,0 +1,22 @@
+name: Support portal static checks
+on:
+  pull_request:
+    paths:
+      - 'support-portal.html'
+      - 'supabase/migrations/20261118_support_centre.sql'
+      - 'supabase/migrations/20261118_support_post_staging_hardening.sql'
+      - 'tests/support-portal-contract.mjs'
+      - '.github/workflows/support-portal-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static contract checks
+        run: node tests/support-portal-contract.mjs
