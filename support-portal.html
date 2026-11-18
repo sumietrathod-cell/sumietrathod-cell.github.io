@@ -92,6 +92,28 @@ async function openTicket(id){try{
  const nlabel=element('label','Reply to customer (visible in ticket history)'),textarea=element('textarea');textarea.maxLength=800;nlabel.append(textarea);form.append(nlabel);
  const save=element('button','Save update');save.type='submit';form.append(save);
  form.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{const {error}=await client.rpc('aarohan_support_update_ticket',{p_ticket_id:id,p_status:select.value,p_note:textarea.value.trim()||null});if(error)throw error;note('Ticket updated.');await listTickets()}catch(err){displayError(err)}finally{save.disabled=false}});box.append(form)}
+ else if(t.status!=='Closed'){
+   const replyForm=element('form');
+   const replyLabel=element('label','Reply to support');
+   const replyText=element('textarea');
+   replyText.required=true;replyText.maxLength=800;replyText.minLength=1;
+   replyText.placeholder='Provide an update or answer the support team’s question';
+   replyLabel.append(replyText);replyForm.append(replyLabel);
+   const replyButton=element('button','Send reply');replyButton.type='submit';replyForm.append(replyButton);
+   replyForm.addEventListener('submit',async e=>{
+     e.preventDefault();
+     if(!replyText.value.trim())return;
+     replyButton.disabled=true;
+     try{
+       const {error}=await client.rpc('aarohan_support_customer_reply',{p_ticket_id:id,p_message:replyText.value.trim()});
+       if(error)throw error;
+       note('Reply saved to ticket history.');
+       await listTickets();
+     }catch(err){displayError(err)}
+     finally{replyButton.disabled=false}
+   });
+   box.append(replyForm);
+ }else{box.append(element('p','This ticket is closed. Please create a new ticket for additional help.'))}
  box.scrollIntoView({behavior:'smooth',block:'start'});
 }catch(err){selectedId=null;displayError(err)}}
 client.auth.onAuthStateChange(()=>{setTimeout(loadSession,0)});
