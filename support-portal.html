@@ -113,8 +113,25 @@ async function loadSession(){
    displayError(e);
  }
 }
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const email=new FormData(e.target).get('email');const button=e.target.querySelector('button');button.disabled=true;try{
- const {error}=await client.auth.signInWithOtp({email,emailRedirectTo:location.origin+location.pathname});if(error)throw error;note('If permitted, a sign-in link has been sent. Check your inbox.')}catch(err){displayError(err)}finally{button.disabled=false}});
+$('loginForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const form=event.currentTarget;
+ const email=String(new FormData(form).get('email')).trim();
+ const button=form.querySelector('button');
+ button.disabled=true;
+ try{
+   const {error}=await client.auth.signInWithOtp({
+     email,
+     options:{emailRedirectTo:location.origin+location.pathname},
+   });
+   if(error)throw error;
+   note('If permitted, a sign-in link has been sent. Check your inbox.');
+ }catch(error){
+   displayError(error);
+ }finally{
+   button.disabled=false;
+ }
+});
 $('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut({scope:'local'});if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
 $('refresh').addEventListener('click',listTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
