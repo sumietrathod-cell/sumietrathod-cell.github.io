@@ -30,7 +30,7 @@ small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;paddin
 <main>
 <h1>Customer Support Portal</h1>
 <p class="muted">Authenticated ticket management · staging implementation</p>
-<div class="warn"><strong>Not launched:</strong> This page requires the Supabase support migration, verified email login and security testing before customer use. Do not submit real support requests until AAROHAN confirms launch. Attachments and automated AI replies are not enabled.</div>
+<div class="warn"><strong>Staging only.</strong> Use test data. Customer sign-in requires an approved redirect URL and verified email delivery.</div>
 <p id="message" role="status" aria-live="polite"></p>
 <section class="card" id="loginCard">
 <h2>Sign in by email</h2>
@@ -53,17 +53,25 @@ small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;paddin
 <div class="card" id="ticketDetail" hidden></div>
 </section>
 </main>
-<script src="supabase-config.js"></script>
 <script type="module">
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const $=id=>document.getElementById(id);
-const cfg=window.AAROHAN_SUPABASE_CONFIG;
+const cfg={
+ url: 'https://aubzgcgljfszbgnnlzbn.supabase.co',
+ publishableKey: 'sb_publishable_Uf-jMsWUPV80yFlKHZBpcg_L-eGKEzY',
+};
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
 let client=null,user=null,isAdmin=false,selectedId=null;
 let sessionRequest=0,detailRequest=0;
-if(!cfg||!cfg.url||!cfg.publishableKey){note('Supabase configuration is missing.');throw Error('Missing Supabase configuration')}
-client=createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+client=createClient(cfg.url,cfg.publishableKey,{
+ auth:{
+   persistSession:true,
+   autoRefreshToken:true,
+   detectSessionInUrl:true,
+   storageKey:'aarohan-support-staging-auth',
+ },
+});
 function displayError(e){note(e?.message||String(e))}
 function clearWorkspace(){
  $('workspace').hidden=true;
@@ -107,7 +115,7 @@ async function loadSession(){
 }
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const email=new FormData(e.target).get('email');const button=e.target.querySelector('button');button.disabled=true;try{
  const {error}=await client.auth.signInWithOtp({email,emailRedirectTo:location.origin+location.pathname});if(error)throw error;note('If permitted, a sign-in link has been sent. Check your inbox.')}catch(err){displayError(err)}finally{button.disabled=false}});
-$('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut();if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
+$('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut({scope:'local'});if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
 $('refresh').addEventListener('click',listTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
  const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
