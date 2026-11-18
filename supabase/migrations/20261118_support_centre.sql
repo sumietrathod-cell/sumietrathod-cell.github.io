@@ -110,9 +110,16 @@ with check (
 
 revoke all on public.aarohan_support_tickets from anon;
 revoke all on public.aarohan_support_events from anon;
-grant select, insert on public.aarohan_support_tickets to authenticated;
-grant update on public.aarohan_support_tickets to authenticated;
-grant select, insert on public.aarohan_support_events to authenticated;
+-- Grant only user-input columns for customer ticket creation.
+-- Generated IDs, owner, timestamps, ticket number and status stay server-owned.
+revoke all on public.aarohan_support_tickets from authenticated;
+revoke all on public.aarohan_support_events from authenticated;
+grant select on public.aarohan_support_tickets to authenticated;
+grant insert (customer_name, contact_reference, service, category, priority, subject, details)
+  on public.aarohan_support_tickets to authenticated;
+-- The authenticated owner may update tickets through the restricted RPC below;
+-- direct table UPDATE is intentionally unavailable.
+grant select on public.aarohan_support_events to authenticated;
 
 -- IMPORTANT: Do not expose customer tickets on the public static website without
 -- Supabase Auth. Add storage attachments only with a private bucket and RLS.
