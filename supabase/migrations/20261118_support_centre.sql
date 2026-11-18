@@ -15,7 +15,7 @@ as $$
       and u.email_confirmed_at is not null
   );
 $$;
-revoke all on function public.aarohan_support_is_admin() from public;
+revoke execute on function public.aarohan_support_is_admin() from public, anon;
 grant execute on function public.aarohan_support_is_admin() to authenticated;
 
 create table if not exists public.aarohan_support_tickets (
@@ -59,7 +59,8 @@ begin
   new.updated_at = now();
   return new;
 end;
-$$;
+$;
+revoke execute on function public.aarohan_support_touch_ticket() from public, anon, authenticated;
 drop trigger if exists aarohan_support_ticket_touch on public.aarohan_support_tickets;
 create trigger aarohan_support_ticket_touch
 before update on public.aarohan_support_tickets
@@ -171,7 +172,7 @@ begin
   );
 end;
 $$;
-revoke all on function public.aarohan_support_update_ticket(uuid,text,text) from public;
+revoke execute on function public.aarohan_support_update_ticket(uuid,text,text) from public, anon;
 grant execute on function public.aarohan_support_update_ticket(uuid,text,text) to authenticated;
 
 
@@ -220,5 +221,5 @@ begin
   values (p_ticket_id, auth.uid(), 'Customer reply', trim(p_message));
 end;
 $$;
-revoke all on function public.aarohan_support_customer_reply(uuid,text) from public;
+revoke execute on function public.aarohan_support_customer_reply(uuid,text) from public, anon;
 grant execute on function public.aarohan_support_customer_reply(uuid,text) to authenticated;
