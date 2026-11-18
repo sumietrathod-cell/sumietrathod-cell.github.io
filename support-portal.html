@@ -31,8 +31,8 @@ small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;paddin
 <h1>Customer Support Portal</h1>
 <p class="muted">Authenticated ticket management · staging implementation</p>
 <div class="warn"><strong>Staging only.</strong> Use test data. Customer sign-in requires an approved redirect URL and verified email delivery.</div>
-<p id="message" role="status" aria-live="polite"></p>
-<section class="card" id="loginCard">
+<p id="message" role="status" aria-live="polite">Checking your session…</p>
+<section class="card" id="loginCard" hidden>
 <h2>Sign in by email</h2>
 <p class="muted">A secure sign-in link will be sent to your inbox if email delivery and redirects are configured.</p>
 <form id="loginForm"><label>Email address<input type="email" name="email" required autocomplete="email" maxlength="200"></label><button type="submit">Email me a sign-in link</button></form>
@@ -76,7 +76,7 @@ client=createClient(cfg.url,cfg.publishableKey,{
 function displayError(e){note(e?.message||String(e))}
 function clearWorkspace(){
  $('workspace').hidden=true;
- $('loginCard').hidden=false;
+ $('loginCard').hidden=true;
  $('identity').textContent='';
  $('role').textContent='';
  $('createForm').reset();
@@ -95,17 +95,25 @@ function clearWorkspace(){
  selectedId=null;
  detailRequest++;
 }
-async function loadSession(){
- const request=++sessionRequest;
+function showLogin(message=''){
+ clearWorkspace();
+ $('loginCard').hidden=false;
+ note(message);
+}
+async function loadSession(request,expectedUserId){
  try{
    const {data,error}=await client.auth.getUser();
    if(request!==sessionRequest)return;
    if(error&&error.name!=='AuthSessionMissingError')throw error;
    const current=data?.user;
-   if(!current){clearWorkspace();return}
+   if(!current||current.id!==expectedUserId){
+     showLogin('Your session could not be verified. Please sign in again.');
+     return;
+   }
    const res=await client.rpc('aarohan_support_is_admin');
    if(request!==sessionRequest)return;
    if(res.error)throw res.error;
+   if(typeof res.data!=='boolean')throw new Error('Your support access could not be verified.');
    if(user?.id!==current.id||isAdmin!==!!res.data)clearWorkspace();
    user=current;
    isAdmin=!!res.data;
@@ -114,11 +122,11 @@ async function loadSession(){
    $('listHeading').textContent=isAdmin?'Support desk — all tickets':'My tickets';
    $('loginCard').hidden=true;
    $('workspace').hidden=false;
+   note('');
    await listTickets();
  }catch(e){
    if(request!==sessionRequest)return;
-   clearWorkspace();
-   displayError(e);
+   showLogin('Your support access could not be verified. Please sign in again.');
  }
 }
 $('loginForm').addEventListener('submit',async event=>{
@@ -140,7 +148,18 @@ $('loginForm').addEventListener('submit',async event=>{
    button.disabled=false;
  }
 });
-$('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut({scope:'local'});if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
+$('signout').addEventListener('click',async event=>{
+ const button=event.currentTarget;
+ button.disabled=true;
+ try{
+   const {error}=await client.auth.signOut({scope:'local'});
+   if(error)throw error;
+ }catch(error){
+   displayError(error);
+ }finally{
+   button.disabled=false;
+ }
+});
 $('refresh').addEventListener('click',listTickets);
 $('loadMore').addEventListener('click',()=>loadTicketsPage(false));
 $('ticketSearch').addEventListener('input',renderTickets);
@@ -229,12 +248,20 @@ async function openTicket(id){if(!user)return;const request=++detailRequest;try{
  box.scrollIntoView({behavior:'smooth',block:'start'});
 }catch(err){if(request!==detailRequest)return;selectedId=null;$('ticketDetail').replaceChildren();$('ticketDetail').hidden=true;displayError(err)}}
 client.auth.onAuthStateChange((event,session)=>{
- if(event==='SIGNED_OUT'||(user&&session?.user.id!==user.id)){
-   sessionRequest++;
-   clearWorkspace();
+ const expectedUserId=session?.user?.id;
+ const request=++sessionRequest;
+ if(!expectedUserId||event==='SIGNED_OUT'){
+   showLogin(event==='SIGNED_OUT'?'Signed out.':'');
+   return;
  }
- setTimeout(loadSession,0);
+ if(user?.id!==expectedUserId)clearWorkspace();
+ $('workspace').hidden=true;
+ $('loginCard').hidden=true;
+ note('Checking your session…');
+ // Run Supabase calls after the auth callback releases its lock.
+ setTimeout(()=>{
+   if(request===sessionRequest)void loadSession(request,expectedUserId);
+ },0);
 });
-await loadSession();
 </script>
 </body></html>
