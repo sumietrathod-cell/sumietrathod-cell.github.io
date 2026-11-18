@@ -158,7 +158,7 @@ begin
   values (
     p_ticket_id,
     auth.uid(),
-    case when previous_status = p_status then 'Internal note'
+    case when previous_status = p_status then 'Support reply'
          else 'Status changed: ' || previous_status || ' -> ' || p_status end,
     nullif(trim(p_note), '')
   );
