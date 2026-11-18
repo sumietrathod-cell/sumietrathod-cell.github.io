@@ -61,30 +61,64 @@ const cfg=window.AAROHAN_SUPABASE_CONFIG;
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
 let client=null,user=null,isAdmin=false,selectedId=null;
+let sessionRequest=0,detailRequest=0;
 if(!cfg||!cfg.url||!cfg.publishableKey){note('Supabase configuration is missing.');throw Error('Missing Supabase configuration')}
 client=createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 function displayError(e){note(e?.message||String(e))}
-async function loadSession(){try{
- const {data:{user:current},error}=await client.auth.getUser();if(error&&error.name!=='AuthSessionMissingError')throw error;
- user=current||null;isAdmin=false;
- if(user){const res=await client.rpc('aarohan_support_is_admin');if(res.error)throw res.error;isAdmin=!!res.data}
- $('loginCard').hidden=!!user;$('workspace').hidden=!user;
- if(user){$('identity').textContent=user.email||'Account';$('role').textContent=isAdmin?'Owner / support admin':'Customer';$('listHeading').textContent=isAdmin?'Support desk — all tickets':'My tickets';await listTickets()}
-}catch(e){displayError(e)}}
+function clearWorkspace(){
+ $('workspace').hidden=true;
+ $('loginCard').hidden=false;
+ $('identity').textContent='';
+ $('role').textContent='';
+ $('createForm').reset();
+ $('ticketList').replaceChildren();
+ $('ticketDetail').replaceChildren();
+ $('ticketDetail').hidden=true;
+ user=null;
+ isAdmin=false;
+ selectedId=null;
+ detailRequest++;
+}
+async function loadSession(){
+ const request=++sessionRequest;
+ try{
+   const {data,error}=await client.auth.getUser();
+   if(request!==sessionRequest)return;
+   if(error&&error.name!=='AuthSessionMissingError')throw error;
+   const current=data?.user;
+   if(!current){clearWorkspace();return}
+   const res=await client.rpc('aarohan_support_is_admin');
+   if(request!==sessionRequest)return;
+   if(res.error)throw res.error;
+   if(user?.id!==current.id||isAdmin!==!!res.data)clearWorkspace();
+   user=current;
+   isAdmin=!!res.data;
+   $('identity').textContent=user.email||'Account';
+   $('role').textContent=isAdmin?'Owner / support admin':'Customer';
+   $('listHeading').textContent=isAdmin?'Support desk — all tickets':'My tickets';
+   $('loginCard').hidden=true;
+   $('workspace').hidden=false;
+   await listTickets();
+ }catch(e){
+   if(request!==sessionRequest)return;
+   clearWorkspace();
+   displayError(e);
+ }
+}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const email=new FormData(e.target).get('email');const button=e.target.querySelector('button');button.disabled=true;try{
  const {error}=await client.auth.signInWithOtp({email,emailRedirectTo:location.origin+location.pathname});if(error)throw error;note('If permitted, a sign-in link has been sent. Check your inbox.')}catch(err){displayError(err)}finally{button.disabled=false}});
-$('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut();if(error)displayError(error);else{user=null;selectedId=null;await loadSession();note('Signed out.')}});
+$('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut();if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
 $('refresh').addEventListener('click',listTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
  const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
-async function listTickets(){if(!user)return;try{const {data,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,priority,status,created_at,customer_name').order('created_at',{ascending:false}).limit(200);if(error)throw error;
+async function listTickets(){if(!user)return;const accountId=user.id;const ownerView=isAdmin;try{const {data,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,priority,status,created_at,customer_name').order('created_at',{ascending:false}).limit(200);if(user?.id!==accountId||isAdmin!==ownerView)return;if(error)throw error;
  const list=$('ticketList');list.replaceChildren();if(!data.length){list.append(element('p','No tickets yet.'));return}
  for(const t of data){const row=element('div');row.className='row';const btn=element('button','View');btn.className='secondary';btn.addEventListener('click',()=>openTicket(t.id));row.append(btn);const strong=element('strong',t.ticket_number+' · '+t.subject);row.append(strong);row.append(element('div',t.service+' · '+t.status+' · '+t.priority));row.append(element('small',new Date(t.created_at).toLocaleString()+(isAdmin?' · '+t.customer_name:'')));list.append(row)}
  if(selectedId)await openTicket(selectedId);
 }catch(err){displayError(err)}}
-async function openTicket(id){try{
- const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(error)throw error;
- const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(events.error)throw events.error;
+async function openTicket(id){if(!user)return;const request=++detailRequest;try{
+ const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
+ const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(request!==detailRequest)return;if(events.error)throw events.error;
  selectedId=id;const box=$('ticketDetail');box.hidden=false;box.replaceChildren(element('h2',t.ticket_number+' · '+t.subject),element('p','Status: '+t.status+' · Priority: '+t.priority),element('p','Service: '+t.service+' · Category: '+t.category),element('p',t.details),element('h3','Activity history'));
  const timeline=element('div');timeline.className='timeline';timeline.append(element('div','Ticket created · '+new Date(t.created_at).toLocaleString()));
  for(const h of events.data){const line=element('div');line.append(element('strong',h.action),element('small',' · '+new Date(h.created_at).toLocaleString()));if(h.note)line.append(element('p',h.note));timeline.append(line)}box.append(timeline);
@@ -115,8 +149,14 @@ async function openTicket(id){try{
    box.append(replyForm);
  }else{box.append(element('p','This ticket is closed. Please create a new ticket for additional help.'))}
  box.scrollIntoView({behavior:'smooth',block:'start'});
-}catch(err){selectedId=null;displayError(err)}}
-client.auth.onAuthStateChange(()=>{setTimeout(loadSession,0)});
+}catch(err){if(request!==detailRequest)return;selectedId=null;$('ticketDetail').replaceChildren();$('ticketDetail').hidden=true;displayError(err)}}
+client.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'||(user&&session?.user.id!==user.id)){
+   sessionRequest++;
+   clearWorkspace();
+ }
+ setTimeout(loadSession,0);
+});
 await loadSession();
 </script>
 </body></html>
