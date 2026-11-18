@@ -173,3 +173,52 @@ end;
 $$;
 revoke all on function public.aarohan_support_update_ticket(uuid,text,text) from public;
 grant execute on function public.aarohan_support_update_ticket(uuid,text,text) to authenticated;
+
+
+-- Customers can reply only to tickets they own. All writes are audited.
+-- Replies to resolved tickets reopen them; closed tickets cannot be replied to.
+create or replace function public.aarohan_support_customer_reply(
+  p_ticket_id uuid,
+  p_message text
+)
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  v_customer_id uuid;
+  v_status text;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Sign in required';
+  end if;
+  if p_message is null
+     or length(trim(p_message)) < 1
+     or length(p_message) > 800 then
+    raise exception 'Reply must contain 1 to 800 characters';
+  end if;
+
+  select customer_id, status into v_customer_id, v_status
+  from public.aarohan_support_tickets
+  where id = p_ticket_id
+  for update;
+
+  if not found or v_customer_id is distinct from (select auth.uid()) then
+    raise exception 'Ticket not found';
+  end if;
+  if v_status = 'Closed' then
+    raise exception 'Closed tickets cannot receive replies';
+  end if;
+
+  if v_status in ('Resolved', 'Waiting for Customer') then
+    update public.aarohan_support_tickets
+    set status = 'Open'
+    where id = p_ticket_id;
+  end if;
+
+  insert into public.aarohan_support_events(ticket_id, actor_id, action, note)
+  values (p_ticket_id, auth.uid(), 'Customer reply', trim(p_message));
+end;
+$$;
+revoke all on function public.aarohan_support_customer_reply(uuid,text) from public;
+grant execute on function public.aarohan_support_customer_reply(uuid,text) to authenticated;
