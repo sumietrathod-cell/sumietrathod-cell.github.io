@@ -63,7 +63,7 @@ const cfg={
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
 let client=null,user=null,isAdmin=false,selectedId=null,loadedTickets=[];
-let sessionRequest=0,detailRequest=0;
+let sessionRequest=0,detailRequest=0,listRequest=0;
 client=createClient(cfg.url,cfg.publishableKey,{
  auth:{
    persistSession:true,
@@ -79,6 +79,11 @@ function clearWorkspace(){
  $('identity').textContent='';
  $('role').textContent='';
  $('createForm').reset();
+ loadedTickets=[];
+ listRequest++;
+ $('ticketSearch').value='';
+ $('ticketStatusFilter').value='';
+ $('ticketSummary').textContent='';
  $('ticketList').replaceChildren();
  $('ticketDetail').replaceChildren();
  $('ticketDetail').hidden=true;
@@ -139,6 +144,7 @@ $('ticketStatusFilter').addEventListener('change',renderTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
  const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
 function renderTickets(){
+ if(!user)return;
  const q=$('ticketSearch').value.trim().toLowerCase();
  const status=$('ticketStatusFilter').value;
  const visible=loadedTickets.filter(t=>
@@ -162,15 +168,18 @@ function renderTickets(){
 }
 async function listTickets(){
  if(!user)return;
+ const request=++listRequest;
+ const accountId=user.id;
  try{
    const {data,error}=await client.from('aarohan_support_tickets')
      .select('id,ticket_number,subject,service,priority,status,created_at,customer_name')
      .order('created_at',{ascending:false}).limit(200);
+   if(request!==listRequest||user?.id!==accountId)return;
    if(error)throw error;
    loadedTickets=data||[];
    renderTickets();
    if(selectedId)await openTicket(selectedId);
- }catch(err){displayError(err)}
+ }catch(err){if(request===listRequest&&user?.id===accountId)displayError(err)}
 }
 async function openTicket(id){if(!user)return;const request=++detailRequest;try{
  const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
