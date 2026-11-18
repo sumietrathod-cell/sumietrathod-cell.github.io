@@ -16,7 +16,7 @@
 
 1. Verify the test magic link arrives and opens the private portal on mobile. The exact staging redirect is already allowlisted in Supabase. The existing CRM Site URL was preserved.
 2. Configure a custom SMTP sender for customer addresses. The default Supabase sender currently limits delivery to organization members. Preserve the existing Auth configuration for other modules.
-3. Add server-side ticket and reply rate limits with monitoring.
+3. Review and apply `supabase/migrations/20261118_support_post_staging_hardening.sql` in the same staging project; this incremental migration adds per-account ticket/reply limits. **It has not been run.** Add IP/edge abuse controls and monitoring separately.
 4. Test the deployed portal via the Supabase SDK with two separately signed-in test accounts and the verified owner.
 5. Implement private attachments, notifications and support-team roles before offering those features. Review privacy, retention, backups and access logging before accepting real customer tickets.
 
@@ -28,6 +28,7 @@ The checked items passed in staging through SQL with simulated authenticated rol
 - [x] Anonymous table reads, new ticket creation and support RPC execution are denied by grants.
 - [x] Customer A can create and read their own ticket. Customer B cannot read it or its history by ID.
 - [ ] Check the deployed customer ticket list with both accounts.
+- [ ] After incremental migration: confirm ticket throttling (8/hour, 30/day) and customer reply throttling (20/hour, 100/day) with concurrent requests.
 - [x] Customer A cannot set ticket number, customer ID or status, or update ticket columns directly.
 - [ ] Confirm the remaining generated fields are denied through the API.
 - [x] Customer A cannot call the owner status-update RPC.
