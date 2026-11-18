@@ -49,7 +49,7 @@ small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;paddin
 <label>Subject<input name="subject" required maxlength="140"></label>
 <label class="wide">Description<textarea name="details" required maxlength="3000"></textarea></label>
 </div><button type="submit">Submit ticket</button></form></div>
-<div class="card"><div class="actions"><h2 id="listHeading">My tickets</h2><button class="secondary" id="refresh" type="button">Refresh</button></div><div id="ticketList"></div></div>
+<div class="card"><div class="actions"><h2 id="listHeading">My tickets</h2><button class="secondary" id="refresh" type="button">Refresh</button></div><div class="grid"><label>Search tickets<input id="ticketSearch" type="search" placeholder="Ticket number, subject or service" maxlength="140"></label><label>Filter by status<select id="ticketStatusFilter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Waiting for Customer</option><option>Resolved</option><option>Closed</option></select></label></div><p class="muted" id="ticketSummary" aria-live="polite"></p><div id="ticketList"></div></div>
 <div class="card" id="ticketDetail" hidden></div>
 </section>
 </main>
@@ -62,7 +62,7 @@ const cfg={
 };
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
-let client=null,user=null,isAdmin=false,selectedId=null;
+let client=null,user=null,isAdmin=false,selectedId=null,loadedTickets=[];
 let sessionRequest=0,detailRequest=0;
 client=createClient(cfg.url,cfg.publishableKey,{
  auth:{
@@ -134,13 +134,44 @@ $('loginForm').addEventListener('submit',async event=>{
 });
 $('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut({scope:'local'});if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
 $('refresh').addEventListener('click',listTickets);
+$('ticketSearch').addEventListener('input',renderTickets);
+$('ticketStatusFilter').addEventListener('change',renderTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
  const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
-async function listTickets(){if(!user)return;const accountId=user.id;const ownerView=isAdmin;try{const {data,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,priority,status,created_at,customer_name').order('created_at',{ascending:false}).limit(200);if(user?.id!==accountId||isAdmin!==ownerView)return;if(error)throw error;
- const list=$('ticketList');list.replaceChildren();if(!data.length){list.append(element('p','No tickets yet.'));return}
- for(const t of data){const row=element('div');row.className='row';const btn=element('button','View');btn.className='secondary';btn.addEventListener('click',()=>openTicket(t.id));row.append(btn);const strong=element('strong',t.ticket_number+' · '+t.subject);row.append(strong);row.append(element('div',t.service+' · '+t.status+' · '+t.priority));row.append(element('small',new Date(t.created_at).toLocaleString()+(isAdmin?' · '+t.customer_name:'')));list.append(row)}
- if(selectedId)await openTicket(selectedId);
-}catch(err){displayError(err)}}
+function renderTickets(){
+ const q=$('ticketSearch').value.trim().toLowerCase();
+ const status=$('ticketStatusFilter').value;
+ const visible=loadedTickets.filter(t=>
+   (!status||t.status===status) &&
+   (!q||[t.ticket_number,t.subject,t.service,t.customer_name].some(v=>String(v||'').toLowerCase().includes(q)))
+ );
+ const list=$('ticketList');list.replaceChildren();
+ const open=loadedTickets.filter(t=>!['Resolved','Closed'].includes(t.status)).length;
+ $('ticketSummary').textContent=visible.length+' shown · '+loadedTickets.length+' loaded · '+open+' active';
+ if(!visible.length){list.append(element('p','No matching tickets.'));return}
+ for(const t of visible){
+   const row=element('div');row.className='row';
+   const btn=element('button','View');btn.type='button';btn.className='secondary';
+   btn.addEventListener('click',()=>openTicket(t.id));
+   row.append(btn);
+   row.append(element('strong',t.ticket_number+' · '+t.subject));
+   row.append(element('div',t.service+' · '+t.status+' · '+t.priority));
+   row.append(element('small',new Date(t.created_at).toLocaleString()+(isAdmin?' · '+t.customer_name:'')));
+   list.append(row);
+ }
+}
+async function listTickets(){
+ if(!user)return;
+ try{
+   const {data,error}=await client.from('aarohan_support_tickets')
+     .select('id,ticket_number,subject,service,priority,status,created_at,customer_name')
+     .order('created_at',{ascending:false}).limit(200);
+   if(error)throw error;
+   loadedTickets=data||[];
+   renderTickets();
+   if(selectedId)await openTicket(selectedId);
+ }catch(err){displayError(err)}
+}
 async function openTicket(id){if(!user)return;const request=++detailRequest;try{
  const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
  const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(request!==detailRequest)return;if(events.error)throw events.error;
