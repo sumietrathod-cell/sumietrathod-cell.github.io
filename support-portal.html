@@ -89,7 +89,7 @@ async function openTicket(id){try{
  const timeline=element('div');timeline.className='timeline';timeline.append(element('div','Ticket created · '+new Date(t.created_at).toLocaleString()));
  for(const h of events.data){const line=element('div');line.append(element('strong',h.action),element('small',' · '+new Date(h.created_at).toLocaleString()));if(h.note)line.append(element('p',h.note));timeline.append(line)}box.append(timeline);
  if(isAdmin){const form=element('form'),label=element('label','Update status'),select=element('select');for(const s of ['Open','In Progress','Waiting for Customer','Resolved','Closed']){const option=element('option',s);option.value=s;select.append(option)}select.value=t.status;label.append(select);form.append(label);
- const nlabel=element('label','Internal note (visible in customer ticket history)'),textarea=element('textarea');textarea.maxLength=800;nlabel.append(textarea);form.append(nlabel);
+ const nlabel=element('label','Reply to customer (visible in ticket history)'),textarea=element('textarea');textarea.maxLength=800;nlabel.append(textarea);form.append(nlabel);
  const save=element('button','Save update');save.type='submit';form.append(save);
  form.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{const {error}=await client.rpc('aarohan_support_update_ticket',{p_ticket_id:id,p_status:select.value,p_note:textarea.value.trim()||null});if(error)throw error;note('Ticket updated.');await listTickets()}catch(err){displayError(err)}finally{save.disabled=false}});box.append(form)}
  box.scrollIntoView({behavior:'smooth',block:'start'});
