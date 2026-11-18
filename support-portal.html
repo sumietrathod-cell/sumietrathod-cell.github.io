@@ -49,7 +49,7 @@ small{color:#607788}.timeline{border-left:2px solid #c4d9e4;margin:12px 0;paddin
 <label>Subject<input name="subject" required maxlength="140"></label>
 <label class="wide">Description<textarea name="details" required maxlength="3000"></textarea></label>
 </div><button type="submit">Submit ticket</button></form></div>
-<div class="card"><div class="actions"><h2 id="listHeading">My tickets</h2><button class="secondary" id="refresh" type="button">Refresh</button></div><div class="grid"><label>Search tickets<input id="ticketSearch" type="search" placeholder="Ticket number, subject or service" maxlength="140"></label><label>Filter by status<select id="ticketStatusFilter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Waiting for Customer</option><option>Resolved</option><option>Closed</option></select></label></div><p class="muted" id="ticketSummary" aria-live="polite"></p><div id="ticketList"></div></div>
+<div class="card"><div class="actions"><h2 id="listHeading">My tickets</h2><button class="secondary" id="refresh" type="button">Refresh</button></div><div class="grid"><label>Search tickets<input id="ticketSearch" type="search" placeholder="Ticket number, subject or service" maxlength="140"></label><label>Filter by status<select id="ticketStatusFilter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Waiting for Customer</option><option>Resolved</option><option>Closed</option></select></label></div><p class="muted" id="ticketSummary" aria-live="polite"></p><div id="ticketList"></div><button id="loadMore" class="secondary" type="button" hidden>Load more tickets</button></div>
 <div class="card" id="ticketDetail" hidden></div>
 </section>
 </main>
@@ -63,7 +63,8 @@ const cfg={
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
 let client=null,user=null,isAdmin=false,selectedId=null,loadedTickets=[];
-let sessionRequest=0,detailRequest=0,listRequest=0;
+let sessionRequest=0,detailRequest=0,listRequest=0,hasMoreTickets=false;
+const ticketPageSize=100;
 client=createClient(cfg.url,cfg.publishableKey,{
  auth:{
    persistSession:true,
@@ -80,6 +81,8 @@ function clearWorkspace(){
  $('role').textContent='';
  $('createForm').reset();
  loadedTickets=[];
+ hasMoreTickets=false;
+ $('loadMore').hidden=true;
  listRequest++;
  $('ticketSearch').value='';
  $('ticketStatusFilter').value='';
@@ -139,6 +142,7 @@ $('loginForm').addEventListener('submit',async event=>{
 });
 $('signout').addEventListener('click',async()=>{const {error}=await client.auth.signOut({scope:'local'});if(error)displayError(error);else{sessionRequest++;clearWorkspace();note('Signed out.')}});
 $('refresh').addEventListener('click',listTickets);
+$('loadMore').addEventListener('click',()=>loadTicketsPage(false));
 $('ticketSearch').addEventListener('input',renderTickets);
 $('ticketStatusFilter').addEventListener('change',renderTickets);
 $('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
@@ -166,20 +170,29 @@ function renderTickets(){
    list.append(row);
  }
 }
-async function listTickets(){
+async function listTickets(){await loadTicketsPage(true)}
+async function loadTicketsPage(reset){
  if(!user)return;
  const request=++listRequest;
  const accountId=user.id;
+ const button=$('loadMore');
+ const start=reset?0:loadedTickets.length;
+ button.disabled=true;
  try{
    const {data,error}=await client.from('aarohan_support_tickets')
      .select('id,ticket_number,subject,service,priority,status,created_at,customer_name')
-     .order('created_at',{ascending:false}).limit(200);
+     .order('created_at',{ascending:false}).order('id',{ascending:false})
+     .range(start,start+ticketPageSize-1);
    if(request!==listRequest||user?.id!==accountId)return;
    if(error)throw error;
-   loadedTickets=data||[];
+   const page=data||[];
+   loadedTickets=reset?page:loadedTickets.concat(page.filter(t=>!loadedTickets.some(existing=>existing.id===t.id)));
+   hasMoreTickets=page.length===ticketPageSize;
+   button.hidden=!hasMoreTickets;
    renderTickets();
-   if(selectedId)await openTicket(selectedId);
+   if(reset&&selectedId)await openTicket(selectedId);
  }catch(err){if(request===listRequest&&user?.id===accountId)displayError(err)}
+ finally{if(request===listRequest)button.disabled=false}
 }
 async function openTicket(id){if(!user)return;const request=++detailRequest;try{
  const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
