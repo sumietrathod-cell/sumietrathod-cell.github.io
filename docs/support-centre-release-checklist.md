@@ -1,6 +1,6 @@
 # Customer Support Centre — staging release checklist
 
-**Status** — The database migration is applied in AAROHAN CRM Staging (`aubzgcgljfszbgnnlzbn`). The portal remains a GitHub draft and has no deployed preview URL.
+**Status** — The database migration is applied in AAROHAN CRM Staging (`aubzgcgljfszbgnnlzbn`). The source remains a GitHub draft. The [owner-only staging preview](https://aarohan-support-staging.sumietrathod.chatgpt.site/) is deployed separately from the public website.
 
 ## Implemented
 - Browser-only demo: `support-centre-preview.html`.
@@ -14,11 +14,13 @@
 
 ## Remaining release work
 
-1. Establish the staging portal URL and add only its exact Auth redirect. Verify magic-link delivery, email confirmation and return to the portal on mobile.
+1. Verify the test magic link arrives and opens the private portal on mobile. The exact staging redirect is already allowlisted in Supabase. The existing CRM Site URL was preserved.
 2. Configure a custom SMTP sender for customer addresses. The default Supabase sender currently limits delivery to organization members. Preserve the existing Auth configuration for other modules.
 3. Add server-side ticket and reply rate limits with monitoring.
 4. Test the deployed portal via the Supabase SDK with two separately signed-in test accounts and the verified owner.
 5. Implement private attachments, notifications and support-team roles before offering those features. Review privacy, retention, backups and access logging before accepting real customer tickets.
+
+The hosted preview rendered its sign-in form behind the owner-only access gate. Supabase accepted the test sign-in request for the organization owner. Successful inbox delivery and the portal session after opening the link are separate checks.
 
 ## Acceptance tests
 
