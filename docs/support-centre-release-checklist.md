@@ -11,6 +11,7 @@
 - Staging database tests used two synthetic customers and the verified owner to check row-level security, restricted writes, and the ticket workflow. The test transaction was rolled back.
 - The portal has its own staging connection and browser session storage. Other modules continue to use their existing configuration.
 - Client-side session cleanup now discards cached tickets and stale in-flight ticket-list results on signout or account switch; browser verification remains pending.
+- Support ticket list now uses 100-record pages with an explicit Load more control instead of silently limiting the list to 200 records. Search and status filters apply to the currently loaded pages, not all server records.
 - Customer replies reopen tickets marked Resolved or Waiting for Customer; Closed tickets reject replies.
 
 ## Remaining release work
@@ -43,6 +44,7 @@ The checked items passed in staging through SQL with simulated authenticated rol
 - [ ] Long/blank text is rejected, and submitted text cannot execute HTML or JavaScript.
 - [ ] Mobile login, signout, expired session, refresh, missing database and network errors are handled.
 - [ ] During a slow ticket fetch, sign out and sign into another account; confirm the first account's ticket list never reappears.
+- [ ] With 201+ tickets, verify pagination, Load more, duplicate handling, search/filter behavior and refresh after ticket creation.
 - [ ] OTP redirect returns to correct page without losing session.
 - [ ] Existing site pages, domain and other Supabase tables are unaffected.
 
