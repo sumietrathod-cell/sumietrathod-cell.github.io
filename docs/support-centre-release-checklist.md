@@ -1,6 +1,6 @@
 # Customer Support Centre — staging release checklist
 
-**Status:** GitHub draft implementation, **not deployed**, **not production-ready**.
+**Status** — The database migration is applied in AAROHAN CRM Staging (`aubzgcgljfszbgnnlzbn`). The portal remains a GitHub draft and has no deployed preview URL.
 
 ## Implemented
 - Browser-only demo: `support-centre-preview.html`.
@@ -8,34 +8,37 @@
 - Supabase migration: `supabase/migrations/20261118_support_centre.sql`.
 - Customer ticket creation, personal ticket list, ticket history and customer replies.
 - Owner support desk, status changes and support replies.
-- Customer isolation through RLS and owner-only RPC, subject to verification in the actual Supabase environment.
+- Staging database tests used two synthetic customers and the verified owner to check row-level security, restricted writes, and the ticket workflow. The test transaction was rolled back.
+- The portal has its own staging connection and browser session storage. Other modules continue to use their existing configuration.
 - Customer replies reopen tickets marked Resolved or Waiting for Customer; Closed tickets reject replies.
 
-## Deployment prerequisites (not yet confirmed)
-1. Confirm the actual Supabase project matches `supabase-config.js`. Do **not** use a different project just because an organization is open in the browser.
-2. Review and apply migration in the correct Supabase SQL Editor. **No claim that it has been run.**
-3. Confirm verified owner login uses `aarohananalytics951@gmail.com`; update the allowlist only through a controlled change.
-4. Configure Supabase Auth Site URL and redirect allowlist for the exact production `support-portal.html` URL; verify OTP email delivery and email confirmation.
-5. Add service-side abuse/rate limits and monitoring; email OTP rate limits alone do not rate-limit ticket creation.
-6. Verify migration and UI against the actual Supabase SDK. This branch has not had live browser end-to-end testing.
-7. Implement private attachments with storage RLS, notification email and support-team roles before claiming those features.
-8. Review privacy policy, retention/deletion handling, backup/restore and access logging for real customer data.
-9. Do not merge or deploy before the security tests below pass.
+## Remaining release work
 
-## Acceptance tests (must be run with two separate verified accounts)
-- [ ] Unauthenticated requests cannot read, insert or update tickets/events.
-- [ ] Customer A can create and read own ticket; customer B cannot read it by ID, in lists or through event history.
-- [ ] Customer A cannot set ticket number, customer_id, status, assigned_to, created_at or updated_at.
-- [ ] Customer A cannot call the owner status-update RPC.
-- [ ] Customer A can reply to own Open ticket; reply appears in history.
-- [ ] Customer A cannot reply to customer B's ticket, even if UUID is known.
-- [ ] Reply to Resolved/Waiting for Customer reopens ticket; reply to Closed fails.
-- [ ] Customer cannot directly insert fake events or edit event history.
-- [ ] Owner can see all tickets, change status and reply; change is audited.
+1. Establish the staging portal URL and add only its exact Auth redirect. Verify magic-link delivery, email confirmation and return to the portal on mobile.
+2. Configure a custom SMTP sender for customer addresses. The default Supabase sender currently limits delivery to organization members. Preserve the existing Auth configuration for other modules.
+3. Add server-side ticket and reply rate limits with monitoring.
+4. Test the deployed portal via the Supabase SDK with two separately signed-in test accounts and the verified owner.
+5. Implement private attachments, notifications and support-team roles before offering those features. Review privacy, retention, backups and access logging before accepting real customer tickets.
+
+## Acceptance tests
+
+The checked items passed in staging through SQL with simulated authenticated roles or explicit grant checks. They still need confirmation through the deployed portal where applicable.
+- [x] Anonymous table reads, new ticket creation and support RPC execution are denied by grants.
+- [x] Customer A can create and read their own ticket. Customer B cannot read it or its history by ID.
+- [ ] Check the deployed customer ticket list with both accounts.
+- [x] Customer A cannot set ticket number, customer ID or status, or update ticket columns directly.
+- [ ] Confirm the remaining generated fields are denied through the API.
+- [x] Customer A cannot call the owner status-update RPC.
+- [x] Customer A can reply to their own Open ticket.
+- [x] Customer A cannot reply to customer B's ticket, even if UUID is known.
+- [x] Reply to Resolved reopens the ticket, and reply to Closed fails.
+- [ ] Check reopening from Waiting for Customer in the portal.
+- [x] Customer has no direct event insert privileges.
+- [x] The verified owner can update and reply to a customer ticket. The reply is recorded in its history.
 - [ ] Owner's support replies are correctly labelled customer-visible, not private notes.
 - [ ] Long/blank text is rejected, and submitted text cannot execute HTML or JavaScript.
 - [ ] Mobile login, signout, expired session, refresh, missing database and network errors are handled.
 - [ ] OTP redirect returns to correct page without losing session.
 - [ ] Existing site pages, domain and other Supabase tables are unaffected.
 
-**Security note:** the demo and staging code are separate. Do not enter actual customer data into the browser-only demo. Staging relies on the migration and verified authentication; no claim of production readiness is made.
+Use synthetic data in both the browser-only demo and the staging portal.
