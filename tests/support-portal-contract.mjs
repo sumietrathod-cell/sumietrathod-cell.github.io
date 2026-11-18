@@ -35,7 +35,7 @@ assert.doesNotMatch(js, /\.innerHTML\s*=/, 'Do not inject user content as HTML')
 assert.match(sql, /enable row level security/);
 assert.match(sql, /support_customer_select/);
 assert.match(sql, /support_customer_create/);
-assert.match(sql, /revoke all on public\.aarohan_support_events from authenticated/);
+assert.match(sql, /revoke all on public\.aarohan_support_events from (?:anon,\s*)?authenticated/);
 assert.match(hardening, /aarohan_support_limit_ticket_creation/);
 assert.match(hardening, /aarohan_support_limit_customer_replies/);
 console.log('Support portal static contract checks passed. Browser and RLS integration tests still required.');
