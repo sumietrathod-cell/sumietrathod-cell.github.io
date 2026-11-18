@@ -118,3 +118,51 @@ grant select, insert on public.aarohan_support_events to authenticated;
 -- Supabase Auth. Add storage attachments only with a private bucket and RLS.
 -- Before launch, configure auth redirects, rate limits and email delivery, then
 -- test owner/customer isolation with two separate verified accounts.
+
+-- Atomic admin status updates and event history.
+create or replace function public.aarohan_support_update_ticket(
+  p_ticket_id uuid,
+  p_status text,
+  p_note text default null
+)
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  previous_status text;
+begin
+  if not public.aarohan_support_is_admin() then
+    raise exception 'Not authorized';
+  end if;
+  if p_status is null or p_status not in ('Open','In Progress','Waiting for Customer','Resolved','Closed') then
+    raise exception 'Invalid status';
+  end if;
+  if length(coalesce(p_note,'')) > 800 then
+    raise exception 'Note is too long';
+  end if;
+  select status into previous_status
+  from public.aarohan_support_tickets
+  where id = p_ticket_id
+  for update;
+  if not found then
+    raise exception 'Ticket not found';
+  end if;
+  if previous_status = p_status and nullif(trim(coalesce(p_note,'')), '') is null then
+    return;
+  end if;
+  update public.aarohan_support_tickets
+  set status = p_status
+  where id = p_ticket_id;
+  insert into public.aarohan_support_events(ticket_id, actor_id, action, note)
+  values (
+    p_ticket_id,
+    auth.uid(),
+    case when previous_status = p_status then 'Internal note'
+         else 'Status changed: ' || previous_status || ' -> ' || p_status end,
+    nullif(trim(p_note), '')
+  );
+end;
+$$;
+revoke all on function public.aarohan_support_update_ticket(uuid,text,text) from public;
+grant execute on function public.aarohan_support_update_ticket(uuid,text,text) to authenticated;
