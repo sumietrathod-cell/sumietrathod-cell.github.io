@@ -134,9 +134,9 @@ async function whatsappWebhook(request, url) {
       }
     }
   }
-  if (!records.size) return respond(204);
+  if (!records.size) return respond(200, { received: true });
   const saved = await database('/rest/v1/campaign_inbox?on_conflict=external_id', [...records.values()], 'resolution=ignore-duplicates,return=minimal');
-  return saved.ok ? respond(204) : respond(503, { error: 'Could not receive messages' });
+  return saved.ok ? respond(200, { received: true }) : respond(503, { error: 'Could not receive messages' });
 }
 
 Deno.serve(async request => {
