@@ -103,6 +103,19 @@ function recognize(samples, language, task) {
   });
 }
 
+function hasRepeatedPhrase(text) {
+  const words = text.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? [];
+  // A long, exact decoding loop is unreliable for a clip limited to 30 seconds.
+  for (let size = 1; size <= Math.min(12, Math.floor(words.length / 8)); size++) {
+    let streak = 0;
+    for (let i = size; i < words.length; i++) {
+      streak = words[i] === words[i - size] ? streak + 1 : 0;
+      if (streak >= Math.max(32, size * 7)) return true;
+    }
+  }
+  return false;
+}
+
 async function transcribeAudio(blob) {
   if (processing || !blob) return;
   processing = true;
@@ -111,7 +124,11 @@ async function transcribeAudio(blob) {
   try {
     const language = byId('spoken-language').value;
     const task = byId('transcription-task').value;
-    transcript.value = await recognize(await audioSamples(blob), language, task);
+    const result = await recognize(await audioSamples(blob), language, task);
+    if (hasRepeatedPhrase(result)) {
+      throw new Error('Speech recognition repeated the same phrase too many times. Try a shorter recording.');
+    }
+    transcript.value = result;
     transcriptLocale = task === 'translate' ? 'en-IN' : outputLocales[language];
     downloadTranscript.disabled = !transcript.value;
     byId('read-transcript').disabled = !transcript.value;
