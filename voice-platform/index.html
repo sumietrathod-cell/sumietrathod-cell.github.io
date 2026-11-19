@@ -12,6 +12,7 @@
   <article class="card stack">
     <h2>Speech to text</h2>
     <label>Spoken language<select id="spoken-language"><option value="english">English</option><option value="hindi">Hindi</option><option value="gujarati">Gujarati</option></select></label>
+    <label>Speech model<select id="speech-model"><option value="tiny">Whisper Tiny (smaller download)</option><option value="small">Whisper Small (larger download)</option></select></label>
     <label>Output<select id="transcription-task"><option value="transcribe">Original language</option><option value="translate">Translate speech to English</option></select></label>
     <label>Audio file<input id="audio-file" type="file" accept="audio/*,.webm,.mp4,.m4a,.ogg"></label>
     <div class="row"><button id="transcribe" type="button" disabled>Transcribe file</button><button class="secondary" id="record" type="button">Record mic</button><button class="secondary" id="stop-recording" type="button" hidden>Stop recording</button></div>
@@ -53,6 +54,6 @@
 </section>
 </main>
 <footer>Speech recognition uses a multilingual Whisper model. <a href="https://github.com/openai/whisper/blob/main/LICENSE">Whisper license</a></footer>
-<script type="module" src="studio.js?v=transcript-loop-check"></script>
+<script type="module" src="studio.js?v=multilingual-2"></script>
 </body>
 </html>
