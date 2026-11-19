@@ -80,7 +80,11 @@ on public.campaigns for select to authenticated
 using (public.is_org_member(organization_id));
 create policy campaigns_manager_insert
 on public.campaigns for insert to authenticated
-with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+with check (
+  public.has_org_role(organization_id, array['owner','admin','operator'])
+  and status = 'draft'
+  and dry_run is true
+);
 -- Campaign status and dry_run are intentionally not client-updatable. Future approval/pause
 -- must use dedicated audited server-side endpoints with explicit owner authorization.
 create policy campaigns_admin_delete
