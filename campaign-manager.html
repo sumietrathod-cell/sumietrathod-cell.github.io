@@ -26,6 +26,9 @@ button:disabled { opacity: .65; cursor: wait; }
 [hidden] { display: none !important; }
 #message { color: #fbc6ae; }
 #message:empty { display: none; }
+#recovery-options { max-width: 28rem; margin-top: 1rem; }
+summary { cursor: pointer; color: #86e6d1; }
+#request-reset { margin-top: .75rem; }
 #dashboard { display: grid; gap: 1rem; }
 .dashboard-title { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; }
 .list { list-style: none; margin: 0; padding: 0; }
@@ -45,6 +48,19 @@ button:disabled { opacity: .65; cursor: wait; }
   <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
   <button id="submit" type="submit">Sign in</button>
 </form>
+<details id="recovery-options">
+  <summary>Set or reset password</summary>
+  <form id="request-reset" method="post">
+    <label>Account email<input id="reset-email" type="email" autocomplete="email" required></label>
+    <button type="submit">Send password link</button>
+  </form>
+</details>
+<form id="set-password" method="post" hidden>
+  <h2>Set a new password</h2>
+  <label>New password<input id="new-password" type="password" autocomplete="new-password" minlength="12" required></label>
+  <label>Confirm new password<input id="confirm-password" type="password" autocomplete="new-password" minlength="12" required></label>
+  <button type="submit">Save password</button>
+</form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
   <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul></article>
@@ -60,6 +76,9 @@ const submit = document.querySelector('#submit');
 const password = document.querySelector('#password');
 const signOut = document.querySelector('#sign-out');
 const message = document.querySelector('#message');
+const recoveryOptions = document.querySelector('#recovery-options');
+const requestReset = document.querySelector('#request-reset');
+const setPassword = document.querySelector('#set-password');
 const dashboard = document.querySelector('#dashboard');
 const roleHeading = document.querySelector('#role-heading');
 const partnerCard = document.querySelector('#partner-card');
@@ -70,9 +89,9 @@ let accessToken;
 let expires;
 let offset = 0;
 
-async function request(path, options = {}) {
+async function request(path, options = {}, token = accessToken) {
   const headers = new Headers({ apikey: apiKey, 'Content-Type': 'application/json' });
-  if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
+  if (token) headers.set('Authorization', 'Bearer ' + token);
   const response = await fetch(apiUrl + path, { ...options, headers, cache: 'no-store' });
   if (!response.ok) {
     const error = new Error('Request failed');
@@ -127,6 +146,7 @@ function clearSession() {
   partnerList.replaceChildren();
   leadList.replaceChildren();
   form.hidden = false;
+  recoveryOptions.hidden = false;
 }
 
 form.addEventListener('submit', async event => {
@@ -159,6 +179,7 @@ form.addEventListener('submit', async event => {
     await loadLeads();
     roleHeading.textContent = admin ? 'Admin dashboard' : 'Partner dashboard';
     form.hidden = true;
+    recoveryOptions.hidden = true;
     dashboard.hidden = false;
     signOut.hidden = false;
     roleHeading.focus();
@@ -203,6 +224,74 @@ signOut.addEventListener('click', async () => {
     signOut.disabled = false;
     form.elements.email.focus();
   }
+});
+const redirectUrl = new URL(location.pathname, location.origin).href;
+const recoveryParams = new URLSearchParams(location.hash.slice(1));
+let recoveryToken = recoveryParams.get('type') === 'recovery' ? recoveryParams.get('access_token') : null;
+if (recoveryParams.has('access_token') || recoveryParams.has('error_code')) {
+  history.replaceState(null, '', location.pathname);
+}
+if (recoveryToken) {
+  form.hidden = true;
+  recoveryOptions.hidden = true;
+  setPassword.hidden = false;
+  setPassword.elements['new-password'].focus();
+} else if (recoveryParams.has('error_code')) {
+  message.textContent = 'This link has expired or is invalid. Request a new password link.';
+  recoveryOptions.open = true;
+}
+
+requestReset.addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = requestReset.querySelector('button');
+  button.disabled = true;
+  message.textContent = '';
+  try {
+    await request('/auth/v1/recover?redirect_to=' + encodeURIComponent(redirectUrl), {
+      method: 'POST',
+      body: JSON.stringify({ email: requestReset.elements['reset-email'].value.trim() }),
+    });
+    message.textContent = 'If your account exists, Supabase will send a password link. Check your inbox and spam folder.';
+  } catch (error) {
+    message.textContent = error.status === 429 ? 'Please wait before requesting another link.' : 'Could not request a password link. Try again.';
+  } finally {
+    button.disabled = false;
+  }
+});
+
+setPassword.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!recoveryToken) return;
+  const fields = setPassword.elements;
+  const nextPassword = fields['new-password'].value;
+  if (nextPassword !== fields['confirm-password'].value) {
+    message.textContent = 'The passwords do not match.';
+    fields['confirm-password'].focus();
+    return;
+  }
+  const button = setPassword.querySelector('button');
+  button.disabled = true;
+  message.textContent = '';
+  try {
+    await request('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ password: nextPassword }) }, recoveryToken);
+    await request('/auth/v1/logout?scope=local', { method: 'POST' }, recoveryToken).catch(() => {});
+    message.textContent = 'Password saved. Sign in with your new password.';
+  } catch (error) {
+    if (![401, 403].includes(error.status)) {
+      message.textContent = 'Could not save the password. Check the password requirements and try again.';
+      return;
+    }
+    message.textContent = 'This link has expired or is invalid. Request a new password link.';
+    recoveryOptions.open = true;
+  } finally {
+    button.disabled = false;
+  }
+  recoveryToken = null;
+  setPassword.reset();
+  setPassword.hidden = true;
+  form.hidden = false;
+  recoveryOptions.hidden = false;
+  form.elements.email.focus();
 });
 </script>
 </body>
