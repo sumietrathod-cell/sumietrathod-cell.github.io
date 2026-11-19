@@ -6,8 +6,10 @@ let ready;
 
 self.addEventListener('message', async ({ data }) => {
   try {
-    ready ??= pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-      device: 'wasm', dtype: 'q8', revision: '5332fcc35e32a33b86612b9a57a89be7906102b1',
+    const larger = data.model === 'small';
+    const modelId = larger ? 'Xenova/whisper-small' : 'Xenova/whisper-tiny';
+    ready ??= pipeline('automatic-speech-recognition', modelId, {
+      device: 'wasm', dtype: 'q8', revision: larger ? '5cfd31acdccf24bc3731005c0e9cabae434f21c8' : '5332fcc35e32a33b86612b9a57a89be7906102b1',
       progress_callback: progress => {
         if (progress.status === 'initiate') self.postMessage({ type: 'loading' });
       },

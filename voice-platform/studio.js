@@ -24,6 +24,7 @@ const outputLocales = { english: 'en-IN', hindi: 'hi-IN', gujarati: 'gu-IN' };
 let transcriptLocale;
 let voices = [];
 let worker;
+let workerModel;
 let recorder;
 let recordingTimeout;
 let processing = false;
@@ -77,9 +78,15 @@ async function audioSamples(blob) {
 }
 
 function recognize(samples, language, task) {
-  worker ??= new Worker(new URL('./transcriber.js', import.meta.url), { type: 'module' });
+  const model = byId('speech-model').value;
+  if (worker && workerModel !== model) {
+    worker.terminate();
+    worker = undefined;
+  }
+  workerModel = model;
+  worker ??= new Worker(new URL('./transcriber.js?v=multilingual-2', import.meta.url), { type: 'module' });
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => stop(new Error('Transcription took too long. Try a shorter recording.')), 180000);
+    const timer = setTimeout(() => stop(new Error('Transcription took too long. Try a shorter recording.')), model === 'small' ? 420000 : 180000);
     function stop(error, output) {
       clearTimeout(timer);
       worker.onmessage = null;
@@ -99,7 +106,7 @@ function recognize(samples, language, task) {
       if (data.type === 'error') stop(new Error('Transcription failed. Check the model download or try a different audio format.'));
     };
     worker.onerror = () => stop(new Error('The speech model could not start in this browser.'));
-    worker.postMessage({ samples, language, task }, [samples.buffer]);
+    worker.postMessage({ samples, language, task, model }, [samples.buffer]);
   });
 }
 
