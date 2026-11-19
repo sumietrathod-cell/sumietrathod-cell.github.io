@@ -42,6 +42,7 @@ function updateAudioControls() {
 }
 
 async function audioSamples(blob) {
+  if (blob.size === 0) throw new Error('The recording is empty. Record again or choose another audio file.');
   if (blob.size > 12 * 1024 * 1024) throw new Error('Choose an audio file under 12 MB.');
   const context = new AudioContext();
   let audio;
@@ -56,7 +57,13 @@ async function audioSamples(blob) {
   source.buffer = audio;
   source.connect(offline.destination);
   source.start();
-  return (await offline.startRendering()).getChannelData(0);
+  const samples = (await offline.startRendering()).getChannelData(0);
+  // A disconnected input can produce a flat line, including a constant DC offset.
+  // Keep quiet recordings with any variation eligible for recognition.
+  if (!samples.some(sample => sample !== samples[0])) {
+    throw new Error('No audio signal detected. Check your microphone or choose another audio file.');
+  }
+  return samples;
 }
 
 function recognize(samples, language, task) {
