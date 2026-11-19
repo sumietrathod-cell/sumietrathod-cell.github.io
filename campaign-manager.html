@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Campaign Manager | AAROHAN AI WORLD</title>
+<style>
+:root { color-scheme: dark; font-family: system-ui, sans-serif; color: #edf4ff; background: #0c1220; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main { width: min(72rem, 100% - 2rem); margin: auto; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 1.25rem; border-bottom: 1px solid #28374e; }
+header a { color: inherit; font-weight: 750; text-decoration: none; letter-spacing: .08em; }
+main { padding-block: clamp(2rem, 6vw, 5rem); }
+h1 { margin: 0 0 1rem; font-size: clamp(2rem, 6vw, 3.6rem); letter-spacing: -.05em; }
+h2 { margin-top: 0; }
+p { color: #abbcd5; line-height: 1.6; }
+form, article { background: #151f31; border: 1px solid #2b3b54; border-radius: 1rem; padding: clamp(1rem, 4vw, 1.75rem); }
+form { max-width: 28rem; display: grid; gap: .75rem; }
+input, button { font: inherit; min-height: 2.9rem; border-radius: .55rem; padding: .6rem .8rem; }
+input { width: 100%; color: inherit; background: #0e1828; border: 1px solid #526886; margin-top: .35rem; }
+button { cursor: pointer; font-weight: 700; color: #0b1724; background: #86e6d1; border: 0; }
+button:disabled { opacity: .65; cursor: wait; }
+:focus-visible { outline: 2px solid #a5d3ff; outline-offset: 3px; }
+[hidden] { display: none !important; }
+#message { color: #fbc6ae; }
+#message:empty { display: none; }
+#dashboard { display: grid; gap: 1rem; }
+.dashboard-title { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { padding: .75rem 0; overflow-wrap: anywhere; }
+.list li + li { border-top: 1px solid #2b3b54; }
+.list strong, .list span { display: block; }
+.list span { color: #abbcd5; margin-top: .3rem; }
+</style>
+</head>
+<body>
+<header><a href="./">AAROHAN AI WORLD</a><button id="sign-out" type="button" hidden>Sign out</button></header>
+<main>
+<h1>Campaign Manager</h1>
+<p id="message" role="alert"></p>
+<form id="sign-in" method="post">
+  <label>Email<input id="email" type="email" autocomplete="username" required></label>
+  <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+  <button id="submit" type="submit">Sign in</button>
+</form>
+<section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
+  <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul></article>
+  <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
+</section>
+</main>
+<script type="module">
+const apiUrl = 'https://zvrdbekyqbwrztckvkpw.supabase.co';
+const apiKey = 'sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI';
+const pageSize = 25;
+const form = document.querySelector('#sign-in');
+const submit = document.querySelector('#submit');
+const password = document.querySelector('#password');
+const signOut = document.querySelector('#sign-out');
+const message = document.querySelector('#message');
+const dashboard = document.querySelector('#dashboard');
+const roleHeading = document.querySelector('#role-heading');
+const partnerCard = document.querySelector('#partner-card');
+const partnerList = document.querySelector('#partner-list');
+const leadList = document.querySelector('#lead-list');
+const more = document.querySelector('#more');
+let accessToken;
+let expires;
+let offset = 0;
+
+async function request(path, options = {}) {
+  const headers = new Headers({ apikey: apiKey, 'Content-Type': 'application/json' });
+  if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
+  const response = await fetch(apiUrl + path, { ...options, headers, cache: 'no-store' });
+  if (!response.ok) {
+    const error = new Error('Request failed');
+    error.status = response.status;
+    throw error;
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+function renderRows(list, rows, emptyText, append = false) {
+  const entries = rows.length ? rows : [{ title: emptyText }];
+  const items = entries.map(({ title, detail }) => {
+    const item = document.createElement('li');
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    item.append(heading);
+    if (detail) {
+      const summary = document.createElement('span');
+      summary.textContent = detail;
+      item.append(summary);
+    }
+    return item;
+  });
+  if (append) {
+    if (rows.length) list.append(...items);
+  } else {
+    list.replaceChildren(...items);
+  }
+}
+
+async function loadLeads() {
+  const token = accessToken;
+  if (!token) return;
+  const rows = await request('/rest/v1/leads?select=id,name,company,country,status&order=created_at.desc.nullslast,id.asc&limit=' + (pageSize + 1) + '&offset=' + offset);
+  if (token !== accessToken) return;
+  renderRows(leadList, rows.slice(0, pageSize).map(lead => ({
+    title: lead.name,
+    detail: [lead.company, lead.country, lead.status].filter(Boolean).join(' · '),
+  })), 'No leads to display.', offset > 0);
+  offset += pageSize;
+  more.hidden = rows.length <= pageSize;
+}
+
+function clearSession() {
+  clearTimeout(expires);
+  accessToken = undefined;
+  offset = 0;
+  dashboard.hidden = true;
+  partnerCard.hidden = true;
+  signOut.hidden = true;
+  more.hidden = true;
+  partnerList.replaceChildren();
+  leadList.replaceChildren();
+  form.hidden = false;
+}
+
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  submit.disabled = true;
+  message.textContent = '';
+  let session;
+  try {
+    session = await request('/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      body: JSON.stringify({ email: form.elements.email.value.trim(), password: password.value }),
+    });
+    password.value = '';
+    accessToken = session.access_token;
+    const admin = session.user?.app_metadata?.campaign_manager_role === 'admin';
+    if (!admin) {
+      const profiles = await request('/rest/v1/partners?select=name,commission_rate&limit=1');
+      if (!profiles.length) {
+        message.textContent = 'Your account does not have Campaign Manager access.';
+        await request('/auth/v1/logout', { method: 'POST' }).catch(() => {});
+        clearSession();
+        return;
+      }
+      renderRows(partnerList, profiles.map(profile => ({
+        title: profile.name,
+        detail: profile.commission_rate == null ? '' : profile.commission_rate + '% commission rate',
+      })), 'No partner profile.');
+      partnerCard.hidden = false;
+    }
+    await loadLeads();
+    roleHeading.textContent = admin ? 'Admin dashboard' : 'Partner dashboard';
+    form.hidden = true;
+    dashboard.hidden = false;
+    signOut.hidden = false;
+    roleHeading.focus();
+    expires = setTimeout(() => {
+      clearSession();
+      message.textContent = 'Your session expired. Sign in again.';
+    }, session.expires_in * 1000);
+  } catch (error) {
+    if (accessToken) await request('/auth/v1/logout', { method: 'POST' }).catch(() => {});
+    clearSession();
+    message.textContent = !session && [400, 401, 422].includes(error.status)
+      ? 'Email or password is incorrect, or the account needs confirmation.'
+      : 'Campaign Manager is unavailable. Try again.';
+  } finally {
+    password.value = '';
+    submit.disabled = false;
+  }
+});
+
+more.addEventListener('click', async () => {
+  more.disabled = true;
+  message.textContent = '';
+  try {
+    await loadLeads();
+  } catch (error) {
+    if (error.status === 401) clearSession();
+    message.textContent = error.status === 401 ? 'Your session expired. Sign in again.' : 'Could not load more leads. Try again.';
+  } finally {
+    more.disabled = false;
+  }
+});
+
+signOut.addEventListener('click', async () => {
+  signOut.disabled = true;
+  message.textContent = '';
+  try {
+    await request('/auth/v1/logout', { method: 'POST' });
+  } catch {
+    message.textContent = 'Signed out on this page. Supabase could not confirm sign-out.';
+  } finally {
+    clearSession();
+    signOut.disabled = false;
+    form.elements.email.focus();
+  }
+});
+</script>
+</body>
+</html>
