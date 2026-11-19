@@ -160,7 +160,10 @@ summary { cursor: pointer; color: #86e6d1; }
       </form>
     </details>
   </article>
-  <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul></article>
+  <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul>
+    <h3>My sales and commission</h3>
+    <button type="button" id="partner-refresh">Refresh my totals</button>
+    <p id="partner-totals" role="status"></p></article>
   <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
   <article id="lead-editor" hidden>
     <div class="lead-editor-heading"><h2 id="lead-title" tabindex="-1">Lead details</h2><button id="close-lead" type="button">Close details</button></div>
@@ -361,6 +364,24 @@ saleForm.addEventListener('submit',async event => {
   }
 });
 
+let partnerRequest = 0;
+async function refreshPartnerTotals() {
+  const token = accessToken;
+  if (!token || adminSession) return;
+  const version = ++partnerRequest;
+  const output = document.querySelector('#partner-totals');
+  output.textContent = 'Loading your totals…';
+  try {
+    const rows = await request('/rest/v1/rpc/campaign_partner_sales_summary', {method:'POST',body:'{}'}, token);
+    if (token !== accessToken || version !== partnerRequest) return;
+    const row = rows[0];
+    output.textContent = row ? row.sale_count + ' sales · ' + money.format(row.sales_inr) + ' sales value · ' + money.format(row.earned_inr) + ' commission earned' : 'Active partner access required.';
+  } catch {
+    if (token === accessToken && version === partnerRequest) output.textContent = 'Could not load totals. Select Refresh my totals to retry.';
+  }
+}
+document.querySelector('#partner-refresh').addEventListener('click',refreshPartnerTotals);
+
 async function loadLeads() {
   const token = accessToken;
   if (!token) return;
@@ -409,6 +430,7 @@ function clearSession() {
   signOut.hidden = true;
   more.hidden = true;
   partnerList.replaceChildren();
+  document.querySelector('#partner-totals').textContent = '';
   leadList.replaceChildren();
   form.hidden = false;
   recoveryOptions.hidden = false;
@@ -441,6 +463,7 @@ form.addEventListener('submit', async event => {
         detail: profile.commission_rate == null ? '' : profile.commission_rate + '% commission rate',
       })), 'No partner profile.');
       partnerCard.hidden = false;
+      refreshPartnerTotals();
     }
     await loadLeads();
     roleHeading.textContent = admin ? 'Admin dashboard' : 'Partner dashboard';
