@@ -20,6 +20,8 @@ const demoAgent = {
   greeting: 'Hello. Welcome to AAROHAN AI WORLD.',
   answer: 'Thank you for your enquiry. We can help with voice agents, lead tracking and WhatsApp automation. Please contact our team through the website to discuss your requirements.',
 };
+const outputLocales = { english: 'en-IN', hindi: 'hi-IN', gujarati: 'gu-IN' };
+let transcriptLocale;
 let voices = [];
 let worker;
 let recorder;
@@ -90,12 +92,17 @@ async function transcribeAudio(blob) {
   updateAudioControls();
   showStatus(transcriptStatus, 'Preparing audio…');
   try {
-    transcript.value = await recognize(await audioSamples(blob), byId('spoken-language').value, byId('transcription-task').value);
+    const language = byId('spoken-language').value;
+    const task = byId('transcription-task').value;
+    transcript.value = await recognize(await audioSamples(blob), language, task);
+    transcriptLocale = task === 'translate' ? 'en-IN' : outputLocales[language];
     downloadTranscript.disabled = !transcript.value;
+    byId('read-transcript').disabled = !transcript.value;
     showStatus(transcriptStatus, transcript.value ? 'Transcript ready.' : 'No speech was recognized.');
   } catch (error) {
     transcript.value = '';
     downloadTranscript.disabled = true;
+    byId('read-transcript').disabled = true;
     showStatus(transcriptStatus, error.message, true);
   } finally {
     processing = false;
@@ -164,7 +171,7 @@ function refreshVoices() {
   if (voices.some(voice => voice.voiceURI === previous)) voiceOptions.value = previous;
 }
 
-function readAloud(text, locale, voice) {
+function readAloud(text, locale, voice, status = ttsStatus) {
   if (!text.trim()) return 'Enter text to read aloud.';
   if (!synth) return 'Audio playback is unavailable in this browser.';
   const prefix = locale.split('-')[0].toLowerCase();
@@ -175,7 +182,7 @@ function readAloud(text, locale, voice) {
   utterance.voice = available;
   utterance.lang = available.lang;
   utterance.onerror = event => {
-    if (!['canceled', 'interrupted'].includes(event.error)) showStatus(ttsStatus, 'This device could not play the selected voice.', true);
+    if (!['canceled', 'interrupted'].includes(event.error)) showStatus(status, 'This device could not play the selected voice.', true);
   };
   synth.speak(utterance);
   return '';
@@ -189,7 +196,17 @@ byId('speak').addEventListener('click', () => {
   showStatus(ttsStatus, error, Boolean(error));
 });
 byId('stop-speaking').addEventListener('click', () => synth?.cancel());
-byId('use-transcript').addEventListener('click', () => { byId('tts-text').value = transcript.value.slice(0, 3000); });
+byId('read-transcript').addEventListener('click', () => {
+  if (!transcript.value) return;
+  const error = readAloud(transcript.value, transcriptLocale, undefined, transcriptStatus);
+  showStatus(transcriptStatus, error || 'Transcript ready.', Boolean(error));
+});
+byId('use-transcript').addEventListener('click', () => {
+  if (!transcript.value) return;
+  byId('tts-text').value = transcript.value.slice(0, 3000);
+  voiceLanguage.value = transcriptLocale;
+  refreshVoices();
+});
 byId('use-agent-transcript').addEventListener('click', () => { byId('visitor-message').value = transcript.value.slice(0, 3000); });
 
 function showAgent(agent) {
