@@ -52,6 +52,16 @@ async function audioSamples(blob) {
     await context.close();
   }
   if (!audio.length || audio.duration > 30.5) throw new Error('Choose an audio file up to 30 seconds.');
+  // Check the decoded channels before browser resampling can introduce tiny differences.
+  let hasSignal = false;
+  for (let channel = 0; channel < audio.numberOfChannels; channel++) {
+    const pcm = audio.getChannelData(channel);
+    if (pcm.some(sample => Math.abs(sample - pcm[0]) > 1e-7)) {
+      hasSignal = true;
+      break;
+    }
+  }
+  if (!hasSignal) throw new Error('No audio signal detected. Check your microphone or choose another audio file.');
   const offline = new OfflineAudioContext(1, Math.ceil(audio.duration * 16000), 16000);
   const source = offline.createBufferSource();
   source.buffer = audio;
