@@ -109,6 +109,16 @@ summary { cursor: pointer; color: #86e6d1; }
       </form>
     </details>
   </article>
+  <article id="aarohi-calls" hidden>
+    <h2>Aarohi call history</h2>
+    <p>Recent calls from the Aarohi website agent.</p>
+    <div class="inbox-actions">
+      <button id="calls-refresh" type="button">Refresh calls</button>
+      <button id="calls-older" type="button" hidden>Older calls</button>
+    </div>
+    <p id="calls-feedback" role="status"></p>
+    <ul class="list" id="calls-list"></ul>
+  </article>
   <article id="lead-tools" hidden>
     <h2>Manage leads</h2>
     <p id="lead-feedback" role="status"></p>
@@ -182,6 +192,14 @@ const recordEnquiry = document.querySelector('#record-enquiry');
 const inboxOlder = document.querySelector('#inbox-older');
 const inboxRefresh = document.querySelector('#inbox-refresh');
 const inboxPageSize = 30;
+const callHistory = document.querySelector('#aarohi-calls');
+const callsFeedback = document.querySelector('#calls-feedback');
+const callsList = document.querySelector('#calls-list');
+const callsOlder = document.querySelector('#calls-older');
+const callsRefresh = document.querySelector('#calls-refresh');
+const callsPageSize = 30;
+let callsOffset = 0;
+let callsRequest = 0;
 let inboxOffset = 0;
 let inboxRequest = 0;
 const leadTitle = document.querySelector('#lead-title');
@@ -283,6 +301,12 @@ function clearSession() {
   inboxList.replaceChildren();
   inboxFeedback.textContent = '';
   recordEnquiry.reset();
+  callsRequest++;
+  callsOffset = 0;
+  callHistory.hidden = true;
+  callsOlder.hidden = true;
+  callsList.replaceChildren();
+  callsFeedback.textContent = '';
   offset = 0;
   dashboard.hidden = true;
   leadTools.hidden = true;
@@ -334,7 +358,11 @@ form.addEventListener('submit', async event => {
     dashboard.hidden = false;
     leadTools.hidden = !admin;
     channelHub.hidden = !admin;
-    if (admin) refreshInbox();
+    callHistory.hidden = !admin;
+    if (admin) {
+      refreshInbox();
+      refreshCalls();
+    }
     signOut.hidden = false;
     roleHeading.focus();
     expires = setTimeout(() => {
@@ -379,6 +407,40 @@ signOut.addEventListener('click', async () => {
     form.elements.email.focus();
   }
 });
+async function refreshCalls(older = false) {
+  const token = accessToken;
+  if (!token || !adminSession) return;
+  const version = ++callsRequest;
+  const currentOffset = older ? callsOffset : 0;
+  callsOlder.disabled = true;
+  callsFeedback.textContent = 'Loading calls…';
+  try {
+    const fields = 'started_at,duration_seconds,status,language,source';
+    const rows = await request('/rest/v1/aarohi_calls?select=' + fields + '&order=started_at.desc,conversation_id.asc&limit=' + (callsPageSize + 1) + '&offset=' + currentOffset, {}, token);
+    if (token !== accessToken || version !== callsRequest) return;
+    const dateFormat = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const languageNames = { en: 'English', hi: 'Hindi', gu: 'Gujarati' };
+    const statuses = { done: 'Completed', failed: 'Failed', processing: 'Processing', 'in-progress': 'In progress', initiated: 'Initiated' };
+    const sources = { widget: 'Website widget', react_sdk: 'Website app' };
+    const calls = rows.slice(0, callsPageSize).map(row => ({
+      title: dateFormat.format(new Date(row.started_at)),
+      detail: [statuses[row.status] ?? row.status, row.duration_seconds == null ? '' : row.duration_seconds + ' sec',
+        row.language ? languageNames[row.language.toLowerCase().split(/[-_]/)[0]] ?? row.language : '', sources[row.source] ?? row.source].filter(Boolean).join(' · '),
+    }));
+    renderRows(callsList, calls, 'No Aarohi calls to display.', older);
+    callsOffset = currentOffset + callsPageSize;
+    callsOlder.hidden = rows.length <= callsPageSize;
+    callsFeedback.textContent = '';
+  } catch {
+    if (token === accessToken && version === callsRequest) callsFeedback.textContent = 'Could not load call history. Refresh to try again.';
+  } finally {
+    if (version === callsRequest) callsOlder.disabled = false;
+  }
+}
+
+callsRefresh.addEventListener('click', () => refreshCalls());
+callsOlder.addEventListener('click', () => refreshCalls(true));
+
 function inboxItem(record) {
   const item = document.createElement('li');
   const title = document.createElement('strong');
@@ -866,6 +928,7 @@ setPassword.addEventListener('submit', async event => {
 </script>
 </body>
 </html>
+
 
 
 
