@@ -36,6 +36,12 @@ summary { cursor: pointer; color: #86e6d1; }
 .lead-record a { color: #a5d3ff; }
 #lead-editor form { max-width: none; }
 .lead-editor-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: .75rem; }
+.channel-links { display: flex; gap: .8rem 1.3rem; flex-wrap: wrap; }
+.channel-links a { color: #a5d3ff; }
+#channel-hub form { max-width: none; margin-block: 1rem; }
+#channel-hub textarea { display: block; width: 100%; min-height: 5rem; font: inherit; color: inherit; background: #0e1828; border: 1px solid #526886; border-radius: .55rem; margin-top: .35rem; padding: .65rem; }
+.inbox-message { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }
+.inbox-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .7rem; }
 #lead-tools form { max-width: none; margin-block: .75rem; }
 #lead-tools details + details { margin-top: 1rem; }
 .lead-fields { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
@@ -73,6 +79,36 @@ summary { cursor: pointer; color: #86e6d1; }
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="channel-hub" hidden>
+    <h2>Channel inbox</h2>
+    <nav class="channel-links" aria-label="Enquiry channels">
+      <a href="aarohi-voice.html">Aarohi</a>
+      <a href="voice-platform/remote.html">Remote Voice Manager</a>
+      <a href="chatbot.html">Chatbot</a>
+      <a href="whatsapp-business-automation.html">WhatsApp</a>
+    </nav>
+    <p>Website enquiries and manually logged messages appear here. WhatsApp messages are received automatically after its Cloud API webhook is connected.</p>
+    <div class="inbox-actions">
+      <button id="inbox-refresh" type="button">Refresh inbox</button>
+      <button id="inbox-older" type="button" hidden>Older enquiries</button>
+    </div>
+    <p id="inbox-feedback" role="status"></p>
+    <ul class="list" id="inbox-list"></ul>
+    <details>
+      <summary>Log an enquiry</summary>
+      <form id="record-enquiry" method="post">
+        <div class="lead-fields">
+          <label>Channel<select id="record-channel"><option value="whatsapp">WhatsApp</option><option value="voice">Voice</option><option value="chatbot">Chatbot</option></select></label>
+          <label>Name<input id="record-name" maxlength="120" required></label>
+          <label>Email<input id="record-email" type="email" maxlength="254"></label>
+          <label>Phone<input id="record-phone" maxlength="40" type="tel"></label>
+          <label>Business<input id="record-company" maxlength="200"></label>
+        </div>
+        <label>Message<textarea id="record-message" maxlength="2000" required></textarea></label>
+        <button type="submit">Save enquiry</button>
+      </form>
+    </details>
+  </article>
   <article id="lead-tools" hidden>
     <h2>Manage leads</h2>
     <p id="lead-feedback" role="status"></p>
@@ -139,6 +175,15 @@ const partnerCard = document.querySelector('#partner-card');
 const partnerList = document.querySelector('#partner-list');
 const leadList = document.querySelector('#lead-list');
 const leadEditor = document.querySelector('#lead-editor');
+const channelHub = document.querySelector('#channel-hub');
+const inboxFeedback = document.querySelector('#inbox-feedback');
+const inboxList = document.querySelector('#inbox-list');
+const recordEnquiry = document.querySelector('#record-enquiry');
+const inboxOlder = document.querySelector('#inbox-older');
+const inboxRefresh = document.querySelector('#inbox-refresh');
+const inboxPageSize = 30;
+let inboxOffset = 0;
+let inboxRequest = 0;
 const leadTitle = document.querySelector('#lead-title');
 const leadRecord = document.querySelector('#lead-record');
 const leadEditorFeedback = document.querySelector('#lead-editor-feedback');
@@ -179,7 +224,8 @@ async function request(path, options = {}, token = accessToken) {
     error.status = response.status;
     throw error;
   }
-  return response.status === 204 ? null : response.json();
+  const body = await response.text();
+  return body ? JSON.parse(body) : null;
 }
 
 function renderRows(list, rows, emptyText, append = false) {
@@ -230,6 +276,13 @@ function clearSession() {
   accessToken = undefined;
   adminSession = false;
   closeLead();
+  inboxRequest++;
+  inboxOffset = 0;
+  channelHub.hidden = true;
+  inboxOlder.hidden = true;
+  inboxList.replaceChildren();
+  inboxFeedback.textContent = '';
+  recordEnquiry.reset();
   offset = 0;
   dashboard.hidden = true;
   leadTools.hidden = true;
@@ -280,6 +333,8 @@ form.addEventListener('submit', async event => {
     recoveryOptions.hidden = true;
     dashboard.hidden = false;
     leadTools.hidden = !admin;
+    channelHub.hidden = !admin;
+    if (admin) refreshInbox();
     signOut.hidden = false;
     roleHeading.focus();
     expires = setTimeout(() => {
@@ -324,6 +379,128 @@ signOut.addEventListener('click', async () => {
     form.elements.email.focus();
   }
 });
+function inboxItem(record) {
+  const item = document.createElement('li');
+  const title = document.createElement('strong');
+  const summary = document.createElement('span');
+  const copy = document.createElement('p');
+  const actions = document.createElement('div');
+  title.textContent = record.name;
+  const channelNames = { chatbot: 'Chatbot', voice: 'Voice / Aarohi', whatsapp: 'WhatsApp' };
+  const sources = { manual: 'Manual entry', provider: 'Provider message', web: 'Website enquiry' };
+  summary.textContent = [channelNames[record.channel], sources[record.intake], record.company, record.email, record.phone, record.status,
+    new Date(record.created_at).toLocaleString()].filter(Boolean).join(' · ');
+  copy.textContent = record.message;
+  copy.className = 'inbox-message';
+  actions.className = 'inbox-actions';
+  if (record.status === 'New') actions.append(enquiryAction('Mark reviewed', record, 'review'));
+  if (record.lead_id) {
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.textContent = 'Open lead';
+    link.addEventListener('click', () => openLead(record.lead_id));
+    actions.append(link);
+  } else {
+    actions.append(enquiryAction('Save as lead', record, 'convert'));
+  }
+  item.append(title, summary, copy, actions);
+  return item;
+}
+
+function enquiryAction(label, record, action) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.addEventListener('click', async () => {
+    const token = accessToken;
+    if (!token || !adminSession) return;
+    button.disabled = true;
+    inboxFeedback.textContent = 'Saving…';
+    try {
+      let feedback = 'Enquiry marked reviewed.';
+      if (action === 'convert') {
+        const result = await request('/rest/v1/rpc/campaign_inbox_save_lead', {
+          method: 'POST', body: JSON.stringify({ enquiry_id: record.id }),
+        }, token);
+        if (token !== accessToken) return;
+        if (result.result === 'conflict') {
+          inboxFeedback.textContent = 'More than one lead may match this enquiry. Check the email and phone before linking.';
+          return;
+        }
+        if (result.result === 'missing') {
+          await refreshInbox(false, 'This enquiry is no longer available.');
+          return;
+        }
+        feedback = 'Enquiry linked to the lead list.';
+        offset = 0;
+        loadLeads().catch(() => {});
+      } else {
+        await request('/rest/v1/campaign_inbox?id=eq.' + encodeURIComponent(record.id) + '&status=eq.New', {
+          method: 'PATCH', body: JSON.stringify({ status: 'Reviewed' }),
+        }, token);
+      }
+      if (token === accessToken) await refreshInbox(false, feedback);
+    } catch {
+      if (token === accessToken) inboxFeedback.textContent = 'Could not save this enquiry. Refresh the inbox and try again.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+  return button;
+}
+
+async function refreshInbox(older = false, success = '') {
+  const token = accessToken;
+  if (!token || !adminSession) return;
+  const version = ++inboxRequest;
+  const currentOffset = older ? inboxOffset : 0;
+  inboxOlder.disabled = true;
+  inboxFeedback.textContent = 'Loading inbox…';
+  try {
+    const fields = 'id,channel,name,company,email,phone,message,status,intake,lead_id,created_at';
+    const rows = await request('/rest/v1/campaign_inbox?select=' + fields + '&order=created_at.desc,id.asc&limit=' + (inboxPageSize + 1) + '&offset=' + currentOffset, {}, token);
+    if (token !== accessToken || version !== inboxRequest) return;
+    const items = rows.slice(0, inboxPageSize).map(inboxItem);
+    if (older) inboxList.append(...items);
+    else inboxList.replaceChildren(...items);
+    inboxOffset = currentOffset + inboxPageSize;
+    inboxOlder.hidden = rows.length <= inboxPageSize;
+    inboxFeedback.textContent = success || (items.length ? '' : 'No enquiries to display.');
+  } catch {
+    if (token === accessToken && version === inboxRequest) inboxFeedback.textContent = 'Could not load the inbox. Refresh to try again.';
+  } finally {
+    if (version === inboxRequest) inboxOlder.disabled = false;
+  }
+}
+
+inboxRefresh.addEventListener('click', () => refreshInbox());
+inboxOlder.addEventListener('click', () => refreshInbox(true));
+recordEnquiry.addEventListener('submit', async event => {
+  event.preventDefault();
+  const token = accessToken;
+  if (!token || !adminSession) return;
+  const record = Object.fromEntries(['channel','name','email','phone','company','message'].map(key =>
+    [key, recordEnquiry.elements['record-' + key].value.trim() || null]));
+  if (!record.name || !record.message || !(record.email || record.phone) ||
+      (record.phone && !/^\d{5,20}$/.test(record.phone.replace(/\D/g,'')))) {
+    inboxFeedback.textContent = 'Provide a name, message, and valid email or phone.';
+    return;
+  }
+  const button = recordEnquiry.querySelector('button');
+  button.disabled = true;
+  inboxFeedback.textContent = 'Saving…';
+  try {
+    await request('/rest/v1/campaign_inbox', { method: 'POST', body: JSON.stringify(record) }, token);
+    if (token !== accessToken) return;
+    recordEnquiry.reset();
+    await refreshInbox(false, 'Enquiry saved.');
+  } catch {
+    if (token === accessToken) inboxFeedback.textContent = 'Could not save the enquiry. Check the fields and try again.';
+  } finally {
+    button.disabled = false;
+  }
+});
+
 function closeLead() {
   detailRequest++;
   activeLeadId = undefined;
@@ -689,5 +866,6 @@ setPassword.addEventListener('submit', async event => {
 </script>
 </body>
 </html>
+
 
 
