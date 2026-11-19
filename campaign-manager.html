@@ -29,6 +29,9 @@ button:disabled { opacity: .65; cursor: wait; }
 #recovery-options { max-width: 28rem; margin-top: 1rem; }
 summary { cursor: pointer; color: #86e6d1; }
 #request-reset { margin-top: .75rem; }
+#lead-tools form { max-width: none; margin-block: .75rem; }
+#lead-tools details + details { margin-top: 1rem; }
+.lead-fields { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
 #dashboard { display: grid; gap: 1rem; }
 .dashboard-title { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; }
 .list { list-style: none; margin: 0; padding: 0; }
@@ -63,6 +66,37 @@ summary { cursor: pointer; color: #86e6d1; }
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="lead-tools" hidden>
+    <h2>Manage leads</h2>
+    <p id="lead-feedback" role="status"></p>
+    <details>
+      <summary>Add lead</summary>
+      <form id="add-lead" method="post">
+        <div class="lead-fields">
+          <label>Name<input id="lead-name" required maxlength="200"></label>
+          <label>Business<input id="lead-company" maxlength="200"></label>
+          <label>Country<input id="lead-country" maxlength="100"></label>
+          <label>Email<input id="lead-email" type="email" maxlength="254"></label>
+          <label>Phone<input id="lead-phone" type="tel" maxlength="40"></label>
+          <label>Source<input id="lead-source" maxlength="100" placeholder="Manual"></label>
+          <label>Status<input id="lead-status" maxlength="100" placeholder="New"></label>
+        </div>
+        <button type="submit">Save lead</button>
+      </form>
+    </details>
+    <details>
+      <summary>Import CSV</summary>
+      <form id="import-leads" method="post">
+        <label>CSV file<input id="lead-file" type="file" accept=".csv,text/csv" required></label>
+        <p>Use a header row with Name. Optional columns are Business, Country, Email, Phone, Source and Status. Import up to 500 rows at once.</p>
+        <div id="import-preview" hidden>
+          <p id="import-count"></p>
+          <ul class="list" id="import-list"></ul>
+        </div>
+        <button id="import-submit" type="submit" disabled>Import leads</button>
+      </form>
+    </details>
+  </article>
   <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul></article>
   <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
 </section>
@@ -84,6 +118,19 @@ const roleHeading = document.querySelector('#role-heading');
 const partnerCard = document.querySelector('#partner-card');
 const partnerList = document.querySelector('#partner-list');
 const leadList = document.querySelector('#lead-list');
+const leadTools = document.querySelector('#lead-tools');
+const leadFeedback = document.querySelector('#lead-feedback');
+const addLead = document.querySelector('#add-lead');
+const importLeads = document.querySelector('#import-leads');
+const leadFile = document.querySelector('#lead-file');
+const importCount = document.querySelector('#import-count');
+const importList = document.querySelector('#import-list');
+const importPreview = document.querySelector('#import-preview');
+const importSubmit = document.querySelector('#import-submit');
+const leadFieldLimits = { name: 200, company: 200, country: 100, email: 254, phone: 40, source: 100, status: 100 };
+const aliases = { business: 'company', business_name: 'company', company_name: 'company', lead_name: 'name', contact_name: 'name', email_address: 'email', phone_number: 'phone' };
+let pendingLeads = [];
+let savingLeads = false;
 const more = document.querySelector('#more');
 let accessToken;
 let expires;
@@ -140,6 +187,11 @@ function clearSession() {
   accessToken = undefined;
   offset = 0;
   dashboard.hidden = true;
+  leadTools.hidden = true;
+  addLead.reset();
+  importLeads.reset();
+  resetImport();
+  leadFeedback.textContent = '';
   partnerCard.hidden = true;
   signOut.hidden = true;
   more.hidden = true;
@@ -181,6 +233,7 @@ form.addEventListener('submit', async event => {
     form.hidden = true;
     recoveryOptions.hidden = true;
     dashboard.hidden = false;
+    leadTools.hidden = !admin;
     signOut.hidden = false;
     roleHeading.focus();
     expires = setTimeout(() => {
@@ -225,6 +278,156 @@ signOut.addEventListener('click', async () => {
     form.elements.email.focus();
   }
 });
+function validateLead(lead) {
+  if (!lead.name) throw new Error('Name is required.');
+  for (const [field, max] of Object.entries(leadFieldLimits)) {
+    if ((lead[field] || '').length > max) throw new Error(field + ' is too long.');
+  }
+  if (lead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) throw new Error('Enter a valid email.');
+  if (lead.phone && !/^\d{5,20}$/.test(lead.phone.replace(/\D/g, ''))) throw new Error('Enter a phone number with 5 to 20 digits.');
+  return lead;
+}
+
+function parseLeadCsv(raw) {
+  const input = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n') + '\n';
+  const rows = [];
+  let values = [];
+  let field = '';
+  let quoted = false;
+  let closedQuote = false;
+  for (let index = 0; index < input.length; index++) {
+    const char = input[index];
+    if (quoted) {
+      if (char === '"' && input[index + 1] === '"') {
+        field += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+        closedQuote = true;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === ',' || char === '\n') {
+      values.push(field.trim());
+      field = '';
+      closedQuote = false;
+      if (char === '\n') {
+        if (values.some(Boolean)) rows.push(values);
+        if (rows.length > 501) throw new Error('Import up to 500 leads per file.');
+        values = [];
+      }
+    } else if (char === '"' && !field && !closedQuote) {
+      quoted = true;
+    } else if (char === '"' || closedQuote) {
+      throw new Error('CSV contains an unexpected quotation mark.');
+    } else {
+      field += char;
+    }
+  }
+  if (quoted) throw new Error('CSV contains an unclosed quoted field.');
+  const header = (rows.shift() || []).map(value => {
+    const label = value.toLowerCase().replace(/\s+/g, '_');
+    return aliases[label] || label;
+  });
+  if (!header.includes('name')) throw new Error('The CSV needs a Name column.');
+  const recognized = header.filter(value => Object.hasOwn(leadFieldLimits, value));
+  if (new Set(recognized).size !== recognized.length) throw new Error('Remove duplicate lead columns.');
+  if (!rows.length) throw new Error('The CSV contains no leads.');
+  return rows.map((row, index) => {
+    try {
+      if (row.length !== header.length) throw new Error('The column count differs from the header.');
+      const lead = Object.fromEntries(header.flatMap((key, column) =>
+        Object.hasOwn(leadFieldLimits, key) ? [[key, row[column]]] : []));
+      return validateLead({ ...lead, source: lead.source || 'CSV import' });
+    } catch (error) {
+      throw new Error('Lead ' + (index + 1) + ' · ' + error.message);
+    }
+  });
+}
+
+function resetImport() {
+  pendingLeads = [];
+  importPreview.hidden = true;
+  importSubmit.disabled = true;
+  importList.replaceChildren();
+}
+
+leadFile.addEventListener('change', async () => {
+  resetImport();
+  leadFeedback.textContent = '';
+  const file = leadFile.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 1000000) throw new Error('Choose a CSV file smaller than 1 MB.');
+    const raw = await file.text();
+    if (file !== leadFile.files[0] || leadTools.hidden) return;
+    pendingLeads = parseLeadCsv(raw);
+    importCount.textContent = 'Valid rows · ' + pendingLeads.length + '. Showing the first ' + Math.min(12, pendingLeads.length) + '.';
+    renderRows(importList, pendingLeads.slice(0, 12).map(lead => ({
+      title: lead.name, detail: [lead.company, lead.country, lead.email, lead.phone].filter(Boolean).join(' · '),
+    })), '');
+    importPreview.hidden = false;
+    importSubmit.disabled = false;
+  } catch (error) {
+    leadFeedback.textContent = error.message;
+  }
+});
+
+async function saveLeadBatch(entries, retryForm) {
+  if (!accessToken || savingLeads) return;
+  savingLeads = true;
+  const token = accessToken;
+  const manualSubmit = addLead.querySelector('button');
+  manualSubmit.disabled = true;
+  importSubmit.disabled = true;
+  leadFile.disabled = true;
+  leadFeedback.textContent = '';
+  try {
+    const result = await request('/rest/v1/rpc/campaign_import_leads', {
+      method: 'POST', body: JSON.stringify({ entries }),
+    }, token);
+    if (accessToken !== token) return;
+    retryForm.reset();
+    if (retryForm === importLeads) resetImport();
+    leadFeedback.textContent = result.inserted + ' saved · ' + result.duplicates + ' duplicates skipped.';
+    offset = 0;
+    await loadLeads().catch(() => {
+      if (accessToken === token) leadFeedback.textContent += ' Refresh the leads list by signing in again.';
+    });
+  } catch (error) {
+    if (accessToken !== token) return;
+    if (error.status === 401) {
+      clearSession();
+      message.textContent = 'Your session expired. Sign in again.';
+    } else {
+      leadFeedback.textContent = 'Could not save leads. You can retry without creating duplicates.';
+    }
+  } finally {
+    savingLeads = false;
+    leadFile.disabled = false;
+    manualSubmit.disabled = false;
+    importSubmit.disabled = !pendingLeads.length;
+  }
+}
+
+addLead.addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const lead = Object.fromEntries(Object.keys(leadFieldLimits).map(key =>
+      [key, addLead.elements['lead-' + key].value.trim()]));
+    await saveLeadBatch([validateLead(lead)], addLead);
+  } catch (error) {
+    leadFeedback.textContent = error.message;
+  }
+});
+
+importLeads.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (pendingLeads.length) await saveLeadBatch(pendingLeads, importLeads);
+});
+
 const redirectUrl = new URL(location.pathname, location.origin).href;
 const recoveryParams = new URLSearchParams(location.hash.slice(1));
 let recoveryToken = recoveryParams.get('type') === 'recovery' ? recoveryParams.get('access_token') : null;
@@ -296,3 +499,4 @@ setPassword.addEventListener('submit', async event => {
 </script>
 </body>
 </html>
+
