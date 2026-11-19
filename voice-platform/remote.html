@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Remote Voice Agent Manager | AAROHAN AI WORLD</title><link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<header><a class="brand" href="../">AAROHAN AI WORLD</a><nav class="nav"><a href="./">Voice Platform</a><a aria-current="page" href="remote.html">Remote Manager</a></nav></header>
+<main>
+<h1>Remote Voice Agent Manager</h1>
+<p id="manager-status" class="status" role="status"></p>
+<section id="manager-login" class="grid">
+  <form id="login" class="card stack" method="post">
+    <h2>Admin sign in</h2>
+    <label>Email<input id="email" type="email" autocomplete="username" required></label>
+    <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+    <div class="row"><button type="submit">Sign in</button><a href="../campaign-manager.html">Reset password</a></div>
+  </form>
+</section>
+<section id="manager" hidden>
+  <div class="row row-between"><p>Manage browser voice agent deployments.</p><button id="logout" class="secondary">Sign out</button></div>
+  <div class="grid">
+    <form class="card stack" id="configuration" method="post">
+      <h2>Deployment configuration</h2>
+      <label>Deployment<select id="selection"><option value="">New deployment</option></select></label>
+      <label>Name<input id="name" maxlength="100" required></label>
+      <label>Language<select id="locale"><option value="en-IN">English</option><option value="hi-IN">Hindi</option><option value="gu-IN">Gujarati</option></select></label>
+      <label>Greeting<textarea id="greeting" maxlength="1000" required></textarea></label>
+      <label>Reply<textarea id="answer" maxlength="2000" required></textarea></label>
+      <label>Assigned operator user ID<input id="operator" placeholder="Supabase Auth user ID" pattern="[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"></label>
+      <label><input id="enabled" type="checkbox" checked> Enable deployment</label>
+      <div class="row"><button type="submit">Save configuration</button><a id="runtime-link" href="./" hidden>Open this deployment in Voice Platform</a></div>
+    </form>
+    <article class="card">
+      <div class="row row-between"><h2>Agent activity</h2><button id="refresh" class="secondary">Refresh</button></div>
+      <p id="last-activity"></p>
+      <ol class="records" id="activity"></ol>
+    </article>
+  </div>
+</section>
+</main>
+<script type="module" src="remote.js"></script>
+</body>
+</html>
