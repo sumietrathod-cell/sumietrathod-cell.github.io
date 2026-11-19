@@ -29,6 +29,13 @@ button:disabled { opacity: .65; cursor: wait; }
 #recovery-options { max-width: 28rem; margin-top: 1rem; }
 summary { cursor: pointer; color: #86e6d1; }
 #request-reset { margin-top: .75rem; }
+.lead-open { padding: 0 .4rem .05rem 0; min-height: 2.25rem; color: #86e6d1; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: .2em; }
+.lead-record { display: grid; gap: .55rem 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+.lead-record dt { font-weight: 750; }
+.lead-record dd { margin: .15rem 0 .6rem; color: #abbcd5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.lead-record a { color: #a5d3ff; }
+#lead-editor form { max-width: none; }
+.lead-editor-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: .75rem; }
 #lead-tools form { max-width: none; margin-block: .75rem; }
 #lead-tools details + details { margin-top: 1rem; }
 .lead-fields { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
@@ -99,6 +106,19 @@ summary { cursor: pointer; color: #86e6d1; }
   </article>
   <article id="partner-card" hidden><h2>Partner profile</h2><ul class="list" id="partner-list"></ul></article>
   <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
+  <article id="lead-editor" hidden>
+    <div class="lead-editor-heading"><h2 id="lead-title" tabindex="-1">Lead details</h2><button id="close-lead" type="button">Close details</button></div>
+    <p id="lead-editor-feedback" role="status"></p>
+    <dl class="lead-record" id="lead-record"></dl>
+    <form id="edit-lead" method="post" hidden>
+      <div class="lead-fields">
+        <label>Status<input id="edit-status" list="lead-statuses" maxlength="100" required></label>
+        <datalist id="lead-statuses"><option value="New"><option value="Contacted"><option value="Replied"><option value="Qualified"><option value="Proposal sent"><option value="Won"><option value="Closed"></datalist>
+        <label>Follow-up date<input type="date" id="edit-follow-up" min="1900-01-01" max="9999-12-31"></label>
+      </div>
+      <div class="lead-editor-heading"><button type="submit">Save progress</button><button id="reload-lead" type="button">Refresh details</button></div>
+    </form>
+  </article>
 </section>
 </main>
 <script type="module">
@@ -118,6 +138,20 @@ const roleHeading = document.querySelector('#role-heading');
 const partnerCard = document.querySelector('#partner-card');
 const partnerList = document.querySelector('#partner-list');
 const leadList = document.querySelector('#lead-list');
+const leadEditor = document.querySelector('#lead-editor');
+const leadTitle = document.querySelector('#lead-title');
+const leadRecord = document.querySelector('#lead-record');
+const leadEditorFeedback = document.querySelector('#lead-editor-feedback');
+const editLead = document.querySelector('#edit-lead');
+const editStatus = document.querySelector('#edit-status');
+const editFollowUp = document.querySelector('#edit-follow-up');
+const reloadLead = document.querySelector('#reload-lead');
+let adminSession = false;
+let leadListRequest = 0;
+let detailRequest = 0;
+let activeLeadId;
+let leadSnapshot;
+let savingProgress = false;
 const leadTools = document.querySelector('#lead-tools');
 const leadFeedback = document.querySelector('#lead-feedback');
 const addLead = document.querySelector('#add-lead');
@@ -150,10 +184,15 @@ async function request(path, options = {}, token = accessToken) {
 
 function renderRows(list, rows, emptyText, append = false) {
   const entries = rows.length ? rows : [{ title: emptyText }];
-  const items = entries.map(({ title, detail }) => {
+  const items = entries.map(({ title, detail, onOpen }) => {
     const item = document.createElement('li');
-    const heading = document.createElement('strong');
+    const heading = document.createElement(onOpen ? 'button' : 'strong');
     heading.textContent = title;
+    if (onOpen) {
+      heading.type = 'button';
+      heading.className = 'lead-open';
+      heading.addEventListener('click', onOpen);
+    }
     item.append(heading);
     if (detail) {
       const summary = document.createElement('span');
@@ -172,19 +211,25 @@ function renderRows(list, rows, emptyText, append = false) {
 async function loadLeads() {
   const token = accessToken;
   if (!token) return;
-  const rows = await request('/rest/v1/leads?select=id,name,company,country,status&order=created_at.desc.nullslast,id.asc&limit=' + (pageSize + 1) + '&offset=' + offset);
-  if (token !== accessToken) return;
+  const version = ++leadListRequest;
+  const pageOffset = offset;
+  const fields = 'id,name,company,country,status' + (adminSession ? ',follow_up_on' : '');
+  const rows = await request('/rest/v1/leads?select=' + fields + '&order=created_at.desc.nullslast,id.asc&limit=' + (pageSize + 1) + '&offset=' + pageOffset);
+  if (token !== accessToken || version !== leadListRequest) return;
   renderRows(leadList, rows.slice(0, pageSize).map(lead => ({
     title: lead.name,
-    detail: [lead.company, lead.country, lead.status].filter(Boolean).join(' · '),
-  })), 'No leads to display.', offset > 0);
-  offset += pageSize;
+    detail: [lead.company, lead.country, lead.status, lead.follow_up_on && 'Follow-up ' + lead.follow_up_on].filter(Boolean).join(' · '),
+    onOpen: adminSession ? () => openLead(lead.id) : undefined,
+  })), 'No leads to display.', pageOffset > 0);
+  offset = pageOffset + pageSize;
   more.hidden = rows.length <= pageSize;
 }
 
 function clearSession() {
   clearTimeout(expires);
   accessToken = undefined;
+  adminSession = false;
+  closeLead();
   offset = 0;
   dashboard.hidden = true;
   leadTools.hidden = true;
@@ -214,6 +259,7 @@ form.addEventListener('submit', async event => {
     password.value = '';
     accessToken = session.access_token;
     const admin = session.user?.app_metadata?.campaign_manager_role === 'admin';
+    adminSession = admin;
     if (!admin) {
       const profiles = await request('/rest/v1/partners?select=name,commission_rate&limit=1');
       if (!profiles.length) {
@@ -278,6 +324,150 @@ signOut.addEventListener('click', async () => {
     form.elements.email.focus();
   }
 });
+function closeLead() {
+  detailRequest++;
+  activeLeadId = undefined;
+  leadSnapshot = undefined;
+  leadRecord.replaceChildren();
+  editLead.reset();
+  editLead.hidden = true;
+  leadEditorFeedback.textContent = '';
+  leadEditor.hidden = true;
+}
+
+function renderLeadDetails(lead) {
+  const fields = [
+    ['Business', lead.company], ['Country', lead.country], ['Email', lead.email], ['Phone', lead.phone],
+    ['Service interest', lead.service_interest], ['Source', lead.source], ['Notes', lead.notes],
+  ];
+  leadRecord.replaceChildren(...fields.map(([label, value]) => {
+    const field = document.createElement('div');
+    const term = document.createElement('dt');
+    const definition = document.createElement('dd');
+    term.textContent = label;
+    definition.textContent = value || '—';
+    if (label === 'Source' && /^https?:\/\//i.test(value || '')) {
+      try {
+        const url = new URL(value);
+        if (['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) {
+          const link = document.createElement('a');
+          link.href = url.href;
+          link.rel = 'noopener noreferrer';
+          link.target = '_blank';
+          link.textContent = value;
+          definition.replaceChildren(link);
+        }
+      } catch {
+        // Keep an invalid or legacy source as plain text.
+      }
+    }
+    field.append(term, definition);
+    return field;
+  }));
+}
+
+async function openLead(id, refreshed = false) {
+  const token = accessToken;
+  if (!token || !adminSession) return;
+  const version = ++detailRequest;
+  activeLeadId = id;
+  leadSnapshot = undefined;
+  leadEditor.hidden = false;
+  editLead.hidden = true;
+  leadRecord.replaceChildren();
+  leadTitle.textContent = 'Lead details';
+  leadEditorFeedback.textContent = 'Loading…';
+  if (!refreshed) leadTitle.focus();
+  try {
+    const fields = 'id,name,company,country,email,phone,service_interest,source,notes,status,follow_up_on';
+    const rows = await request('/rest/v1/leads?select=' + fields + '&id=eq.' + encodeURIComponent(id) + '&limit=1', {}, token);
+    if (version !== detailRequest || accessToken !== token) return;
+    const lead = rows[0];
+    if (!lead) {
+      leadEditorFeedback.textContent = 'This lead is no longer available.';
+      return;
+    }
+    leadSnapshot = lead;
+    leadTitle.textContent = lead.name;
+    renderLeadDetails(lead);
+    editStatus.value = lead.status || 'New';
+    editFollowUp.value = lead.follow_up_on || '';
+    editLead.hidden = false;
+    leadEditorFeedback.textContent = refreshed ? 'Latest details loaded.' : '';
+  } catch (error) {
+    if (version !== detailRequest || accessToken !== token) return;
+    if (error.status === 401) {
+      clearSession();
+      message.textContent = 'Your session expired. Sign in again.';
+    } else {
+      leadEditorFeedback.textContent = 'Could not load the lead. Select it again to retry.';
+    }
+  }
+}
+
+document.querySelector('#close-lead').addEventListener('click', () => {
+  closeLead();
+  const firstLead = leadList.querySelector('button');
+  if (firstLead) firstLead.focus();
+});
+reloadLead.addEventListener('click', () => {
+  if (activeLeadId) openLead(activeLeadId, true);
+});
+editLead.addEventListener('submit', async event => {
+  event.preventDefault();
+  const token = accessToken;
+  const lead = leadSnapshot;
+  if (savingProgress || !lead || !token || !adminSession) return;
+  const status = editStatus.value.trim();
+  if (!status) {
+    leadEditorFeedback.textContent = 'Enter a status.';
+    return;
+  }
+  const button = editLead.querySelector('button[type="submit"]');
+  savingProgress = true;
+  button.disabled = true;
+  reloadLead.disabled = true;
+  leadEditorFeedback.textContent = 'Saving…';
+  try {
+    const result = await request('/rest/v1/rpc/campaign_update_lead_progress', {
+      method: 'POST',
+      body: JSON.stringify({
+        lead_id: lead.id, next_status: status, next_follow_up: editFollowUp.value || null,
+        current_status: lead.status, current_follow_up: lead.follow_up_on,
+      }),
+    }, token);
+    if (accessToken !== token) return;
+    if (leadSnapshot === lead) {
+      if (result.saved) {
+        leadSnapshot = { ...lead, status: result.status, follow_up_on: result.follow_up_on };
+        editStatus.value = result.status;
+        editFollowUp.value = result.follow_up_on || '';
+      }
+      leadEditorFeedback.textContent = result.saved
+        ? 'Lead progress saved.'
+        : 'This lead changed while you were editing. Refresh details before saving again.';
+    }
+    if (result.saved) {
+      offset = 0;
+      await loadLeads().catch(() => {
+        if (activeLeadId === lead.id && accessToken === token) leadEditorFeedback.textContent = 'Lead progress saved. Sign in again to refresh the list.';
+      });
+    }
+  } catch (error) {
+    if (accessToken !== token) return;
+    if (error.status === 401) {
+      clearSession();
+      message.textContent = 'Your session expired. Sign in again.';
+    } else if (leadSnapshot === lead) {
+      leadEditorFeedback.textContent = 'Could not save progress. Review the details and try again.';
+    }
+  } finally {
+    savingProgress = false;
+    button.disabled = false;
+    reloadLead.disabled = false;
+  }
+});
+
 function validateLead(lead) {
   if (!lead.name) throw new Error('Name is required.');
   for (const [field, max] of Object.entries(leadFieldLimits)) {
@@ -499,4 +689,5 @@ setPassword.addEventListener('submit', async event => {
 </script>
 </body>
 </html>
+
 
