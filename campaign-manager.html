@@ -79,6 +79,16 @@ summary { cursor: pointer; color: #86e6d1; }
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="sales-report" hidden>
+    <h2>Follow-ups and sales</h2>
+    <button type="button" id="report-refresh">Refresh report</button>
+    <p id="report-status" role="status"></p>
+    <h3>Due and overdue follow-ups</h3><p>First 100 open reminders, oldest first. Dates use India time.</p>
+    <ul class="list" id="due-list"></ul>
+    <h3>Lead pipeline</h3><ul class="list" id="stage-list"></ul>
+    <h3>Recorded sales · all time</h3><p id="sales-total"></p>
+    <ul class="list" id="commission-list"></ul>
+  </article>
   <article id="channel-hub" hidden>
     <h2>Channel inbox</h2>
     <nav class="channel-links" aria-label="Enquiry channels">
@@ -163,6 +173,13 @@ summary { cursor: pointer; color: #86e6d1; }
         <label>Follow-up date<input type="date" id="edit-follow-up" min="1900-01-01" max="9999-12-31"></label>
       </div>
       <div class="lead-editor-heading"><button type="submit">Save progress</button><button id="reload-lead" type="button">Refresh details</button></div>
+    </form>
+    <form id="record-sale" hidden>
+      <h3>Record a sale</h3>
+      <label>Invoice or sale reference<input name="reference" required maxlength="100" pattern="[A-Za-z0-9][A-Za-z0-9_.\/\-]{0,99}"></label>
+      <label>Commissionable sale amount (INR)<input name="amount" type="number" min="0.01" max="999999999999.99" step="0.01" required></label>
+      <button type="submit">Record sale</button>
+      <p role="status" id="sale-status"></p>
     </form>
   </article>
 </section>
@@ -272,6 +289,78 @@ function renderRows(list, rows, emptyText, append = false) {
   }
 }
 
+const report = document.querySelector('#sales-report');
+const saleForm = document.querySelector('#record-sale');
+const saleStatus = document.querySelector('#sale-status');
+const reportStatus = document.querySelector('#report-status');
+const money = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
+let reportVersion = 0;
+
+function resetSaleForm() {
+  saleForm.hidden = true;
+  saleForm.reset();
+  saleForm.querySelector('button').disabled = false;
+  saleStatus.textContent = '';
+}
+
+function clearReport() {
+  for (const id of ['due-list','stage-list','sales-total','commission-list','report-status'])
+    document.getElementById(id).replaceChildren();
+}
+
+async function refreshReport() {
+  if (!accessToken || !adminSession) return;
+  const token = accessToken;
+  const version = ++reportVersion;
+  reportStatus.textContent = 'Loading report…';
+  try {
+    const data = await request('/rest/v1/rpc/campaign_admin_report',{method:'POST',body:'{}'},token);
+    if (accessToken !== token || version !== reportVersion) return;
+    renderRows(document.querySelector('#due-list'),data.followups.map(row => ({
+      title: row.name, detail: (row.follow_up_on < data.today ? 'Overdue · ' : 'Due today · ') + row.follow_up_on,
+      onOpen: () => openLead(row.id)
+    })), 'No follow-ups due.');
+    renderRows(document.querySelector('#stage-list'),Object.entries(data.pipeline).sort().map(([stage,count]) => ({
+      title: stage, detail: String(count)
+    })), 'No leads.');
+    const totals = data.sales;
+    document.querySelector('#sales-total').textContent = totals.count + ' sales · ' + money.format(totals.amount) + ' recorded · ' + money.format(totals.commission) + ' commission earned';
+    renderRows(document.querySelector('#commission-list'),data.partners.map(p => ({
+      title: p.name, detail: money.format(p.amount) + ' sales · ' + money.format(p.commission) + ' commission'
+    })), 'No partner sales recorded.');
+    reportStatus.textContent = 'Updated for ' + data.today + ' (India).';
+  } catch {
+    if (accessToken !== token || version !== reportVersion) return;
+    clearReport();
+    reportStatus.textContent = 'Could not load the report. Select Refresh report to retry.';
+  }
+}
+document.querySelector('#report-refresh').addEventListener('click', refreshReport);
+saleForm.addEventListener('submit',async event => {
+  event.preventDefault();
+  if (!adminSession || !leadSnapshot) return;
+  const token = accessToken;
+  const lead = leadSnapshot.id;
+  const version = detailRequest;
+  const button = saleForm.querySelector('button');
+  button.disabled = true;
+  saleStatus.textContent = 'Saving…';
+  try {
+    const saved = await request('/rest/v1/rpc/campaign_record_sale',{method:'POST',body:JSON.stringify({
+      p_lead:lead,p_reference:saleForm.elements.reference.value.trim(),p_amount:saleForm.elements.amount.value
+    })},token);
+    if (token !== accessToken) return;
+    refreshReport();
+    if (version !== detailRequest) return;
+    saleForm.reset();
+    saleStatus.textContent = saved ? 'Sale recorded.' : 'This sale is already recorded.';
+  } catch {
+    if (token === accessToken && version === detailRequest) saleStatus.textContent = 'Could not record the sale. Check the reference, amount and assigned partner rate.';
+  } finally {
+    if (token === accessToken && version === detailRequest) button.disabled = false;
+  }
+});
+
 async function loadLeads() {
   const token = accessToken;
   if (!token) return;
@@ -293,6 +382,8 @@ function clearSession() {
   clearTimeout(expires);
   accessToken = undefined;
   adminSession = false;
+  report.hidden = true;
+  clearReport();
   closeLead();
   inboxRequest++;
   inboxOffset = 0;
@@ -360,6 +451,8 @@ form.addEventListener('submit', async event => {
     channelHub.hidden = !admin;
     callHistory.hidden = !admin;
     if (admin) {
+      report.hidden = false;
+      refreshReport();
       refreshInbox();
       refreshCalls();
     }
@@ -495,7 +588,7 @@ function enquiryAction(label, record, action) {
         }
         feedback = 'Enquiry linked to the lead list.';
         offset = 0;
-        loadLeads().catch(() => {});
+        Promise.all([loadLeads(), refreshReport()]).catch(() => {});
       } else {
         await request('/rest/v1/campaign_inbox?id=eq.' + encodeURIComponent(record.id) + '&status=eq.New', {
           method: 'PATCH', body: JSON.stringify({ status: 'Reviewed' }),
@@ -564,6 +657,7 @@ recordEnquiry.addEventListener('submit', async event => {
 });
 
 function closeLead() {
+  resetSaleForm();
   detailRequest++;
   activeLeadId = undefined;
   leadSnapshot = undefined;
@@ -609,6 +703,7 @@ async function openLead(id, refreshed = false) {
   const token = accessToken;
   if (!token || !adminSession) return;
   const version = ++detailRequest;
+  resetSaleForm();
   activeLeadId = id;
   leadSnapshot = undefined;
   leadEditor.hidden = false;
@@ -631,6 +726,7 @@ async function openLead(id, refreshed = false) {
     renderLeadDetails(lead);
     editStatus.value = lead.status || 'New';
     editFollowUp.value = lead.follow_up_on || '';
+    saleForm.hidden = false;
     editLead.hidden = false;
     leadEditorFeedback.textContent = refreshed ? 'Latest details loaded.' : '';
   } catch (error) {
@@ -688,7 +784,7 @@ editLead.addEventListener('submit', async event => {
     }
     if (result.saved) {
       offset = 0;
-      await loadLeads().catch(() => {
+      await Promise.all([loadLeads(), refreshReport()]).catch(() => {
         if (activeLeadId === lead.id && accessToken === token) leadEditorFeedback.textContent = 'Lead progress saved. Sign in again to refresh the list.';
       });
     }
@@ -822,7 +918,7 @@ async function saveLeadBatch(entries, retryForm) {
     if (retryForm === importLeads) resetImport();
     leadFeedback.textContent = result.inserted + ' saved · ' + result.duplicates + ' duplicates skipped.';
     offset = 0;
-    await loadLeads().catch(() => {
+    await Promise.all([loadLeads(), refreshReport()]).catch(() => {
       if (accessToken === token) leadFeedback.textContent += ' Refresh the leads list by signing in again.';
     });
   } catch (error) {
