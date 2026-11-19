@@ -3,6 +3,38 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const APP_ORIGIN = Deno.env.get("APP_ORIGIN") ?? "";
+const MAX_BODY_BYTES = 1_100_000;
+
+const oversizedBody = () => json({ error: "Request body exceeds the 1.1 MB limit." }, 413);
+
+async function readJsonBody(req: Request): Promise<Record<string, unknown> | Response> {
+  if (!req.body) return json({ error: "Invalid JSON body." }, 400);
+  const reader = req.body.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let size = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY_BYTES) {
+        void reader.cancel().catch(() => {});
+        return oversizedBody();
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    const value: unknown = JSON.parse(text + decoder.decode());
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+  } catch {
+    // Malformed JSON, invalid UTF-8 or an unreadable stream is a client error.
+  } finally {
+    reader.releaseLock();
+  }
+  return json({ error: "Invalid JSON body." }, 400);
+}
 
 const json = (body: unknown, status = 200, origin = APP_ORIGIN) =>
   new Response(JSON.stringify(body), {
@@ -37,9 +69,7 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed." }, 405);
   }
   const declaredLength = Number(req.headers.get("content-length") ?? 0);
-  if (req.method === "POST" && declaredLength > 1_100_000) {
-    return json({ error: "Request body exceeds the 1.1 MB limit." }, 413);
-  }
+  if (req.method === "POST" && declaredLength > MAX_BODY_BYTES) return oversizedBody();
 
   const authorization = req.headers.get("authorization") ?? "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "Authentication required." }, 401);
@@ -79,8 +109,8 @@ Deno.serve(async (req) => {
   }
 
   if (req.method === "POST" && route === "campaigns") {
-    let body: Record<string, unknown>;
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON body." }, 400); }
+    const body = await readJsonBody(req);
+    if (body instanceof Response) return body;
     const organizationId = typeof body.organization_id === "string" ? body.organization_id : "";
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const goal = typeof body.goal === "string" ? body.goal.trim() : "";
@@ -322,8 +352,8 @@ Deno.serve(async (req) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(contactId)) {
       return json({ error: "Invalid contact id." }, 400);
     }
-    let body: Record<string, unknown>;
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON body." }, 400); }
+    const body = await readJsonBody(req);
+    if (body instanceof Response) return body;
     const channel = typeof body.channel === "string" ? body.channel : "";
     const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 300) : "contact_request";
     if (!["voice", "whatsapp", "email"].includes(channel)) {
@@ -397,11 +427,8 @@ Deno.serve(async (req) => {
       return json({ error: "Contacts can only be imported into a draft dry-run campaign." }, 409);
     }
 
-    let body: Record<string, unknown>;
-    let rawBody = "";
-    try { rawBody = await req.text(); } catch { return json({ error: "Could not read request body." }, 400); }
-    if (new TextEncoder().encode(rawBody).byteLength > 1_100_000) return json({ error: "Import request must be at most 1.1 MB including JSON overhead." }, 413);
-    try { body = JSON.parse(rawBody); } catch { return json({ error: "Send valid JSON containing csv_text." }, 400); }
+    const body = await readJsonBody(req);
+    if (body instanceof Response) return body;
     const csv = typeof body.csv_text === "string" ? body.csv_text : "";
     if (!csv || new TextEncoder().encode(csv).byteLength > 1_000_000) return json({ error: "CSV is required and must be at most 1 MB in UTF-8." }, 413);
 
