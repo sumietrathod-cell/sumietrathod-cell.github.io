@@ -26,6 +26,14 @@ const button = form.querySelector('button');
 const output = document.querySelector('#enquiry-status');
 const channel = new URLSearchParams(location.search).get('channel') === 'voice' ? 'voice' : 'chatbot';
 if (channel === 'voice') document.querySelector('#enquiry-title').textContent = 'Request an Aarohi follow-up';
+const demoParams = new URLSearchParams(location.search);
+const shopNames = new Map([['clothing','clothing shop'],['grocery','grocery shop'],['electronics','electronics shop'],['pharmacy','medical store']]);
+const topics = new Map([['stock','stock enquiries'],['price','pricing enquiries'],['pickup','collection requests']]);
+const shopName = shopNames.get(demoParams.get('shop'));
+const topicName = topics.get(demoParams.get('topic'));
+if (channel === 'chatbot' && shopName && topicName) {
+  document.getElementById('enquiry-message').value = 'I would like a chatbot demo for my ' + shopName + ' that handles ' + topicName + '.';
+}
 button.disabled = false;
 form.addEventListener('submit', async event => {
   event.preventDefault();
