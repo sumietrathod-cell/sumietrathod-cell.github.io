@@ -1,4 +1,6 @@
 """Double-click on Windows after installing the dependencies listed in two_way.py."""
+from array import array
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -14,7 +16,6 @@ def main():
     frame.pack(fill="both", expand=True)
     try:
         import sounddevice as sd
-        import azure.cognitiveservices.speech
         devices = sd.query_devices()
         hosts = sd.query_hostapis()
     except Exception as error:
@@ -39,7 +40,35 @@ def main():
 
     ttk.Label(frame, text="In Zoom, select Cable A for Speaker and Cable B for Microphone.").pack(anchor="w", pady=10)
 
+    def test_output(flag, pulses):
+        box, choices = fields[flag]
+        device = choices.get(box.get())
+        if device is None:
+            messagebox.showinfo("Audio test", "Select the output device first.")
+            return
+        rate = 16000
+        beep = array("h", (int(3500 * math.sin(2 * math.pi * 660 * i / rate)
+                               * min(1, i / 100, (3999 - i) / 100)) for i in range(4000)))
+        silence = bytes(3200)
+        try:
+            with sd.RawOutputStream(device=device, samplerate=rate, channels=1, dtype="int16") as stream:
+                stream.write(silence.join([beep.tobytes()] * pulses))
+        except Exception as error:
+            messagebox.showerror("Audio test failed", str(error))
+
+    checks = ttk.Frame(frame)
+    checks.pack(anchor="w")
+    ttk.Button(checks, text="Test my headphones (1 beep)",
+               command=lambda: test_output("headphones", 1)).pack(side="left")
+    ttk.Button(checks, text="Test Zoom microphone (2 beeps)",
+               command=lambda: test_output("to-zoom", 2)).pack(side="left")
+
     def start():
+        try:
+            import azure.cognitiveservices.speech
+        except ImportError:
+            messagebox.showerror("Setup required", "Install azure-cognitiveservices-speech to run translation.")
+            return
         args = []
         selected = set()
         for flag, (box, choices) in fields.items():
