@@ -1,0 +1,74 @@
+name: Billing mobile verification
+on:
+  push:
+    branches: [qa/billing-mobile-print]
+permissions: {}
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify published billing with synthetic services
+        run: |
+          python -m venv /tmp/billing-env
+          source /tmp/billing-env/bin/activate
+          pip install -q playwright==1.56.0 pypdf==6.1.3
+          python - <<'PY'
+          import json
+          import shutil
+          from playwright.sync_api import sync_playwright
+          from pypdf import PdfReader
+          
+          quotes, invoices = [], []
+          def reply(route):
+              req = route.request
+              path = req.url.split("?")[0]
+              if path.endswith("/token"):
+                  result = {"access_token":"synthetic","user":{"app_metadata":{"campaign_manager_role":"admin"}}}
+              elif path.endswith("/billing_quotations"):
+                  if req.method == "POST":
+                      quotes.append(dict(req.post_data_json, created_at="2026-11-20T00:00:00Z"))
+                  result = quotes
+              elif path.endswith("/billing_invoices"):
+                  result = invoices
+              elif path.endswith("/billing_issue_invoice"):
+                  assert req.post_data_json["p_quotation_id"] == quotes[0]["id"]
+                  if not invoices:
+                      invoices.append({"id":"demo-invoice","issued_at":"2026-11-20T00:00:00Z","billing_quotations":quotes[0]})
+                  result = invoices[0]
+              else:
+                  return route.abort()
+              route.fulfill(json=result)
+          with sync_playwright() as pw:
+              browser = pw.chromium.launch(executable_path=shutil.which("google-chrome"))
+              page = browser.new_page(**pw.devices["Pixel 5"])
+              page.route("https://*.supabase.co/**",reply)
+              response = page.goto("https://aarohanaiworld.com/billing/quotations.html")
+              assert response.ok
+              page.get_by_label("Email",exact=True).fill("demo@example.invalid")
+              page.get_by_label("Password").fill("synthetic")
+              page.get_by_text("Admin sign in").click()
+              page.get_by_label("Customer",exact=True).fill("Mobile QA")
+              page.get_by_label("Service",exact=True).fill("Setup")
+              page.get_by_label("Quantity").fill("2")
+              page.get_by_label("Unit price (INR)").fill("15")
+              page.get_by_text("Add service",exact=True).click()
+              page.get_by_label("Service",exact=True).last.fill("Support")
+              page.get_by_label("Unit price (INR)").last.fill("5")
+              page.get_by_text("Save quotation",exact=True).click()
+              page.get_by_text("Quoted total ₹35.00").wait_for()
+              page.get_by_text("Open",exact=True).click()
+              page.get_by_text("Issue or open invoice").click()
+              page.get_by_text("Invoice total ₹35.00").wait_for()
+              page.get_by_text("Open invoice",exact=True).click()
+              assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+              page.evaluate("window.print = () => {window.clickedPrint=true}")
+              page.get_by_text("Print / Save PDF").click()
+              assert page.evaluate("window.clickedPrint")
+              page.pdf(path="demo.pdf",format="A4")
+              content = " ".join(p.extract_text() for p in PdfReader("demo.pdf").pages)
+              for value in ("Setup","Support","35.00","Mobile QA","demo-invoice"):
+                  assert value in content, value
+              assert "Sign out" not in content
+              print("Mobile quote, invoice reopen, print action and PDF passed.")
+          PY
