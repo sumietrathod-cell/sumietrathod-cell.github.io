@@ -164,7 +164,7 @@ summary { cursor: pointer; color: #86e6d1; }
     <h3>My sales and commission</h3>
     <button type="button" id="partner-refresh">Refresh my totals</button>
     <p id="partner-totals" role="status"></p></article>
-  <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
+  <article><h2>Leads</h2><form id="find-leads"><label>Search by<select name="field"><option value="name">Name</option><option value="company">Business</option><option value="country">Country</option><option value="status">Status</option></select></label><label>Search leads<input name="term" type="search" maxlength="120"></label><button>Search</button> <button id="clear-search" type="button">Clear search</button></form><ul class="list" id="lead-list"></ul></article>
   <article id="campaign-work" hidden>
     <h2>Campaigns and appointments</h2>
     <form id="campaign-start"><label>Campaign name<input name="campaignName" maxlength="120" required></label><button>Start manual campaign</button></form>
@@ -187,6 +187,7 @@ summary { cursor: pointer; color: #86e6d1; }
     <div id="work-lead" hidden>
       <form id="campaign-enrol"><label>Active campaign<select name="campaign" required></select></label><button>Enrol lead</button></form>
       <form id="appointment-add"><label>Appointment time (India)<input name="when" type="datetime-local" required></label><label>Purpose<input name="purpose" maxlength="160" required></label><button>Book appointment</button></form>
+      <h3>Contact history</h3><form id="log-contact"><label>Contact method<select name="channel"><option>Phone</option><option>Email</option><option>WhatsApp</option><option>Meeting</option></select></label><label>What happened?<textarea name="outcome" required maxlength="1000"></textarea></label><button>Save contact note</button></form><ul id="contact-history" class="list"></ul>
       <p id="work-lead-status" role="status"></p>
     </div>
     <form id="record-sale" hidden>
@@ -264,6 +265,8 @@ const more = document.querySelector('#more');
 let accessToken;
 let expires;
 let offset = 0;
+const searchForm=document.getElementById('find-leads');
+let leadFilter='';
 
 async function request(path, options = {}, token = accessToken) {
   const headers = new Headers({ apikey: apiKey, 'Content-Type': 'application/json' });
@@ -400,7 +403,7 @@ async function loadLeads() {
   const version = ++leadListRequest;
   const pageOffset = offset;
   const fields = 'id,name,company,country,status' + (adminSession ? ',follow_up_on' : '');
-  const rows = await request('/rest/v1/leads?select=' + fields + '&order=created_at.desc.nullslast,id.asc&limit=' + (pageSize + 1) + '&offset=' + pageOffset);
+  const rows = await request('/rest/v1/leads?select=' + fields + '&order=created_at.desc.nullslast,id.asc&limit=' + (pageSize + 1) + '&offset=' + pageOffset + leadFilter);
   if (token !== accessToken || version !== leadListRequest) return;
   renderRows(leadList, rows.slice(0, pageSize).map(lead => ({
     title: lead.name,
@@ -412,6 +415,7 @@ async function loadLeads() {
 }
 
 function clearSession() {
+  leadFilter='';searchForm.reset();
   clearTimeout(expires);
   accessToken = undefined;
   adminSession = false;
@@ -516,6 +520,20 @@ form.addEventListener('submit', async event => {
   }
 });
 
+async function searchLeads(event){
+  event.preventDefault();
+  const token=accessToken;
+  if(!token)return;
+  const field=searchForm.elements.field.value;
+  if(!['name','company','country','status'].includes(field))return;
+  const term=searchForm.elements.term.value.trim();
+  leadFilter=term?'&'+field+'=ilike.'+encodeURIComponent('*'+term+'*'):'';
+  offset=0;more.hidden=true;leadList.replaceChildren();closeLead();
+  try{await loadLeads()}
+  catch{if(token===accessToken)message.textContent='Could not search leads. Try again.'}
+}
+searchForm.onsubmit=searchLeads;
+document.getElementById('clear-search').onclick=event=>{searchForm.reset();searchLeads(event)};
 more.addEventListener('click', async () => {
   more.disabled = true;
   message.textContent = '';
@@ -767,6 +785,7 @@ async function openLead(id, refreshed = false) {
     }
     leadSnapshot = lead;
     workLead.hidden=false;
+    loadContactHistory(id,token);
     leadTitle.textContent = lead.name;
     renderLeadDetails(lead);
     editStatus.value = lead.status || 'New';
@@ -1073,7 +1092,19 @@ const workStatus=byWorkId('work-status'), workLeadStatus=byWorkId('work-lead-sta
 const startForm=byWorkId('campaign-start'), enrolForm=byWorkId('campaign-enrol'), appointmentForm=byWorkId('appointment-add');
 const appointmentList=byWorkId('appointment-list'), campaignSelect=enrolForm.elements.campaign;
 let workVersion=0;
+const contactForm=byWorkId('log-contact'), historyList=byWorkId('contact-history');
+let historyVersion=0;
+async function loadContactHistory(lead,token){
+  if(lead!==activeLeadId||token!==accessToken)return;
+  const version=++historyVersion;
+  try{
+    const rows=await request('/rest/v1/activities?select=activity_type,description,activity_date&lead_id=eq.'+encodeURIComponent(lead)+'&order=activity_date.desc.nullslast,id.desc&limit=100',{},token);
+    if(version!==historyVersion||lead!==activeLeadId||token!==accessToken)return;
+    renderRows(historyList,rows.map(row=>({title:row.activity_type||'Activity',detail:[row.activity_date&&new Date(row.activity_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST',row.description].filter(Boolean).join(' · ')})),'No contact history yet.');
+  }catch{if(version===historyVersion)historyList.textContent='Could not load contact history. Reopen this lead to retry.'}
+}
 function resetWorkLead(){
+  historyVersion++;contactForm.reset();historyList.replaceChildren();
   workLead.hidden=true;
   appointmentForm.reset();
   workLeadStatus.textContent='';
@@ -1148,9 +1179,17 @@ workSubmit(appointmentForm,true,async(v,lead,id,token)=>{
   const time=new Date(v.when+'+05:30'), description=v.purpose.trim();
   if(!description||!Number.isFinite(+time)||time<=new Date())throw Error('Enter a purpose and a future time in India.');
   await insertWork('activities',{id,lead_id:lead,activity_type:'Appointment',description,activity_date:time.toISOString()},token);
+  await loadContactHistory(lead,token);
   return 'Appointment booked.';
 });
 
+workSubmit(contactForm,true,async(v,lead,id,token)=>{
+  const description=v.outcome.trim();
+  if(!description||!['Email','Phone','WhatsApp','Meeting'].includes(v.channel))throw Error('Enter the contact method and outcome.');
+  await insertWork('activities',{id,lead_id:lead,activity_type:v.channel,description,activity_date:new Date().toISOString()},token);
+  await loadContactHistory(lead,token);
+  return 'Contact note saved.';
+});
 </script>
 </body>
 </html>
