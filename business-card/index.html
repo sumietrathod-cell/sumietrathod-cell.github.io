@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#075548"><title>Business card | AAROHAN AI WORLD</title><link rel="icon" href="/logo.svg"><link rel="stylesheet" href="/voice-platform/studio.css">
+<style>main{max-width:34rem;padding:2rem 0}.card{border-top:6px solid var(--action)}h1{font-size:clamp(2.4rem,9vw,3.6rem);margin-top:1rem}.actions{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.2rem 0}.save{background:var(--action);color:white;padding:.6rem 1rem;border-radius:.4rem;text-decoration:none;font-weight:700}address{font-style:normal}address a{overflow-wrap:anywhere}nav{display:flex;gap:1rem;flex-wrap:wrap}hr{border:0;border-top:1px solid var(--line);margin:1.3rem 0}</style></head>
+<body><main><article class="card"><img src="/logo.svg" alt="" width="52" height="52"><h1>AAROHAN AI WORLD</h1><p><strong>Sumiet Rathod</strong> · Founder</p><p>Voice agents, WhatsApp automation and analytics dashboards for businesses.</p>
+<div class="actions"><a class="save" href="aarohan-ai-world.vcf" download>Save contact</a><button type="button" class="secondary" id="share">Share card</button></div><p id="result" role="status" hidden></p>
+<address><a href="tel:+916357115513">+91 63571 15513</a> · <a href="https://wa.me/916357115513">WhatsApp</a><br><a href="mailto:aarohananalytics951@gmail.com">aarohananalytics951@gmail.com</a></address>
+<hr><nav aria-label="Business links"><a href="/">Website</a><a href="/aarohi-voice.html">Try Aarohi</a><a href="/voice-platform/support.html">Customer support</a></nav>
+</article></main><script>
+const cardUrl='https://aarohanaiworld.com/business-card/';
+document.getElementById('share').onclick=async()=>{
+ const result=document.getElementById('result');
+ result.hidden=true;
+ if(navigator.share){
+   try{await navigator.share({title:'AAROHAN AI WORLD',url:cardUrl});return}
+   catch(error){if(error.name==='AbortError')return}
+ }
+ try{await navigator.clipboard.writeText(cardUrl);result.textContent='Card link copied.'}
+ catch{result.textContent='Share this link: '+cardUrl}
+ result.hidden=false;
+};
+</script></body></html>
