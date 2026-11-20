@@ -14,9 +14,10 @@ const {chromium}=require('playwright');
  console.log('After start',await widget.locator('button').allTextContents());
  const consent=widget.getByRole('button',{name:/^agree|^accept|^allow|^continue/i}).first();
  if(await consent.isVisible())await consent.click();
- const end=widget.getByRole('button',{name:/end call|end conversation|hang up|end a call/i}).first();
+ const end=widget.getByRole('button',{name:/^end$|end call|end conversation|hang up|end a call/i}).first();
  await end.waitFor({timeout:15000});await end.click();console.log('VOICE CONTROL CONNECTED AND ENDED');
  }catch(e){console.log('Voice check incomplete',String(e.message).slice(0,280),await widget.locator('button').allTextContents());}
+ await page.reload({waitUntil:'domcontentloaded'});
  await page.getByRole('link',{name:'Request a follow-up'}).click();
  await page.locator('#enquiry-name').fill('Aarohi QA 20261120-R1');await page.locator('#enquiry-email').fill('aarohi-qa@example.invalid');await page.locator('#enquiry-message').fill('Synthetic Aarohi website verification. No reply requested.');await page.locator('#enquiry-consent').check();
  await page.getByRole('button',{name:'Send enquiry'}).click();
