@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent support | AAROHAN AI WORLD</title><link rel="stylesheet" href="studio.css"></head><body>
+<header><a class="brand" href="../">AAROHAN AI WORLD</a><nav><a href="remote.html">Remote Manager</a></nav></header><main>
+<h1>Agent support</h1><p id="notice" role="status"></p>
+<form id="login" class="card stack"><label>Support account email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form>
+<section id="desk" hidden><div class="row"><button id="refresh">Refresh</button><button id="logout">Sign out</button></div>
+<div class="grid"><form id="openCase" class="card stack"><h2>Report an issue</h2><label>Agent<select name="agent" required></select></label><label>What happened and what did you expect?<textarea name="issue" required maxlength="1500"></textarea></label><small>Keep passwords, customer records and access keys out of support messages.</small><button>Create ticket</button></form>
+<section class="card"><h2>Tickets</h2><label>Select a ticket<select id="cases"></select></label></section></div>
+<article id="detail" class="card stack" hidden><h2 id="heading"></h2><p id="issue"></p><ol id="messages"></ol>
+<form class="stack" id="reply"><label>Question or reply<textarea name="body" required maxlength="1500"></textarea></label><button>Add message</button></form>
+<form class="stack" id="fix" hidden><h3>Fix the agent language</h3><label>Which language should this browser agent use?<select name="locale"><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-IN">English</option></select></label><label><input required type="checkbox"> I approve changing this agent’s language setting and closing this ticket. Its greeting and reply text stay as written.</label><button>Apply language fix</button></form>
+<form id="state" hidden><label>Ticket status<select name="status"><option>Open</option><option>Waiting for customer</option><option>Resolved</option></select></label><button>Save status</button></form></article></section></main>
+<script type="module">
+import {api,signIn,signOut} from './backend.js';
+const get=id=>document.getElementById(id);
+const login=get('login'),desk=get('desk'),open=get('openCase'),cases=get('cases'),detail=get('detail'),reply=get('reply'),fix=get('fix'),state=get('state');
+let session, tickets=[], agents=[], generation=0,expiry;
+const rest='/rest/v1/';
+function request(path, options={}) {return api(rest+path,{...options,token:session.access_token})}
+function clear(){clearTimeout(expiry);generation++;session=null;tickets=[];agents=[];desk.hidden=true;detail.hidden=true;login.hidden=false;for(const form of [open,fix,reply,state,login])form.reset();cases.replaceChildren();open.agent.replaceChildren();get('messages').replaceChildren();get('issue').textContent='';get('notice').textContent='';}
+async function show(){
+ const version=++generation;detail.hidden=true;fix.reset();reply.reset();
+ const t=tickets.find(x=>x.id===cases.value);if(!t)return;
+ const rows=await request('agent_support_replies?select=author_id,body&case_id=eq.'+t.id+'&order=created_at,id');
+ if(version!==generation)return;
+ const a=agents.find(x=>x.id===t.deployment_id);
+ get('heading').textContent=(a?.name||'Agent')+' · '+t.status;
+ get('issue').textContent=t.issue;
+ get('messages').replaceChildren(...rows.map(r=>{const li=document.createElement('li');li.textContent=(r.author_id===t.customer_id?'Customer':'Support')+' · '+r.body;return li}));
+ reply.hidden=t.status==='Resolved';fix.hidden=reply.hidden||a?.operator_user_id!==session.user.id||!a.enabled||t.customer_id!==session.user.id;
+ state.hidden=session.user.app_metadata?.campaign_manager_role!=='admin';state.status.value=t.status;detail.hidden=false;
+}
+async function refresh(selected=cases.value){
+ const current=session,version=++generation;detail.hidden=true;
+ const [a,t]=await Promise.all([request('voice_deployments?select=id,name,operator_user_id,enabled&order=name,id'),request('agent_support_cases?select=id,issue,status,customer_id,deployment_id&order=created_at.desc,id&limit=200')]);
+ if(current!==session||version!==generation)return;
+ agents=a;tickets=t;const choice=open.agent.value;open.agent.replaceChildren(...a.map(v=>new Option(v.name,v.id)));if(a.some(v=>v.id===choice))open.agent.value=choice;
+ cases.replaceChildren(...t.map(v=>new Option(v.status+' · '+v.issue.slice(0,60),v.id)));if(t.some(v=>v.id===selected))cases.value=selected;await show();
+}
+function run(action){return async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button')||e.currentTarget;button.disabled=true;const current=session;try{get('notice').textContent='';await action()}catch{if(current===session||!current)get('notice').textContent='Could not finish. Check your access and refresh before retrying.'}finally{button.disabled=false}}}
+login.onsubmit=run(async()=>{session=await signIn(login.email.value,login.password.value);login.reset();login.hidden=true;desk.hidden=false;expiry=setTimeout(clear,session.expires_in*1000);await refresh()});
+get('logout').onclick=run(async()=>{const token=session.access_token;clear();await signOut(token)});
+get('refresh').onclick=run(()=>refresh());cases.onchange=run(show);
+open.onsubmit=run(async()=>{const id=crypto.randomUUID();await request('agent_support_cases',{method:'POST',data:{id,deployment_id:open.agent.value,issue:open.issue.value.trim()}});open.issue.value='';await refresh(id)});
+reply.onsubmit=run(async()=>{await request('agent_support_replies',{method:'POST',data:{id:crypto.randomUUID(),case_id:cases.value,body:reply.body.value.trim()}});await show()});
+fix.onsubmit=run(async()=>{await request('rpc/support_set_agent_language',{method:'POST',data:{p_case:cases.value,p_locale:fix.locale.value}});await refresh()});
+state.onsubmit=run(async()=>{await request('agent_support_cases?id=eq.'+cases.value,{method:'PATCH',data:{status:state.status.value}});await refresh()});
+</script></body></html>
