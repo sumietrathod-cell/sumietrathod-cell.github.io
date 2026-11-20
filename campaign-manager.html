@@ -165,6 +165,13 @@ summary { cursor: pointer; color: #86e6d1; }
     <button type="button" id="partner-refresh">Refresh my totals</button>
     <p id="partner-totals" role="status"></p></article>
   <article><h2>Leads</h2><ul class="list" id="lead-list"></ul></article>
+  <article id="campaign-work" hidden>
+    <h2>Campaigns and appointments</h2>
+    <form id="campaign-start"><label>Campaign name<input name="campaignName" maxlength="120" required></label><button>Start manual campaign</button></form>
+    <p>Open a lead to enrol it. Enrolment schedules a dashboard follow-up for tomorrow in India when the lead has no follow-up date.</p>
+    <h3>Upcoming appointments</h3><ul id="appointment-list"></ul><button id="work-refresh" type="button">Refresh campaigns and appointments</button>
+    <p id="work-status" role="status"></p>
+  </article>
   <article id="lead-editor" hidden>
     <div class="lead-editor-heading"><h2 id="lead-title" tabindex="-1">Lead details</h2><button id="close-lead" type="button">Close details</button></div>
     <p id="lead-editor-feedback" role="status"></p>
@@ -177,6 +184,11 @@ summary { cursor: pointer; color: #86e6d1; }
       </div>
       <div class="lead-editor-heading"><button type="submit">Save progress</button><button id="reload-lead" type="button">Refresh details</button></div>
     </form>
+    <div id="work-lead" hidden>
+      <form id="campaign-enrol"><label>Active campaign<select name="campaign" required></select></label><button>Enrol lead</button></form>
+      <form id="appointment-add"><label>Appointment time (India)<input name="when" type="datetime-local" required></label><label>Purpose<input name="purpose" maxlength="160" required></label><button>Book appointment</button></form>
+      <p id="work-lead-status" role="status"></p>
+    </div>
     <form id="record-sale" hidden>
       <h3>Record a sale</h3>
       <label>Invoice or sale reference<input name="reference" required maxlength="100" pattern="[A-Za-z0-9][A-Za-z0-9_.\/\-]{0,99}"></label>
@@ -403,6 +415,11 @@ function clearSession() {
   clearTimeout(expires);
   accessToken = undefined;
   adminSession = false;
+  workPanel.hidden=true;
+  workStatus.textContent='';
+  appointmentList.replaceChildren();
+  campaignSelect.replaceChildren();
+  startForm.reset();
   report.hidden = true;
   clearReport();
   closeLead();
@@ -474,6 +491,8 @@ form.addEventListener('submit', async event => {
     channelHub.hidden = !admin;
     callHistory.hidden = !admin;
     if (admin) {
+      workPanel.hidden=false;
+      refreshWork();
       report.hidden = false;
       refreshReport();
       refreshInbox();
@@ -680,6 +699,7 @@ recordEnquiry.addEventListener('submit', async event => {
 });
 
 function closeLead() {
+  resetWorkLead();
   resetSaleForm();
   detailRequest++;
   activeLeadId = undefined;
@@ -727,6 +747,7 @@ async function openLead(id, refreshed = false) {
   if (!token || !adminSession) return;
   const version = ++detailRequest;
   resetSaleForm();
+  resetWorkLead();
   activeLeadId = id;
   leadSnapshot = undefined;
   leadEditor.hidden = false;
@@ -745,6 +766,7 @@ async function openLead(id, refreshed = false) {
       return;
     }
     leadSnapshot = lead;
+    workLead.hidden=false;
     leadTitle.textContent = lead.name;
     renderLeadDetails(lead);
     editStatus.value = lead.status || 'New';
@@ -1044,6 +1066,91 @@ setPassword.addEventListener('submit', async event => {
   recoveryOptions.hidden = false;
   form.elements.email.focus();
 });
+
+const byWorkId=id=>document.getElementById(id);
+const workPanel=byWorkId('campaign-work'), workLead=byWorkId('work-lead');
+const workStatus=byWorkId('work-status'), workLeadStatus=byWorkId('work-lead-status');
+const startForm=byWorkId('campaign-start'), enrolForm=byWorkId('campaign-enrol'), appointmentForm=byWorkId('appointment-add');
+const appointmentList=byWorkId('appointment-list'), campaignSelect=enrolForm.elements.campaign;
+let workVersion=0;
+function resetWorkLead(){
+  workLead.hidden=true;
+  appointmentForm.reset();
+  workLeadStatus.textContent='';
+}
+async function refreshWork(){
+  const token=accessToken, version=++workVersion;
+  if(!token||!adminSession)return;
+  try{
+    const [campaigns,appointments]=await Promise.all([
+      request('/rest/v1/campaigns?select=id,name&channel=eq.Manual&status=eq.Active&order=created_at.desc,id&limit=100',{},token),
+      request('/rest/v1/activities?select=description,activity_date,leads(name)&activity_type=eq.Appointment&activity_date=gte.'+encodeURIComponent(new Date().toISOString())+'&order=activity_date.asc,id&limit=100',{},token)
+    ]);
+    if(token!==accessToken||version!==workVersion)return;
+    const selected=campaignSelect.value;
+    campaignSelect.replaceChildren(...campaigns.map(c=>new Option(c.name,c.id)));
+    if(campaigns.some(c=>c.id===selected))campaignSelect.value=selected;
+    appointmentList.replaceChildren();
+    for(const a of appointments){
+      const li=document.createElement('li');
+      li.textContent=new Date(a.activity_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST · '+(a.leads?.name||'Lead')+' · '+a.description;
+      appointmentList.append(li);
+    }
+    if(!appointments.length)appointmentList.textContent='No upcoming appointments.';
+  }catch{if(token===accessToken&&version===workVersion)workStatus.textContent='Could not load campaigns and appointments. Refresh to retry.'}
+}
+byWorkId('work-refresh').onclick=refreshWork;
+function workSubmit(form,leadSpecific,action){
+  let lastPayload='', retryId;
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    const token=accessToken, lead=activeLeadId, btn=form.querySelector('button');
+    if(!token||!adminSession||btn.disabled||(leadSpecific&&!leadSnapshot))return;
+    const message=leadSpecific?workLeadStatus:workStatus;
+    const values=Object.fromEntries(new FormData(form));
+    const payload=JSON.stringify([leadSpecific?lead:null,values]);
+    if(payload!==lastPayload||!retryId){
+      const bytes=crypto.getRandomValues(new Uint8Array(16));
+      bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+      const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+      retryId=[hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
+      lastPayload=payload;
+    }
+    btn.disabled=true;
+    try{
+      const note=await action(values,lead,retryId,token);
+      retryId=null;
+      if(token!==accessToken)return;
+      if(!leadSpecific||activeLeadId===lead){
+        if(form===enrolForm){await openLead(lead,true);refreshReport()}
+        else form.reset();
+        if(token===accessToken&&(!leadSpecific||activeLeadId===lead))message.textContent=note;
+      }
+      await refreshWork();
+    }catch(err){if(token===accessToken&&(!leadSpecific||activeLeadId===lead))message.textContent=err.message==='Request failed'?'Could not save. Refresh and retry.':err.message}
+    finally{btn.disabled=false}
+  };
+}
+async function insertWork(path,body,token){
+  try{await request('/rest/v1/'+path,{method:'POST',body:JSON.stringify(body)},token)}
+  catch(err){if(err.status!==409)throw err;const rows=await request('/rest/v1/'+path+'?select=id&id=eq.'+body.id,{},token);if(!rows.length)throw err}
+}
+workSubmit(startForm,false,async(v,lead,id,token)=>{
+  const name=v.campaignName.trim();if(!name)throw Error('Enter a campaign name.');
+  await insertWork('campaigns',{id,name,channel:'Manual',status:'Active'},token);
+  return 'Campaign started. Open a lead to enrol it.';
+});
+workSubmit(enrolForm,true,async(v,lead,id,token)=>{
+  await request('/rest/v1/rpc/campaign_enroll_for_follow_up',{method:'POST',body:JSON.stringify({p_campaign:v.campaign,p_lead:lead})},token);
+  return 'Lead enrolled. Check its follow-up date above.';
+});
+workSubmit(appointmentForm,true,async(v,lead,id,token)=>{
+  const time=new Date(v.when+'+05:30'), description=v.purpose.trim();
+  if(!description||!Number.isFinite(+time)||time<=new Date())throw Error('Enter a purpose and a future time in India.');
+  await insertWork('activities',{id,lead_id:lead,activity_type:'Appointment',description,activity_date:time.toISOString()},token);
+  return 'Appointment booked.';
+});
+
 </script>
 </body>
 </html>
