@@ -1,4 +1,4 @@
-name: Aarohi Gujarati speech check
+name: Aarohi Gujarati preset speech check
 on:
   push:
     branches: [qa/aarohi-gujarati-audio]
