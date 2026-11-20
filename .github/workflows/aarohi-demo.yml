@@ -1,4 +1,4 @@
-name: Aarohi live demo verification
+name: Aarohi mobile demo verification
 on:
   push:
     branches: [qa/aarohi-live-20261120]
