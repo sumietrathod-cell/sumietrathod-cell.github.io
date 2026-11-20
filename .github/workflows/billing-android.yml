@@ -42,6 +42,8 @@ jobs:
               print([(n.get('resource-id'),n.get('text'),n.get('content-desc')) for n in found if n.get('clickable')=='true'],flush=True)
               return False
           
+          adb("shell","wm","size","1080x1920")
+          adb("shell","wm","density","360")
           adb("shell","am","start","-a","android.intent.action.VIEW","-d","about:blank","com.android.chrome")
           time.sleep(3)
           for _ in range(4):
@@ -78,7 +80,10 @@ jobs:
           x,y=js("(()=>{const r=document.querySelector('#doc button').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()")
           for action in ("mousePressed","mouseReleased"):
               cmd("Input.dispatchMouseEvent",dict(type=action,x=x,y=y,button="left",clickCount=1))
-          assert press_if(lambda a:a.get("resource-id","").endswith("/print_button") or a.get("content-desc","").lower() in ("save as pdf","save to pdf","save"),12), "Android print button unavailable"
+          assert press_if(lambda a:a.get("resource-id","").endswith("/destination_spinner"),10)
+          assert press_if(lambda a:"save as pdf" in (a.get("text","")+" "+a.get("content-desc","")).lower(),8)
+          print([(n.get("resource-id"),n.get("text"),n.get("content-desc")) for n in nodes()],flush=True)
+          assert press_if(lambda a:a.get("resource-id","").endswith(("/print_button","/print_button_icon","/print_button_container")) or a.get("content-desc","").lower() in ("save as pdf","save to pdf","save"),12), "Android print button unavailable"
           assert press_if(lambda a:a.get("text","").upper()=="SAVE" and a.get("clickable")=="true",12), "Android file picker unavailable"
           for _ in range(15):
               paths=adb("shell","find","/sdcard/Download","-iname","*.pdf").splitlines()
