@@ -5,7 +5,7 @@ AGENT = "agent_6701m7cb57dkftcbkvd0ggfdd2ep"
 async def check():
     url = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=" + AGENT
     async with websockets.connect(url, origin="https://aarohanaiworld.com") as ws:
-        await ws.send(json.dumps({"type":"conversation_initiation_client_data"}))
+        await ws.send(json.dumps({"type":"conversation_initiation_client_data","conversation_config_override":{"agent":{"language":"gu"}}}))
         sent = asyncio.Event()
         async def speak():
             await asyncio.sleep(12)
