@@ -1,0 +1,14 @@
+name: Campaign mobile verification
+on:
+  push:
+    branches: [qa/campaign-mobile-20261120]
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - run: node qa/campaign-mobile.cjs
