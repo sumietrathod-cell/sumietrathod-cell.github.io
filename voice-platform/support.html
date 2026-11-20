@@ -3,7 +3,7 @@
 <h1>Agent support</h1><p id="notice" role="status"></p>
 <form id="login" class="card stack"><label>Support account email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form>
 <section id="desk" hidden><div class="row"><button id="refresh">Refresh</button><button id="logout">Sign out</button></div>
-<div class="grid"><form id="openCase" class="card stack"><h2>Report an issue</h2><label>Agent<select name="agent" required></select></label><label>What happened and what did you expect?<textarea name="issue" required maxlength="1500"></textarea></label><small>Keep passwords, customer records and access keys out of support messages.</small><button>Create ticket</button></form>
+<div class="grid"><form id="openCase" class="card stack"><h2>Report an issue</h2><label>Agent<select name="agent" required></select></label><label>What needs attention?<select name="category"><option value="Language">Spoken language</option><option value="Reply">Incorrect answer</option><option value="Website">Website connection</option><option value="Other">Something else</option></select></label><label><span id="question">Which language did you hear, and which did you expect?</span><textarea name="issue" required maxlength="1500"></textarea></label><small>Keep passwords, customer records and access keys out of support messages.</small><button>Create ticket</button></form>
 <section class="card"><h2>Tickets</h2><label>Select a ticket<select id="cases"></select></label></section></div>
 <article id="detail" class="card stack" hidden><h2 id="heading"></h2><p id="issue"></p><ol id="messages"></ol>
 <form class="stack" id="reply"><label>Question or reply<textarea name="body" required maxlength="1500"></textarea></label><button>Add message</button></form>
@@ -26,7 +26,7 @@ async function show(){
  get('heading').textContent=(a?.name||'Agent')+' · '+t.status;
  get('issue').textContent=t.issue;
  get('messages').replaceChildren(...rows.map(r=>{const li=document.createElement('li');li.textContent=(r.author_id===t.customer_id?'Customer':'Support')+' · '+r.body;return li}));
- reply.hidden=t.status==='Resolved';fix.hidden=reply.hidden||a?.operator_user_id!==session.user.id||!a.enabled||t.customer_id!==session.user.id;
+ reply.hidden=t.status==='Resolved';fix.hidden=!t.issue.startsWith('Language · ')||reply.hidden||a?.operator_user_id!==session.user.id||!a.enabled||t.customer_id!==session.user.id;
  state.hidden=session.user.app_metadata?.campaign_manager_role!=='admin';state.status.value=t.status;detail.hidden=false;
 }
 async function refresh(selected=cases.value){
@@ -37,10 +37,12 @@ async function refresh(selected=cases.value){
  cases.replaceChildren(...t.map(v=>new Option(v.status+' · '+v.issue.slice(0,60),v.id)));if(t.some(v=>v.id===selected))cases.value=selected;await show();
 }
 function run(action){return async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button')||e.currentTarget;button.disabled=true;const current=session;try{get('notice').textContent='';await action()}catch{if(current===session||!current)get('notice').textContent='Could not finish. Check your access and refresh before retrying.'}finally{button.disabled=false}}}
+const questions={Language:'Which language did you hear, and which did you expect?',Reply:'What did you ask, and what should the correct answer be?',Website:'Which public page has the issue, and what happens when you open the agent?',Other:'What happened, when did it happen, and what did you expect?'};
+open.category.onchange=()=>{get('question').textContent=questions[open.category.value]};
 login.onsubmit=run(async()=>{session=await signIn(login.email.value,login.password.value);login.reset();login.hidden=true;desk.hidden=false;expiry=setTimeout(clear,session.expires_in*1000);await refresh()});
 get('logout').onclick=run(async()=>{const token=session.access_token;clear();await signOut(token)});
 get('refresh').onclick=run(()=>refresh());cases.onchange=run(show);
-open.onsubmit=run(async()=>{const id=crypto.randomUUID();await request('agent_support_cases',{method:'POST',data:{id,deployment_id:open.agent.value,issue:open.issue.value.trim()}});open.issue.value='';await refresh(id)});
+open.onsubmit=run(async()=>{const id=crypto.randomUUID();await request('agent_support_cases',{method:'POST',data:{id,deployment_id:open.agent.value,issue:open.category.value+' · '+open.issue.value.trim()}});open.issue.value='';await refresh(id)});
 reply.onsubmit=run(async()=>{await request('agent_support_replies',{method:'POST',data:{id:crypto.randomUUID(),case_id:cases.value,body:reply.body.value.trim()}});await show()});
 fix.onsubmit=run(async()=>{await request('rpc/support_set_agent_language',{method:'POST',data:{p_case:cases.value,p_locale:fix.locale.value}});await refresh()});
 state.onsubmit=run(async()=>{await request('agent_support_cases?id=eq.'+cases.value,{method:'PATCH',data:{status:state.status.value}});await refresh()});
