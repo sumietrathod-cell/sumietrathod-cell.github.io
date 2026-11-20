@@ -1,0 +1,20 @@
+name: Aarohi Gujarati speech check
+on:
+  push:
+    branches: [qa/aarohi-gujarati-audio]
+    paths: ['.github/workflows/aarohi-gujarati-audio.yml']
+permissions:
+  contents: read
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng sox
+          python -m pip install websockets==15.0.1
+          espeak-ng -v gu -s 125 -w /tmp/question.wav 'મારી કપડાંની દુકાનમાં ગ્રાહકો વારંવાર ભાવ પૂછે છે. આરોહી મને કેવી રીતે મદદ કરશે?'
+          sox /tmp/question.wav -r 16000 -c 1 -b 16 -e signed-integer -t raw /tmp/question.pcm
+          python qa/gujarati_audio.py
