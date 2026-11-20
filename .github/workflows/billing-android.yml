@@ -67,11 +67,11 @@ jobs:
               res=cmd("Runtime.evaluate",dict(expression=expr,returnByValue=True,userGesture=True))
               assert "exceptionDetails" not in res,res.get("exceptionDetails")
               return res["result"].get("value")
-          cmd("Page.navigate",{"url":"https://aarohanaiworld.com/billing/quotations.html"})
+          cmd("Page.navigate",{"url":"https://aarohanaiworld.com/billing/quotations.html?release=fcb4908"})
           for _ in range(45):
-              if js("typeof view==='function'"): break
+              if js("typeof quotationId==='function'"): break
               time.sleep(1)
-          assert js("typeof view==='function'"),js("document.title")
+          assert js("typeof quotationId==='function' && /^[a-f0-9-]{36}$/.test(quotationId())"),js("document.title")
           js("""view({id:'sample-quote',customer:'Mobile QA',items:[{service:'Setup',qty:2,paise:1500},{service:'Support',qty:1,paise:500}]},{id:'demo-invoice',issued_at:'2026-11-20T00:00:00Z'})""")
           assert js("document.querySelector('#doc').textContent.includes('35.00')")
           js("document.querySelector('#doc button').scrollIntoView({block:'center'})")
