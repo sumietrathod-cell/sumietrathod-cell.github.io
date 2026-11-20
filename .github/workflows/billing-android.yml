@@ -90,7 +90,11 @@ jobs:
               if paths: break
               time.sleep(1)
           assert len(paths)==1, "Expected one saved PDF"
-          adb("pull",paths[0],"demo.pdf")
+          from pathlib import Path
+          for _ in range(60):
+              adb("pull",paths[0],"demo.pdf")
+              if b"%%EOF" in Path("demo.pdf").read_bytes()[-1024:]: break
+              time.sleep(1)
           content=" ".join(p.extract_text() for p in PdfReader("demo.pdf").pages)
           for s in ("Setup","Support","35.00","Mobile QA","demo-invoice"):
               assert s in content, s
