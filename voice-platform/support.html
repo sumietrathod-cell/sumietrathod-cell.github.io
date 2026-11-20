@@ -5,7 +5,7 @@
 <section id="desk" hidden><div class="row"><button id="refresh">Refresh</button><button id="logout">Sign out</button></div>
 <div class="grid"><form id="openCase" class="card stack"><h2>Report an issue</h2><label>Agent<select name="agent" required></select></label><label>What needs attention?<select name="category"><option value="Language">Spoken language</option><option value="Reply">Incorrect answer</option><option value="Website">Website connection</option><option value="Other">Something else</option></select></label><label><span id="question">Which language did you hear, and which did you expect?</span><textarea name="issue" required maxlength="1500"></textarea></label><small>Keep passwords, customer records and access keys out of support messages.</small><button>Create ticket</button></form>
 <section class="card"><h2>Tickets</h2><label>Select a ticket<select id="cases"></select></label></section></div>
-<article id="detail" class="card stack" hidden><h2 id="heading"></h2><p id="issue"></p><ol id="messages"></ol>
+<article id="detail" class="card stack" hidden><h2 id="heading"></h2><p>Ticket ID <code id="ticket-id"></code></p><p id="issue"></p><ol id="messages"></ol>
 <form class="stack" id="reply"><label>Question or reply<textarea name="body" required maxlength="1500"></textarea></label><button>Add message</button></form>
 <form class="stack" id="fix" hidden><h3>Fix the agent language</h3><label>Which language should this browser agent use?<select name="locale"><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-IN">English</option></select></label><label><input required type="checkbox"> I approve changing this agent’s language setting and closing this ticket. Its greeting and reply text stay as written.</label><button>Apply language fix</button></form>
 <form id="state" hidden><label>Ticket status<select name="status"><option>Open</option><option>Waiting for customer</option><option>Resolved</option></select></label><button>Save status</button></form></article></section></main>
@@ -13,17 +13,21 @@
 import {api,signIn,signOut} from './backend.js';
 const get=id=>document.getElementById(id);
 const login=get('login'),desk=get('desk'),open=get('openCase'),cases=get('cases'),detail=get('detail'),reply=get('reply'),fix=get('fix'),state=get('state');
+let displayedTicket;
 let session, tickets=[], agents=[], generation=0,expiry;
 const rest='/rest/v1/';
 function request(path, options={}) {return api(rest+path,{...options,token:session.access_token})}
-function clear(){clearTimeout(expiry);generation++;session=null;tickets=[];agents=[];desk.hidden=true;detail.hidden=true;login.hidden=false;for(const form of [open,fix,reply,state,login])form.reset();cases.replaceChildren();open.agent.replaceChildren();get('messages').replaceChildren();get('issue').textContent='';get('notice').textContent='';}
+function clear(){clearTimeout(expiry);displayedTicket=null;generation++;session=null;tickets=[];agents=[];desk.hidden=true;detail.hidden=true;login.hidden=false;for(const form of [open,fix,reply,state,login])form.reset();cases.replaceChildren();open.agent.replaceChildren();get('messages').replaceChildren();get('issue').textContent='';get('notice').textContent='';}
 async function show(){
- const version=++generation;detail.hidden=true;fix.reset();reply.reset();
+ const version=++generation;detail.hidden=true;fix.reset();
+ if(displayedTicket!==cases.value)reply.reset();
+ displayedTicket=cases.value;
  const t=tickets.find(x=>x.id===cases.value);if(!t)return;
  const rows=await request('agent_support_replies?select=author_id,body,automated&case_id=eq.'+t.id+'&order=created_at,id');
  if(version!==generation)return;
  const a=agents.find(x=>x.id===t.deployment_id);
  get('heading').textContent=(a?.name||'Agent')+' · '+t.status;
+ get('ticket-id').textContent=t.id;
  get('issue').textContent=t.issue;
  get('messages').replaceChildren(...rows.map(r=>{const li=document.createElement('li');li.textContent=(r.automated?'Support assistant':r.author_id===t.customer_id?'Customer':'Support')+' · '+r.body;return li}));
  reply.hidden=t.status==='Resolved';fix.hidden=!t.issue.startsWith('Language · ')||reply.hidden||a?.operator_user_id!==session.user.id||!a.enabled||t.customer_id!==session.user.id;
@@ -43,7 +47,13 @@ login.onsubmit=run(async()=>{session=await signIn(login.email.value,login.passwo
 get('logout').onclick=run(async()=>{const token=session.access_token;clear();await signOut(token)});
 get('refresh').onclick=run(()=>refresh());cases.onchange=run(show);
 open.onsubmit=run(async()=>{const id=crypto.randomUUID();await request('agent_support_cases',{method:'POST',data:{id,deployment_id:open.agent.value,issue:open.category.value+' · '+open.issue.value.trim()}});open.issue.value='';await refresh(id)});
-reply.onsubmit=run(async()=>{await request('agent_support_replies',{method:'POST',data:{id:crypto.randomUUID(),case_id:cases.value,body:reply.body.value.trim()}});await refresh(cases.value)});
+reply.onsubmit=run(async()=>{
+ const ticket=cases.value,current=session,body=reply.body.value;
+ await request('agent_support_replies',{method:'POST',data:{id:crypto.randomUUID(),case_id:ticket,body:body.trim()}});
+ if(current!==session||cases.value!==ticket)return;
+ if(reply.body.value===body)reply.reset();
+ await refresh(ticket);
+});
 fix.onsubmit=run(async()=>{await request('rpc/support_set_agent_language',{method:'POST',data:{p_case:cases.value,p_locale:fix.locale.value}});await refresh()});
 state.onsubmit=run(async()=>{await request('agent_support_cases?id=eq.'+cases.value,{method:'PATCH',data:{status:state.status.value}});await refresh()});
 </script></body></html>
