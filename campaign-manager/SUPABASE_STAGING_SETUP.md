@@ -1,6 +1,6 @@
 # Supabase staging setup — AAROHAN AI Campaign Manager
 
-This is a manual setup guide. No Supabase project has been linked or deployed by the repository changes.
+This is a staging-only setup guide. No tenant schema has been deployed to production by these changes. The current AAROHAN production CRM already has `public.campaigns` with a different structure, so this schema cannot be safely applied there without a separately designed compatibility/migration plan.
 
 ## 1. Create a staging project
 - Create a new Supabase project dedicated to staging; do not use production customer data.
@@ -9,9 +9,11 @@ This is a manual setup guide. No Supabase project has been linked or deployed by
 
 ## 2. Apply the database SQL
 In the Supabase SQL Editor, review and run in this order:
-1. `campaign-manager/supabase/schema.sql`
-2. `campaign-manager/supabase/rls-policies.sql`
-3. If the original schema had already been installed before composite tenant constraints were added, review and run `campaign-manager/supabase/migrations/20261117_tenant_integrity.sql` instead of assuming `CREATE TABLE IF NOT EXISTS` updates existing tables.
+1. **Run `campaign-manager/supabase/preflight.sql`. It must succeed** in a new dedicated staging database. If it reports existing core tables, stop; do not apply the schema in the old CRM database.
+2. `campaign-manager/supabase/schema.sql`
+3. `campaign-manager/supabase/rls-policies.sql`
+4. Run the rollback-only `campaign-manager/supabase/tests/permission-guard.sql` test in staging.
+5. If a dedicated staging project was previously seeded with an earlier version of this schema, do not reapply the new-install preflight; separately review `campaign-manager/supabase/migrations/20261117_tenant_integrity.sql` as an existing-install migration instead of relying on `CREATE TABLE IF NOT EXISTS`. Do not use the existing AAROHAN production project for this upgrade.
 
 Do not run `campaign-manager/supabase/queue-worker.sql` for live scheduling. It is only a queue-claim foundation; there is no complete worker, stale-lock recovery, provider dispatch or callback handling.
 
