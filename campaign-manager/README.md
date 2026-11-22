@@ -1,5 +1,7 @@
 # AAROHAN AI Campaign Manager
 
+> **DEPLOYMENT SAFETY:** This draft multi-tenant schema is **not** a drop-in upgrade for the live AAROHAN CRM at https://aarohanaiworld.com/campaign-manager.html. That database already has a different `public.campaigns` table. Before a new install, run `campaign-manager/supabase/preflight.sql` in an **empty dedicated staging project**. If it fails, stop; never overwrite/alter production tables or policies to force it through. The tenant product is a separate staging design, not 100% live.
+
 Own campaign orchestration product for AAROHAN AI WORLD. This repository currently contains a browser-only prototype at `campaign-manager-demo.html`. The prototype simulates campaign outcomes; it does not place calls or send WhatsApp messages.
 
 ## Planned architecture
@@ -21,7 +23,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 ## Build status
 - [x] Browser simulation prototype
 - [x] Initial database schema draft
-- [x] Draft tenant-scoped RLS policies (staging validation still required)
+- [x] Draft tenant-scoped RLS policies; opt-out reversal guard and no client DELETE policy added (staging integration validation still required)
 - [ ] Auth, tenant provisioning and RLS verification (API starter added; staging validation pending)
 - [x] API contract and CSV validation requirements drafted
 - [x] Initial authenticated campaign API routes (me, list/create draft campaigns, paginated campaign contacts, guarded CSV import and read-only preview; staging deployment pending)\n- [x] CSV import endpoint starter (1 MB / 500-row limits; partial writes are reported; staging tests pending)\n- [x] Initial authenticated dashboard UI (connect, sign in, organizations, draft creation, CSV import, paginated contacts, eligibility preview and channel opt-out; staging connection pending)
@@ -38,6 +40,14 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - `supabase/rls-policies.sql` adds fail-closed tenant membership policies; apply only in staging and test with multiple organizations.
 - `API_CONTRACT.md` defines the required authenticated API, import validation, last-moment eligibility gate, queue guarantees and live activation checklist.\n- `supabase/functions/campaign-api/index.ts` is an initial JWT-verified, user-scoped Edge Function starter; it uses RLS, creates draft campaigns only, and imports contacts with channel permission evidence. It does not send outreach.\n- `EDGE_FUNCTION_DEPLOYMENT.md` documents staging setup and tests. The function has not been deployed.
 - The SQL policies are a draft, not a substitute for independent security review or integration tests.
+
+
+## Consent/opt-out policy hardening (staging draft)
+- The contact-channel permission operator policy is split into INSERT and UPDATE. Direct authenticated DELETE access is deliberately not provided.
+- Database trigger `public.guard_contact_channel_permission()` prohibits changing tenant/contact/channel IDs, reinstalling previously withdrawn permission via UPDATE, or granting permission without evidence reference, actor and timestamp.
+- A local-equivalent synthetic temporary-table SQL transaction passed 5 scenarios; the actual staging policy and multi-tenant user flows still require independent E2E verification.
+- Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
+- Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
 
 ## Local development (planned)
 The backend framework and deployment target will be finalized before production implementation. Do not treat this prototype or schema draft as production-ready.
