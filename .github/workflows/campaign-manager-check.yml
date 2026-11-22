@@ -36,7 +36,7 @@ jobs:
       - name: Parse PostgreSQL schema and policy SQL
         run: |
           python -m pip install --disable-pip-version-check sqlfluff
-          for file in campaign-manager/supabase/schema.sql campaign-manager/supabase/rls-policies.sql campaign-manager/supabase/migrations/20261117_tenant_integrity.sql campaign-manager/supabase/queue-worker.sql; do
+          for file in campaign-manager/supabase/preflight.sql campaign-manager/supabase/schema.sql campaign-manager/supabase/rls-policies.sql campaign-manager/supabase/migrations/20261117_tenant_integrity.sql campaign-manager/supabase/queue-worker.sql; do
             sqlfluff parse --dialect postgres "$file"
           done
       - name: Check dashboard script and DOM references
