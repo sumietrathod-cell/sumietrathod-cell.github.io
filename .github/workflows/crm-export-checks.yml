@@ -1,0 +1,28 @@
+name: CRM Export Safety Tests
+on:
+  pull_request:
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/crm-export.test.cjs'
+      - '.github/workflows/crm-export-checks.yml'
+  push:
+    branches:
+      - 'feature/crm-admin-csv-export-20261122'
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/crm-export.test.cjs'
+      - '.github/workflows/crm-export-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run CRM export regression tests
+        run: node --test tests/crm-export.test.cjs
