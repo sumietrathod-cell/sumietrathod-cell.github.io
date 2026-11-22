@@ -105,6 +105,7 @@ test('Admin mobile CRM: manual follow-up, CSV formula-safe download, logout', as
     assert.ok(!contents.includes('service_role'));
     assert.equal(await page.locator('#dashboard').isVisible(), true);
     await page.locator('#sign-out').click();
+    await page.locator('#dashboard[hidden]').waitFor({ state: 'attached' });
     assert.equal(await page.locator('#dashboard').isVisible(), false);
     assert.equal(await page.locator('#sign-in').isVisible(), true);
     assert.equal(messages.length, 0, 'Browser errors: ' + messages.join('; '));
