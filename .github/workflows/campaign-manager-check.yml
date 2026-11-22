@@ -7,6 +7,7 @@ on:
       - "supabase/**"
       - "campaign-manager-dashboard.html"
       - "scripts/check-campaign-dashboard.mjs"
+      - "scripts/check-campaign-permissions.mjs"
       - ".github/workflows/campaign-manager-check.yml"
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - "supabase/**"
       - "campaign-manager-dashboard.html"
       - "scripts/check-campaign-dashboard.mjs"
+      - "scripts/check-campaign-permissions.mjs"
       - ".github/workflows/campaign-manager-check.yml"
 
 jobs:
@@ -39,3 +41,5 @@ jobs:
           done
       - name: Check dashboard script and DOM references
         run: node scripts/check-campaign-dashboard.mjs
+      - name: Check permission RLS and immutable opt-outs
+        run: node --test scripts/check-campaign-permissions.mjs
