@@ -26,3 +26,18 @@ jobs:
           node-version: '22'
       - name: Run CRM lead tools regression tests
         run: node --test tests/crm-*.test.cjs
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Playwright for synthetic browser tests
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Install Chromium test browser
+        run: npx playwright install --with-deps chromium
+      - name: Test Admin and Partner CRM mobile workflow without production credentials
+        run: node --test tests/crm-browser.test.cjs
