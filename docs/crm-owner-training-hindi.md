@@ -14,8 +14,8 @@ CRM (Customer Relationship Management) = कंपनी में enquiry आ�
 4. password भूल जाएँ तो **Set or reset password** चुनें। पासवर्ड/OTP किसी को न दें।
 5. काम खत्म होने पर **Sign out** करें, खासकर shared laptop पर।
 
-## 3. Dummy Lead जोड़ें (5 मिनट)
-**Manage leads → Add lead** पर जाएँ और यह काल्पनिक डेटा डालें:
+## 3. Dummy Lead का अभ्यास (5 मिनट)
+यह अभी **सिर्फ़ उदाहरण** है: production में fake record Save **न करें** जब तक अलग training environment या cleanup प्रक्रिया तैयार न हो। **Manage leads → Add lead** में आगे चलकर यह काल्पनिक डेटा अभ्यास के लिए उपयोग करें:
 - Name: Demo Business Owner
 - Business: Demo Property Services
 - Country: India
@@ -23,7 +23,7 @@ CRM (Customer Relationship Management) = कंपनी में enquiry आ�
 - Phone: खाली छोड़ें (यह केवल training है)
 - Source: Training
 - Status: New
-**Save lead** दबाएँ। अब **Leads** सूची या **Search leads** में इसे खोजें।
+अलग training/test environment मिलने पर ही **Save lead** दबाएँ; फिर **Leads** या **Search leads** से खोजने का अभ्यास करें।
 
 ## 4. Follow-up समझें
 Lead खोलें → **Status** को Contacted/Qualified/Proposal sent जैसी सही स्थिति में बदलें → **Follow-up date** चुनें → **Save progress**। यह date **dashboard reminder** है; **automatic WhatsApp/email नहीं भेजती**। जो call/email वास्तव में किया हो, उसे **Contact history** में दर्ज करें।
