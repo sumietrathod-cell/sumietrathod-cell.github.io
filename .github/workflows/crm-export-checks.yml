@@ -1,16 +1,16 @@
-name: CRM Export Safety Tests
+name: CRM Lead Tools Safety Tests
 on:
   pull_request:
     paths:
       - 'campaign-manager.html'
-      - 'tests/crm-export.test.cjs'
+      - 'tests/crm-*.test.cjs'
       - '.github/workflows/crm-export-checks.yml'
   push:
     branches:
       - 'feature/crm-admin-csv-export-20261122'
     paths:
       - 'campaign-manager.html'
-      - 'tests/crm-export.test.cjs'
+      - 'tests/crm-*.test.cjs'
       - '.github/workflows/crm-export-checks.yml'
 
 permissions:
@@ -24,5 +24,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run CRM export regression tests
-        run: node --test tests/crm-export.test.cjs
+      - name: Run CRM lead tools regression tests
+        run: node --test tests/crm-*.test.cjs
