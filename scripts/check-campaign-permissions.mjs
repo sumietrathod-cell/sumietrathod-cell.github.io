@@ -17,3 +17,12 @@ test('permission guard blocks withdrawn reversal, cross-tenant mutation and fals
   for (const field of ['new.evidence_reference','new.captured_by','new.captured_at']) assert.ok(sql.includes(field));
   assert.match(sql, /before insert or update on public\.contact_channel_permissions/i);
 });
+
+test('staging preflight fails closed on existing tenant or legacy CRM tables', () => {
+  const preflight = readFileSync(new URL('../campaign-manager/supabase/preflight.sql', import.meta.url), 'utf8');
+  for (const table of ['organizations','organization_members','campaigns','contacts','contact_channel_permissions','campaign_contacts','suppression_list','outreach_attempts','audit_events','campaign_jobs']) {
+    assert.ok(preflight.includes("'" + table + "'"), 'Missing collision check: ' + table);
+  }
+  assert.match(preflight, /raise exception 'STOP: target public tables already exist:/i);
+  assert.match(preflight, /table_schema = 'public'/i);
+});
