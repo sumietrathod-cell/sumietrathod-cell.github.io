@@ -28,6 +28,14 @@ CRM (Customer Relationship Management) = कंपनी में enquiry आ�
 ## 4. Follow-up समझें
 Lead खोलें → **Status** को Contacted/Qualified/Proposal sent जैसी सही स्थिति में बदलें → **Follow-up date** चुनें → **Save progress**। यह date **dashboard reminder** है; **automatic WhatsApp/email नहीं भेजती**। जो call/email वास्तव में किया हो, उसे **Contact history** में दर्ज करें।
 
+## 4A. Follow-up Work Queue (फिलहाल development branch में)
+Admin के **Follow-ups and sales → Follow-up work queue** में तीन विकल्प तैयार किए गए हैं: **Due today**, **Overdue**, और **No follow-up date**।
+- **Refresh queue** से नया परिणाम देखें।
+- **Load more** से अगली leads खोलें।
+- किसी lead पर क्लिक कर उसके status और follow-up date को बदलें।
+- यह **manual follow-up tracking** है। यह कोई WhatsApp, Email या Phone call नहीं भेजता।
+- यह feature PR #25 में है; **production main website पर अभी live नहीं माना जाएगा** जब तक merge और Android testing पास न हो।
+
 ## 5. Dashboard और Sales
 **Follow-ups and sales → Refresh report** से due/overdue reminders, lead pipeline और दर्ज sales देखें। Sale record करने से पहले उस sale और invoice/reference की पुष्टि करें। Demo में वास्तविक sale न जोड़ें।
 
