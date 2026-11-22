@@ -15,7 +15,7 @@ test('CRM JavaScript parses and follow-up work list is Admin-only', () => {
   new vm.Script(script);
   assert.ok(queueSource);
   assert.match(html, /<article id="sales-report" hidden>[\s\S]*?id="followup-view"/);
-  assert.match(html, /report\.hidden = !admin/);
+  assert.match(html, /if \(admin\) \{[\s\S]*?report\.hidden = false;/);
   assert.match(html, /if \(!accessToken \|\| !adminSession\) return;/);
   assert.match(html, /resetFollowupQueue\(\);/);
   assert.match(html, /refreshFollowupQueue\(\);/);
