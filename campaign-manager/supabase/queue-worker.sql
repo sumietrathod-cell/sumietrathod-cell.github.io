@@ -1,5 +1,6 @@
 -- Durable queue foundation. Apply after schema.sql and rls-policies.sql in staging.
 -- This SQL only claims eligible jobs; it does not call any provider and is not a complete worker.
+-- Mandatory explicit contact windows and auditable consent metadata now fail closed.
 -- Do not schedule it until provider dispatch, callbacks and integration tests exist.
 -- A fail-closed stale-claim quarantine below does NOT retry or send any contact.
 
@@ -94,6 +95,9 @@ begin
           and p.channel = c.channel
           and p.permission_status = 'granted'
           and nullif(trim(p.evidence_reference), '') is not null
+          and p.captured_at is not null
+          and p.captured_at <= now()
+          and p.captured_by is not null
       )
       and not exists (
         select 1
@@ -102,27 +106,15 @@ begin
           and (s.contact_id = ct.id or s.phone_e164 = ct.phone_e164)
           and (s.channel is null or s.channel = c.channel)
       )
-      and (
-        (c.calling_window_start is null and c.calling_window_end is null)
-        or (
-          c.calling_window_start is not null
-          and c.calling_window_end is not null
-          and (
-            (
-              c.calling_window_start < c.calling_window_end
-              and (now() at time zone c.timezone)::time >= c.calling_window_start
-              and (now() at time zone c.timezone)::time < c.calling_window_end
-            )
-            or (
-              c.calling_window_start > c.calling_window_end
-              and (
-                (now() at time zone c.timezone)::time >= c.calling_window_start
-                or (now() at time zone c.timezone)::time < c.calling_window_end
-              )
-            )
-          )
-        )
-      )
+      -- Fail closed: never interpret an absent time window as 24/7 permission.
+      -- Only an explicitly configured non-overnight local window is eligible.
+      -- Regulatory quiet hours and recipient-specific time zones still require
+      -- independent validation by the future provider worker before any send.
+      and c.calling_window_start is not null
+      and c.calling_window_end is not null
+      and c.calling_window_start < c.calling_window_end
+      and (now() at time zone c.timezone)::time >= c.calling_window_start
+      and (now() at time zone c.timezone)::time < c.calling_window_end
     order by j.available_at, j.created_at
     limit requested_batch_size
     for update of j skip locked
