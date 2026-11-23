@@ -60,7 +60,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 <section class="card span8">
 <h2>4. Import contacts (CSV)</h2>
-<p class="muted">Required headers: full_name, phone_e164, email, consent_status, consent_evidence. Phone numbers must already be E.164. Permission is treated as unknown unless status is “granted” and evidence text is supplied. Evidence is not independently verified.</p>
+<p class="muted">Required headers: full_name, phone_e164, email, consent_status, consent_evidence. Phone numbers must already be E.164. CSV imports can record only unknown or withdrawn permission. Rows marked granted are rejected because self-reported evidence cannot verify consent. Existing recorded grants are preserved but require separate verification before any future outreach.</p>
 <div class="field"><label for="csvFile">CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv"></div>
 <div class="row"><button id="importBtn" disabled>Import into selected draft</button><button id="templateBtn" class="secondary">Download CSV template</button></div>
 <pre id="importResult" class="muted" style="white-space:pre-wrap"></pre>
