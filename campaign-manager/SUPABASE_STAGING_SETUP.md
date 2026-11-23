@@ -73,6 +73,13 @@ The root `supabase/config.toml` intentionally sets `verify_jwt = false` so unaut
 - Confirm the organization and test only with fictional contacts and non-deliverable test destinations.
 - The exact dashboard origin must match `APP_ORIGIN` including scheme and hostname. Do not include a page path.
 
+### CI REST boundary and remaining genuine staging tests
+
+The temporary GitHub Actions PostgREST test is a valuable automated integration check: it uses ephemeral signed JWTs to exercise real RLS over HTTP, including operator and viewer tenants, write refusal and opt-out safety. It **does not deploy** a real Supabase instance or exercise actual Supabase Auth sessions. The REST fixture is synthetic, and PostgREST is destroyed after CI.
+
+Before any release, provision two authorized staging Supabase Auth users in separate organizations, complete sign-in and session/logout checks, exercise the actual deployed `campaign-api` Edge Function through HTTPS (including CORS, pagination, upload, permission failures and opt-out retries), confirm all rows remain tenant-scoped, and document a rollback/restore drill. This is required in addition to green CI.
+
+
 ## 6. Validate before considering release
 Follow `SECURITY_TEST_PLAN.md` with at least two organizations and separate users. Verify the GitHub Actions check is green and manually test RLS, opt-out, CSV validation, CORS, viewer permissions and cross-tenant access.
 
