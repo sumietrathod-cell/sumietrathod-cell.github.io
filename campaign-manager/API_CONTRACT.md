@@ -75,6 +75,12 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - These constraints are included in the schema for a fresh database. If the original schema was already applied, review and test `supabase/migrations/20261117_tenant_integrity.sql`; do not assume `CREATE TABLE IF NOT EXISTS` retrofits constraints.
 - CSV consent evidence is supplied by the importing organization and is not independently verified by this API. Review the evidence and applicable law before any future live campaign.
 
+## Read-only preflight preview (staging implementation)
+- `POST /functions/v1/campaign-api/campaigns/{id}/preview` now fetches `campaigns.timezone/calling_window_start/calling_window_end`, `campaign_contacts.next_attempt_at`, and permission evidence `captured_at/captured_by` as well as status/reference.
+- It uses a tested, deterministic evaluator to report blockers such as `permission_proof_incomplete`, `retry_not_due`, `calling_window_missing_or_invalid` and `outside_calling_window` rather than over-counting them as eligible.
+- Preview is point-in-time and independent of a provider. Campaign activation is still not implemented; `campaign_state_allows_dispatch` is a status flag only and the endpoint explicitly returns `campaign_dispatch_ready=false` and `dispatch_enabled=false`.
+- Tests: `deno test supabase/functions/campaign-api/preview-eligibility.test.ts` and `node scripts/check-campaign-dashboard.mjs`. No contact data is needed to run them.
+
 ## Opt-out and permission protections
 - Any authenticated organization member may submit an opt-out. RLS only permits member opt-out writes to set permission status to `withdrawn`, add a channel-specific suppression record from this endpoint, and append a self-attributed `contact_permission_withdrawn` audit event.
 - CSV import accepts only `granted`, `unknown` or `withdrawn`. A granted row requires evidence text. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import does not overwrite a previously granted permission/evidence.
