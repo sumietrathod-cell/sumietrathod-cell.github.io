@@ -94,9 +94,17 @@ function quotationId(){
 let token='', historyRows=[], invoiceRows=[], retryId='', retryData='';
 let sessionEpoch=0, loginRequest=0, pendingLoginRequest=null, expires=null;
 function sameQuotationItems(saved,submitted){
- if(!Array.isArray(saved)||!Array.isArray(submitted)||saved.length!==submitted.length)return false;
- return saved.every((line,i)=>line.service===submitted[i].service &&
-  line.qty===submitted[i].qty && line.paise===submitted[i].paise);
+ // Never accept a malformed database response as confirmation of a quotation write.
+ if(!Array.isArray(saved)||!Array.isArray(submitted)||!saved.length||saved.length!==submitted.length)return false;
+ return saved.every((line,i)=>{
+  const expected=submitted[i];
+  if(!line||typeof line!=='object'||Array.isArray(line)||
+     !expected||typeof expected!=='object'||Array.isArray(expected))return false;
+  return typeof line.service==='string'&&line.service.trim().length>0&&
+   typeof expected.service==='string'&&line.service===expected.service&&
+   Number.isSafeInteger(line.qty)&&line.qty>0&&line.qty===expected.qty&&
+   Number.isSafeInteger(line.paise)&&line.paise>=0&&line.paise===expected.paise;
+ });
 }
 const current=(expectedToken,expectedEpoch)=>Boolean(expectedToken)&&token===expectedToken&&sessionEpoch===expectedEpoch;
 async function api(path, options={}, bearer=token){
