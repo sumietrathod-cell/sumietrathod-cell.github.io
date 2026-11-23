@@ -213,9 +213,9 @@ async function loadTicketsPage(reset){
  }catch(err){if(request===listRequest&&user?.id===accountId)displayError(err)}
  finally{if(request===listRequest)button.disabled=false}
 }
-async function openTicket(id){if(!user)return;const request=++detailRequest;try{
- const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(request!==detailRequest)return;if(error)throw error;
- const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(request!==detailRequest)return;if(events.error)throw events.error;
+async function openTicket(id){if(!user)return;const request=++detailRequest,actorId=user.id,actorSession=sessionRequest;const active=()=>request===detailRequest&&user?.id===actorId&&sessionRequest===actorSession;try{
+ const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(!active())return;if(error)throw error;
+ const events=await client.from('aarohan_support_events').select('action,note,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(!active())return;if(events.error)throw events.error;
  selectedId=id;const box=$('ticketDetail');box.hidden=false;box.replaceChildren(element('h2',t.ticket_number+' · '+t.subject),element('p','Status: '+t.status+' · Priority: '+t.priority),element('p','Service: '+t.service+' · Category: '+t.category),element('p',t.details),element('h3','Activity history'));
  const timeline=element('div');timeline.className='timeline';timeline.append(element('div','Ticket created · '+new Date(t.created_at).toLocaleString()));
  for(const h of events.data){const line=element('div');line.append(element('strong',h.action),element('small',' · '+new Date(h.created_at).toLocaleString()));if(h.note)line.append(element('p',h.note));timeline.append(line)}box.append(timeline);
@@ -249,7 +249,7 @@ async function openTicket(id){if(!user)return;const request=++detailRequest;try{
    box.append(replyForm);
  }else{box.append(element('p','This ticket is closed. Please create a new ticket for additional help.'))}
  box.scrollIntoView({behavior:'smooth',block:'start'});
-}catch(err){if(request!==detailRequest)return;selectedId=null;$('ticketDetail').replaceChildren();$('ticketDetail').hidden=true;displayError(err)}}
+}catch(err){if(!active())return;selectedId=null;$('ticketDetail').replaceChildren();$('ticketDetail').hidden=true;displayError(err)}}
 client.auth.onAuthStateChange((event,session)=>{
  const expectedUserId=session?.user?.id;
  const request=++sessionRequest;
