@@ -102,6 +102,14 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Disposable PostgreSQL CI `supabase/tests/tenant-enrollment-ci.sql` verifies allowed draft enrollment and blocked outcome/attempt forgery, running-campaign enrollment, cross-tenant enrollment, UPDATE and DELETE.
 - This has **not** been deployed to the AAROHAN production CRM. It is a multi-tenant staging draft with a different schema. Provider integration, real Supabase Auth staging and REST API end-to-end validation are still mandatory.
 
+## Authenticated HTTP/RLS integration (disposable CI only)
+
+- The GitHub workflow now launches **PostgREST v14.18** against the same **ephemeral PostgreSQL 17** fixture used for policy checks. A fresh signing key is generated per workflow run; no real Supabase secrets, customer accounts or provider APIs are involved.
+- `supabase/tests/ci-rest-fixtures.sql` seeds fictional Alpha (operator) and Beta (viewer) tenants. `scripts/check-campaign-postgrest.mjs` submits actual HTTP requests signed with synthetic short-lived JWTs. The suite passed **19 HTTP assertions**: anonymous denial, per-organization contact/campaign visibility, viewer write restrictions, cross-tenant creation refusal, draft-only campaigns, immutable enrollment outcomes, consent evidence and opt-out reversal enforcement, and idempotent suppression.
+- The stub `auth.uid()` accepts the JWT claims JSON passed by PostgREST, while continuing to support SQL-only test fixtures. CI tears down PostgREST and the PostgreSQL service after each run. [Verified Actions run](https://github.com/sumietrathod-cell/sumietrathod-cell.github.io/actions/runs/45102837669) passed all jobs.
+- **Limits:** These are genuine JWT-backed **PostgREST + PostgreSQL** tests, **not real Supabase Auth users/sessions, deployed Edge Function behavior, provider messaging or production data**. A separate authorized Supabase staging project with two genuinely signed-in test users remains mandatory before merging or publishing.
+
+
 ## Disposable PostgreSQL integration tests
 
 The `tenant-rls-integration` job in `.github/workflows/campaign-manager-check.yml` boots an ephemeral PostgreSQL 17 container. It installs the **actual** draft schema, tenant RLS policies and queue SQL, with synthetic Auth role/function stubs in `supabase/tests/ci-auth-bootstrap.sql`. The following rollback-only tests run with `psql -v ON_ERROR_STOP=1`:
