@@ -25,6 +25,12 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
      typeof store.recordVerifiedPayment!=='function')
   return {status:'blocked',reason:'Trusted backend adapters unavailable'};
  const entity=event.payload.payment.entity;
+ // A signed capture event that already reports a refund is not eligible,
+ // even if a later provider read temporarily appears inconsistent.
+ if ((Object.hasOwn(entity,'amount_refunded') &&
+      (!Number.isSafeInteger(entity.amount_refunded) || entity.amount_refunded!==0)) ||
+     (Object.hasOwn(entity,'refund_status') && entity.refund_status!==null))
+  return {status:'blocked',reason:'Signed webhook reports refund state'};
  if (typeof entity.order_id!=='string' || !/^order_[A-Za-z0-9]+$/.test(entity.order_id))
   return {status:'blocked',reason:'Missing payment order'};
  // The provider API lookup is authoritative, not the webhook's payment object.
