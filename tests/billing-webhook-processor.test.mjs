@@ -171,3 +171,25 @@ test('signed capture with explicit clear refund fields still requires independen
  assert.equal(a.writes.length,1);
  assert.equal(result.receiptIssued,false);
 });
+
+test('contradictory signed captured=false is blocked before provider access',async()=>{
+ const a=adapters();let calls=0;
+ a.provider.fetchPayment=async()=>{calls++;return payment;};
+ const body=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,captured:false}}}});
+ const sig=createHmac('sha256',secret).update(body).digest('hex');
+ const result=await processCapturedWebhook({rawBody:body,signature:sig,eventId,secret,...a});
+ assert.deepEqual(result,{status:'blocked',reason:'Signed webhook capture flag conflicts with event'});
+ assert.equal(calls,0);
+ assert.equal(a.writes.length,0);
+});
+test('signed captured=0 is rejected while numeric captured=1 is eligible',async()=>{
+ const a=adapters();
+ const make=flag=>{
+  const body=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,captured:flag}}}});
+  return {rawBody:body,signature:createHmac('sha256',secret).update(body).digest('hex'),eventId,secret,...a};
+ };
+ assert.equal((await processCapturedWebhook(make(0))).status,'blocked');
+ assert.equal(a.writes.length,0);
+ assert.equal((await processCapturedWebhook(make(1))).status,'verified');
+ assert.equal(a.writes.length,1);
+});
