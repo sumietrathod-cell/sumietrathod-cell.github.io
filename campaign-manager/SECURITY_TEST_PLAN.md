@@ -85,6 +85,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Server configuration errors do not disclose secrets.
 - Browser code contains only the Supabase public anon key supplied at runtime; no service-role or provider secret appears in repository history.
 
+## Read-only API preview / queue consistency tests
+- The read-only campaign preview must retrieve recorded permission actor and date (not just `evidence_reference`), and must reject missing, malformed or future timestamp evidence.
+- Preview only reports an eligible contact when a valid local campaign window is currently open, relevant callback is actually due, channel permission is recorded with complete metadata, contact has not opted out, phone is valid and attempts remain available.
+- A missing/invalid timezone or absent/overnight calling window must fail closed; local time checks use the configured IANA timezone rather than the browser time zone.
+- Run all 30 synthetic cases in `supabase/functions/campaign-api/preview-eligibility.test.ts`. The `scripts/check-campaign-dashboard.mjs` assertion prevents accidentally dropping the required API projections/preview helper call.
+- `campaign_dispatch_ready=false` and `dispatch_enabled=false` remain mandatory. Even a successful preflight does NOT authorize customer outreach; true consent/proof review and recipient-specific jurisdiction/provider restrictions remain separate release checks.
+
 ## Outbound claim eligibility tests
 - Block jobs with a missing or equal/overnight calling window; do not default to all-day permission.
 - Require nonempty consent evidence, an identified actor and a captured timestamp that is not in the future.
