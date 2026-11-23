@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { previewBlockReason } from "./preview-eligibility.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -224,7 +225,7 @@ Deno.serve(async (req) => {
     }
     const { data: campaign, error: campaignError } = await supabase
       .from("campaigns")
-      .select("id, organization_id, channel, status, dry_run, max_attempts")
+      .select("id, organization_id, channel, status, dry_run, max_attempts, timezone, calling_window_start, calling_window_end")
       .eq("id", campaignId)
       .single();
     if (campaignError || !campaign) return json({ error: "Campaign not found or access denied." }, 404);
@@ -235,7 +236,7 @@ Deno.serve(async (req) => {
     // Bound the preview size. Large campaigns must be previewed in a future paginated job.
     const { data: enrolled, error: enrolledError } = await supabase
       .from("campaign_contacts")
-      .select("id, contact_id, status, attempts")
+      .select("id, contact_id, status, attempts, next_attempt_at")
       .eq("organization_id", campaign.organization_id)
       .eq("campaign_id", campaign.id)
       .order("created_at", { ascending: true })
@@ -257,7 +258,7 @@ Deno.serve(async (req) => {
 
     const { data: permissions, error: permissionError } = contactIds.length
       ? await supabase.from("contact_channel_permissions")
-          .select("contact_id, permission_status, evidence_reference")
+          .select("contact_id, permission_status, evidence_reference, captured_at, captured_by")
           .eq("organization_id", campaign.organization_id)
           .eq("channel", campaign.channel)
           .in("contact_id", contactIds)
@@ -271,10 +272,8 @@ Deno.serve(async (req) => {
     if (suppressionError) return json({ error: "Could not verify suppression list; preview failed closed." }, 403);
 
     const permissionByContact = new Map((permissions ?? []).map((p: any) => [p.contact_id, p]));
-    const blockedByContact = new Map<string, string>();
     const suppressionRows = suppressions ?? [];
-    const maxAttempts = Number(campaign.max_attempts ?? 3);
-    const terminalStatuses = new Set(["in_progress", "reached", "qualified", "do_not_contact", "failed", "skipped"]);
+    const now = new Date();
     const counts = {
       total: (enrolled ?? []).length,
       eligible: 0,
@@ -282,50 +281,43 @@ Deno.serve(async (req) => {
       permission_unknown: 0,
       permission_withdrawn: 0,
       missing_permission_or_evidence: 0,
+      permission_proof_incomplete: 0,
       suppressed: 0,
       invalid_contact: 0,
       already_processed: 0,
       max_attempts_reached: 0,
+      retry_not_due: 0,
+      calling_window_missing_or_invalid: 0,
+      outside_calling_window: 0,
     };
     const examples: Array<{ campaign_contact_id: string; reason: string }> = [];
+    const bucket: Record<string, keyof typeof counts> = {
+      invalid_contact: "invalid_contact",
+      missing_permission: "missing_permission_or_evidence",
+      permission_withdrawn: "permission_withdrawn",
+      permission_not_granted: "permission_unknown",
+      permission_evidence_missing: "missing_permission_or_evidence",
+      permission_proof_incomplete: "permission_proof_incomplete",
+      suppressed: "suppressed",
+      already_processed: "already_processed",
+      max_attempts_reached: "max_attempts_reached",
+      retry_not_due: "retry_not_due",
+      calling_window_missing_or_invalid: "calling_window_missing_or_invalid",
+      outside_calling_window: "outside_calling_window",
+    };
 
     for (const row of enrolled ?? []) {
       const contact: any = previewContactById.get(row.contact_id);
-      const phone = contact?.phone_e164 ?? "";
-      let reason = "";
-      if (!contact?.id || !/^\+[1-9]\d{7,14}$/.test(phone)) {
-        counts.invalid_contact++;
-        reason = "invalid_contact";
-      } else {
-        const permission: any = permissionByContact.get(row.contact_id);
-        if (!permission) {
-          counts.missing_permission_or_evidence++;
-          reason = "missing_permission";
-        } else if (permission.permission_status === "withdrawn") {
-          counts.permission_withdrawn++;
-          reason = "permission_withdrawn";
-        } else if (permission.permission_status !== "granted") {
-          counts.permission_unknown++;
-          reason = "permission_not_granted";
-        } else if (!String(permission.evidence_reference ?? "").trim()) {
-          counts.missing_permission_or_evidence++;
-          reason = "permission_evidence_missing";
-        } else if (suppressionRows.some((item: any) =>
-          (!item.channel || item.channel === campaign.channel) &&
-          ((item.contact_id && item.contact_id === row.contact_id) ||
-           (item.phone_e164 && item.phone_e164 === phone)))) {
-          counts.suppressed++;
-          reason = "suppressed";
-        } else if (terminalStatuses.has(row.status)) {
-          counts.already_processed++;
-          reason = "already_processed";
-        } else if (Number(row.attempts ?? 0) >= maxAttempts) {
-          counts.max_attempts_reached++;
-          reason = "max_attempts_reached";
-        }
-      }
+      const permission: any = permissionByContact.get(row.contact_id);
+      const phone = contact?.phone_e164 ?? null;
+      const suppressed = suppressionRows.some((item: any) =>
+        (!item.channel || item.channel === campaign.channel) &&
+        ((item.contact_id && item.contact_id === row.contact_id) ||
+         (item.phone_e164 && item.phone_e164 === phone)));
+      const reason = previewBlockReason(campaign, row, phone, permission ?? null, suppressed, now);
       if (reason) {
         counts.blocked++;
+        counts[bucket[reason]]++;
         if (examples.length < 100) examples.push({ campaign_contact_id: row.id, reason });
       } else {
         counts.eligible++;
@@ -340,7 +332,7 @@ Deno.serve(async (req) => {
       blocked_examples: examples,
       truncated_examples: counts.blocked > examples.length,
       dispatch_enabled: false,
-      note: "Read-only preview only. Eligible counts describe contact-level checks; campaign_dispatch_ready is always false in this release because no provider dispatch worker exists; campaign_state_allows_dispatch only reports the database campaign state. This endpoint never sends calls or messages.",
+      note: "Read-only preview only. Eligible counts include recorded consent, suppression, due-date, attempt-cap and configured campaign-window checks at the time of this request. They do NOT prove lawful consent, legal calling hours, campaign approval or provider availability. campaign_dispatch_ready is always false: no provider worker is deployed. No calls or messages are sent.",
     });
   }
 
