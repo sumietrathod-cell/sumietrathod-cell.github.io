@@ -47,3 +47,54 @@ jobs:
         run: node --test scripts/check-campaign-permissions.mjs
       - name: Check stale-claim quarantine does not automatically resend
         run: node --test scripts/check-campaign-queue.mjs
+
+  tenant-rls-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-disposable-postgres
+          POSTGRES_DB: aarohan_campaign_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d aarohan_campaign_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: ci-only-disposable-postgres
+      PGDATABASE: aarohan_campaign_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+      - name: Prepare disposable Auth fixtures and actual tenant RLS policies
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/ci-auth-bootstrap.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/preflight.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/rls-policies.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/queue-worker.sql
+          # Mimic the Supabase Data API role privileges. RLS still controls rows.
+          psql -X -v ON_ERROR_STOP=1 -c "grant select, insert, update, delete on all tables in schema public to authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -c "grant usage, select on all sequences in schema public to authenticated;"
+      - name: Real PostgreSQL two-tenant RLS and opt-out tests
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/campaign-access.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/tenant-permissions-ci.sql
+      - name: Actual PostgreSQL synthetic queue safety tests
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-claim-eligibility.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-quarantine.sql
