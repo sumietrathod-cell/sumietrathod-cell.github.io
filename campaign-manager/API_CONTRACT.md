@@ -25,6 +25,10 @@ This contract is the boundary between the dashboard and the trusted backend. It 
 | POST | /v1/contacts/{id}/opt-out | Add durable channel suppression |
 | POST | /v1/webhooks/{provider} | Verify provider signature and process idempotently |
 
+### Duplicate numbers and opt-out precedence (staging draft)
+
+The importer scans syntactically valid CSV `withdrawn` rows before writing. If a number also has an `unknown` row, **withdrawn wins**, regardless of CSV order. The unknown duplicate is rejected; an invalid or self-asserted `granted` row cannot consume the number's duplicate marker. A phone is only marked imported for this file after all requested database writes have succeeded. The scan is a precedence safeguard, **not** an independently verified opt-in or a transaction across all contacts. Opt-out records remain do-not-contact.
+
 ## Import validation
 - Accept CSV only; enforce configurable byte, row and column limits.
 - Normalize phone numbers to E.164 with an explicit country selection; reject ambiguous numbers.
