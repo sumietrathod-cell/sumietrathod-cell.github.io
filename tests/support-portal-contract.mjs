@@ -30,6 +30,13 @@ assert.match(html, /ticketPageSize=100/, 'Expected paginated ticket list');
 assert.match(js, /\.range\(start,start\+ticketPageSize-1\)/);
 assert.match(js, /listRequest\+\+/, 'Missing stale list invalidation');
 assert.match(js, /detailRequest\+\+/, 'Missing stale detail invalidation');
+const actorSnapshots=[...js.matchAll(/const actorId=user\.id,actorSession=sessionRequest/g)];
+assert.equal(actorSnapshots.length,3,'Every async mutation requires an authenticated actor/session snapshot');
+const actorGuards=[...js.matchAll(/if\(!active\(\)\)return;/g)];
+assert.equal(actorGuards.length,3,'Pending create, owner update and customer reply must discard stale responses');
+const guardedErrors=[...js.matchAll(/catch\(err\)\{if\(active\(\)\)displayError\(err\)\}/g)];
+assert.equal(guardedErrors.length,3,'No stale mutation error may leak into another signed-in account');
+
 assert.match(js, /\.textContent/, 'User-controlled content should render as text');
 assert.doesNotMatch(js, /\.innerHTML\s*=/, 'Do not inject user content as HTML');
 assert.match(sql, /enable row level security/);
