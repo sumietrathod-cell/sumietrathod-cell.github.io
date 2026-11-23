@@ -87,3 +87,13 @@ test('repeat opt-outs and CSV withdrawals are idempotent without overwriting ear
   assert.match(ci,/ON CONFLICT \(contact_id,channel\) DO NOTHING/i);
   assert.match(ci,/ROLLBACK;\s*$/i);
 });
+
+test('existing staging suppression migration fails closed on duplicates', () => {
+  const migration = readFileSync(new URL('../campaign-manager/supabase/migrations/20261123_suppression_idempotency.sql', import.meta.url), 'utf8');
+  assert.match(migration,/to_regclass\('public\.suppression_list'\)/i);
+  assert.match(migration,/GROUP BY contact_id, channel\s+HAVING count\(\*\) > 1/i);
+  assert.match(migration,/IF duplicate_groups > 0 THEN\s+RAISE EXCEPTION/i);
+  assert.doesNotMatch(migration,/DELETE FROM public\.suppression_list/i);
+  assert.match(migration,/CREATE UNIQUE INDEX IF NOT EXISTS idx_suppression_contact_channel_unique/i);
+  assert.match(migration,/COMMIT;/i);
+});
