@@ -14,7 +14,7 @@ const credentials={
  SUPABASE_ANON_KEY:'local_public_key', RAZORPAY_KEY_ID:'rzp_test_placeholder',
  RAZORPAY_KEY_SECRET:'fake_razorpay_secret'
 };
-const invoice={id:invoiceId,quotation_id:invoiceId,billing_quotations:{items:[
+const invoice={id:invoiceId,quotation_id:invoiceId,billing_quotations:{customer:'Demo customer',items:[
  {service:'Installation',qty:2,paise:100000},{service:'Service',qty:1,paise:50000}
 ]}};
 function json(value,status=200){return Response.json(value,{status});}
@@ -25,6 +25,7 @@ function createHarness(options={}){
   url=String(url);calls.push({url,method:init.method||'GET'});
   if(url.includes('/auth/v1/user'))return json({id:'user_123',app_metadata:{campaign_manager_role:options.role||'admin'}});
   if(url.includes('/rest/v1/billing_invoices?'))return json([invoice]);
+  if(url.includes('/rest/v1/billing_verified_payments?'))return json(payment?[payment]:[]);
   if(url.includes('/rest/v1/billing_payment_orders?'))return json(order?[order]:[]);
   if(url.endsWith('/rest/v1/billing_payment_orders')&&init.method==='POST'){
    order=JSON.parse(init.body);return json([order],201);
@@ -115,4 +116,46 @@ test('bad invoice ID and payment ID fail before provider call',async()=>{
  assert.equal((await h.invoke('start_order',{invoice_id:'../../etc'})).status,400);
  assert.equal((await h.invoke('verify_payment',{payment_id:'evil'})).status,400);
  assert.equal(h.calls.some(x=>x.url.endsWith('/v1/orders')),false);
+});
+
+test('history lists customer and historical verification without claiming current Paid',async()=>{
+ const h=createHarness();
+ let empty=await h.invoke('payment_history',{invoice_id:null});
+ assert.equal(empty.status,200);
+ assert.equal(empty.body.records.length,0);
+ await h.invoke('start_order');
+ await h.invoke('verify_payment',{payment_id:paymentId});
+ const res=await h.invoke('payment_history',{invoice_id:null});
+ assert.equal(res.status,200);
+ assert.equal(res.body.state,'history_not_current_payment_status');
+ assert.equal(res.body.records.length,1);
+ assert.equal(res.body.records[0].customer,'Demo customer');
+ assert.equal(res.body.records[0].amountPaise,250000);
+ assert.equal(JSON.stringify(res.body).includes('"paid"'),false);
+});
+test('acknowledgement requires ledger and current unrefunded provider match',async()=>{
+ const h=createHarness();
+ assert.equal((await h.invoke('acknowledgement_preview')).status,404);
+ await h.invoke('start_order');
+ await h.invoke('verify_payment',{payment_id:paymentId});
+ const result=await h.invoke('acknowledgement_preview');
+ assert.equal(result.status,200);
+ assert.equal(result.body.kind,'non_gst_payment_acknowledgement_preview');
+ assert.equal(result.body.state,'provider_checked_now');
+ assert.equal(result.body.customer,'Demo customer');
+ assert.equal(result.body.paymentId,paymentId);
+ assert.match(result.body.warning,/Not a GST tax invoice/);
+ assert.equal(h.calls.filter(x=>x.url.includes('/v1/payments/')).length,2);
+});
+test('fresh refund update blocks acknowledgement despite previously verified ledger',async()=>{
+ const h=createHarness({refunded:false});
+ await h.invoke('start_order');
+ await h.invoke('verify_payment',{payment_id:paymentId});
+ assert.equal((await h.invoke('acknowledgement_preview')).status,200);
+ const h2=createHarness({refunded:true});
+ // Fresh provider result after a refund is handled in the separate provider validation test.
+ const old={id:paymentId,order_id:orderId,status:'captured',captured:true,
+  amount:250000,currency:'INR',amount_refunded:250000};
+ assert.throws(()=>verifyCapturedPayment(old,orderId,250000));
+ assert.equal(h2.stored().payment,null);
 });
