@@ -84,6 +84,12 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Repeated import of the same contact does not create duplicate campaign enrollment.
 - Review and document partial-write behavior: the import is not yet transactional.
 
+## Atomic opt-out RPC and rollback tests (staging only)
+- `supabase/opt-out-rpc.sql` must be installed after the tenant RLS policies and suppression unique index, before deploying the updated Edge API. Do not use this incompatible draft in production.
+- `tests/tenant-opt-out-atomic-ci.sql` verifies member-only access, revoked anonymous access, invalid channel rejection, preservation of prior consent evidence, idempotent suppression and compatibility with an earlier CSV withdrawal.
+- Its synthetic audit trigger intentionally raises an exception on the THIRD write. The PostgreSQL test checks that the first two writes leave NO partial suppression or permission. The separate signed-JWT PostgREST HTTP test verifies success and tenant isolation.
+- Green disposable CI does not replace staging Supabase Auth/Edge HTTPS validation, legal compliance or approved provider delivery.
+
 ## Idempotent contact-channel suppression tests
 - A viewer belonging to a tenant can add a channel-specific opt-out; a repeated identical opt-out must succeed without a second suppression row and without replacing the first recorded reason/source.
 - Different channels remain distinct; a viewer must not gain the operator-only CSV withdrawal insert permission or modify a second tenant's suppression.
