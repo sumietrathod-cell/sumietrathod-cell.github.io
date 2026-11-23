@@ -1,0 +1,30 @@
+name: Live CRM release safety
+on:
+  pull_request:
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/live-crm-signout.test.mjs'
+      - '.github/workflows/live-crm-release-check.yml'
+  push:
+    branches:
+      - fix/live-crm-safe-signout-20261123
+      - main
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/live-crm-signout.test.mjs'
+      - '.github/workflows/live-crm-release-check.yml'
+permissions:
+  contents: read
+jobs:
+  live-crm-safe-signout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check synthetic login state regression tests
+        run: node --check tests/live-crm-signout.test.mjs
+      - name: Execute actual CRM signout event with synthetic delayed network
+        run: node --test tests/live-crm-signout.test.mjs
