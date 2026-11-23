@@ -138,6 +138,15 @@ create index if not exists idx_campaigns_org_status on public.campaigns(organiza
 create index if not exists idx_campaign_contacts_due on public.campaign_contacts(status, next_attempt_at);
 create index if not exists idx_contacts_org_phone on public.contacts(organization_id, phone_e164);
 create index if not exists idx_suppression_org_phone on public.suppression_list(organization_id, phone_e164);
+
+-- One durable suppression per enrolled contact and channel. Retries and
+-- repeated withdrawals must NOT insert duplicate suppression history rows.
+-- PostgreSQL UNIQUE treats NULL contact IDs/channels as distinct, so this
+-- does not prevent general phone-only or all-channel suppression records.
+-- Audit events remain separate from this durable current-state record.
+create unique index if not exists idx_suppression_contact_channel_unique
+  on public.suppression_list (contact_id, channel);
+
 create index if not exists idx_attempts_campaign_contact on public.outreach_attempts(campaign_contact_id, created_at desc);
 create index if not exists idx_audit_org_created on public.audit_events(organization_id, created_at desc);
 
