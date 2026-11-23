@@ -104,3 +104,12 @@ assert.match(ownerSource,/selectedId!==id\|\|save\.disabled\)return;/,
   'Owner status update must reject duplicate submissions');
 assert.match(replySource,/\|\|replyButton\.disabled\)return;/,
   'Customer reply must reject duplicate submissions');
+
+// A paginated ticket search must never imply the entire tenant history was searched.
+const renderSource=js.slice(js.indexOf('function renderTickets()'),js.indexOf('async function listTickets()'));
+assert.match(renderSource,/hasMoreTickets\?' · More tickets available; search and status filters apply only to loaded tickets\.'/,
+  'Tell mobile and desktop users when client-side filters cover only the loaded page');
+assert.match(renderSource,/hasMoreTickets\?'No matches among loaded tickets\. Load more to check older tickets\.'/,
+  'No-results state must not claim older unloaded tickets have been searched');
+assert.match(renderSource,/\('ticketSummary'\)\.textContent/,
+  'Pagination scope warning must be exposed through the existing live summary');
