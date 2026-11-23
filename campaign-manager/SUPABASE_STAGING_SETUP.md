@@ -12,8 +12,9 @@ In the Supabase SQL Editor, review and run in this order:
 1. **Run `campaign-manager/supabase/preflight.sql`. It must succeed** in a new dedicated staging database. If it reports existing core tables, stop; do not apply the schema in the old CRM database.
 2. `campaign-manager/supabase/schema.sql`
 3. `campaign-manager/supabase/rls-policies.sql`
-4. Run the rollback-only `campaign-manager/supabase/tests/permission-guard.sql` test in staging.
-5. If a dedicated staging project was previously seeded with an earlier version of this schema, do not reapply the new-install preflight; separately review `campaign-manager/supabase/migrations/20261117_tenant_integrity.sql` as an existing-install migration instead of relying on `CREATE TABLE IF NOT EXISTS`. Do not use the existing AAROHAN production project for this upgrade.
+4. `campaign-manager/supabase/opt-out-rpc.sql` (required atomic, SECURITY INVOKER, authenticated-only opt-out)
+5. Run the rollback-only `campaign-manager/supabase/tests/permission-guard.sql` test in staging.
+6. If a dedicated staging project was previously seeded with an earlier version of this schema, do not reapply the new-install preflight; separately review `campaign-manager/supabase/migrations/20261117_tenant_integrity.sql` as an existing-install migration instead of relying on `CREATE TABLE IF NOT EXISTS`. Do not use the existing AAROHAN production project for this upgrade.
 
 Do not run `campaign-manager/supabase/queue-worker.sql` for live scheduling. It is only a queue-claim foundation; there is no complete worker, stale-lock recovery, provider dispatch or callback handling.
 
