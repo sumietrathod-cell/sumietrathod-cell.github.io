@@ -39,30 +39,49 @@ begin
   if (select count(*) from public.contact_channel_permissions) <> 1 then
     raise exception 'FAIL: Operator permission read scope';
   end if;
-  blocked := false;
-  begin
-    update public.contact_channel_permissions
-    set permission_status='granted', evidence_reference=null,
-        captured_by=null, captured_at=null
-    where id='30000000-0000-4000-8000-000000000001';
-  exception when check_violation then blocked:=true;
-  end;
-  if not blocked then
-    raise exception 'FAIL: forged grant without evidence allowed';
+  -- Authenticated operators cannot grant permission via CSV-supplied text or
+  -- a direct REST call, even when they manufacture plausible evidence.
+  update public.contact_channel_permissions
+  set permission_status='granted', evidence_reference=null,
+      captured_by=null, captured_at=null
+  where id='30000000-0000-4000-8000-000000000001';
+  get diagnostics change_count = row_count;
+  if change_count <> 0 then
+    raise exception 'FAIL: operator granted permission with missing evidence';
   end if;
   update public.contact_channel_permissions
   set permission_status='granted',
-      evidence_reference='synthetic-reference-not-real-consent',
+      evidence_reference='synthetic-self-asserted-proof-is-not-verified',
       captured_by='00000000-0000-0000-0000-000000000001',
       captured_at=now()
   where id='30000000-0000-4000-8000-000000000001';
-  if (select permission_status from public.contact_channel_permissions
-     where id='30000000-0000-4000-8000-000000000001') <> 'granted' then
-    raise exception 'FAIL: documented grant failed';
+  get diagnostics change_count = row_count;
+  if change_count <> 0 then
+    raise exception 'FAIL: operator forged a grant despite apparently complete evidence';
+  end if;
+  blocked:=false;
+  begin
+    insert into public.contact_channel_permissions(
+      organization_id,contact_id,channel,permission_status,
+      evidence_reference,captured_at,captured_by
+    ) values (
+      '10000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000001',
+      'voice','granted','synthetic-fake-source',now(),
+      '00000000-0000-0000-0000-000000000001'
+    );
+  exception when insufficient_privilege then blocked:=true;
+  end;
+  if not blocked then
+    raise exception 'FAIL: operator inserted forged granted permission';
   end if;
   update public.contact_channel_permissions
   set permission_status='withdrawn'
   where id='30000000-0000-4000-8000-000000000001';
+  get diagnostics change_count = row_count;
+  if change_count <> 1 then
+    raise exception 'FAIL: legitimate withdrawal should still work';
+  end if;
   blocked:=false;
   begin
     update public.contact_channel_permissions
@@ -70,7 +89,13 @@ begin
     where id='30000000-0000-4000-8000-000000000001';
   exception when check_violation then blocked:=true;
   end;
-  if not blocked then raise exception 'FAIL: withdrawn permission reinstated'; end if;
+  if not blocked then
+    -- With UPDATE RLS removed, a blocked update may silently affect zero rows.
+    if (select permission_status from public.contact_channel_permissions
+        where id='30000000-0000-4000-8000-000000000001') <> 'withdrawn' then
+      raise exception 'FAIL: withdrawn permission reinstated';
+    end if;
+  end if;
 
   delete from public.contact_channel_permissions
   where id='30000000-0000-4000-8000-000000000001';
