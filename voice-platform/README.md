@@ -7,6 +7,13 @@
 - `remote.html` lets the owner create, update, assign, enable and disable browser deployments and see recent activity. An operator can access an enabled deployment assigned to their Supabase Auth user ID. Admin access uses the existing Campaign Manager role.
 - Apply `supabase/migrations/20261119001000_voice_deployments.sql` to the dedicated Campaign Manager Supabase project before publishing. In a live verification, sign in as Admin, create a temporary deployment, connect it from the Voice Platform, test a reply, and confirm the activity and disable flow. Verify microphone permission, transcription and device voices with sample audio on mobile and desktop.
 
+## Worker model selection regression (draft QA)
+
+- `transcriber.js` tracks the **selected Whisper model size** alongside the cached pipeline. Direct Worker requests asking for `small` cannot accidentally reuse an earlier `tiny` pipeline, and a failed download resets the cache for retry.
+- Pending Worker messages are serialized to avoid an in-flight model download swapping state for an earlier request. The existing Studio UI also terminates/recreates its Worker on model selection changes; this Worker-level guard is additional protection.
+- Run `node --test voice-platform/tests/transcriber-model.test.mjs` on Node.js 22. Tests inject fake pinned Whisper pipelines and **synthetic audio arrays** without loading models, recording a microphone or making external calls. They verify Tiny/Small revisions, repeated-model reuse, fallback to Tiny for unknown model strings, load recovery, FIFO order and Gujarati translation task propagation.
+- These checks do **not** prove Gujarati transcription quality, natural voice output, recording permissions, real model memory usage, Zoom microphone integration, or phone-call translation. Those still need authorized device/hardware testing.
+
 ## Dependencies
 
 - Transformers.js 3.8.1 is loaded from jsDelivr in the transcription Worker. [Source and license](https://github.com/huggingface/transformers.js/tree/3.8.1)
