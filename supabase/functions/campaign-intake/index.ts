@@ -142,7 +142,16 @@ async function whatsappWebhook(request, url) {
 Deno.serve(async request => {
   try {
     const url = new URL(request.url);
-    return await (url.pathname.endsWith('/whatsapp') ? whatsappWebhook(request, url) : websiteEnquiry(request));
+    // Only the documented endpoints are recognized. Unknown paths must not
+    // silently fall through to the unauthenticated website-enquiry intake.
+    const route = '/functions/v1/campaign-intake';
+    if (url.pathname === route || url.pathname === route + '/') {
+      return await websiteEnquiry(request);
+    }
+    if (url.pathname === route + '/whatsapp') {
+      return await whatsappWebhook(request, url);
+    }
+    return respond(404, { error: 'Not found' }, request.headers.get('origin'));
   } catch {
     return respond(503, { error: 'Service temporarily unavailable' }, request.headers.get('origin'));
   }
