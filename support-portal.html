@@ -164,8 +164,8 @@ $('refresh').addEventListener('click',listTickets);
 $('loadMore').addEventListener('click',()=>loadTicketsPage(false));
 $('ticketSearch').addEventListener('input',renderTickets);
 $('ticketStatusFilter').addEventListener('change',renderTickets);
-$('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
- const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){displayError(err)}finally{button.disabled=false}});
+$('createForm').addEventListener('submit',async e=>{e.preventDefault();if(!user)return;const actorId=user.id,actorSession=sessionRequest;const active=()=>user?.id===actorId&&sessionRequest===actorSession;const f=new FormData(e.target),data={customer_name:String(f.get('customer_name')).trim(),contact_reference:String(f.get('contact_reference')).trim()||null,service:String(f.get('service')),category:String(f.get('category')),priority:String(f.get('priority')),subject:String(f.get('subject')).trim(),details:String(f.get('details')).trim()};if(!data.customer_name||!data.subject||!data.details||!data.service)return;
+ const button=e.target.querySelector('button');button.disabled=true;try{const {data:ticket,error}=await client.from('aarohan_support_tickets').insert(data).select('id,ticket_number').single();if(!active())return;if(error)throw error;note('Ticket submitted: '+ticket.ticket_number);e.target.reset();await listTickets()}catch(err){if(active())displayError(err)}finally{button.disabled=false}});
 function renderTickets(){
  if(!user)return;
  const q=$('ticketSearch').value.trim().toLowerCase();
@@ -222,7 +222,7 @@ async function openTicket(id){if(!user)return;const request=++detailRequest;try{
  if(isAdmin){const form=element('form'),label=element('label','Update status'),select=element('select');for(const s of ['Open','In Progress','Waiting for Customer','Resolved','Closed']){const option=element('option',s);option.value=s;select.append(option)}select.value=t.status;label.append(select);form.append(label);
  const nlabel=element('label','Reply to customer (visible in ticket history)'),textarea=element('textarea');textarea.maxLength=800;nlabel.append(textarea);form.append(nlabel);
  const save=element('button','Save update');save.type='submit';form.append(save);
- form.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{const {error}=await client.rpc('aarohan_support_update_ticket',{p_ticket_id:id,p_status:select.value,p_note:textarea.value.trim()||null});if(error)throw error;note('Ticket updated.');await listTickets()}catch(err){displayError(err)}finally{save.disabled=false}});box.append(form)}
+ form.addEventListener('submit',async e=>{e.preventDefault();if(!user||!isAdmin||selectedId!==id)return;const actorId=user.id,actorSession=sessionRequest;const active=()=>user?.id===actorId&&sessionRequest===actorSession&&selectedId===id;save.disabled=true;try{const {error}=await client.rpc('aarohan_support_update_ticket',{p_ticket_id:id,p_status:select.value,p_note:textarea.value.trim()||null});if(!active())return;if(error)throw error;note('Ticket updated.');await listTickets()}catch(err){if(active())displayError(err)}finally{save.disabled=false}});box.append(form)}
  else if(t.status!=='Closed'){
    const replyForm=element('form');
    const replyLabel=element('label','Reply to support');
@@ -233,14 +233,17 @@ async function openTicket(id){if(!user)return;const request=++detailRequest;try{
    const replyButton=element('button','Send reply');replyButton.type='submit';replyForm.append(replyButton);
    replyForm.addEventListener('submit',async e=>{
      e.preventDefault();
-     if(!replyText.value.trim())return;
+     if(!user||selectedId!==id||!replyText.value.trim())return;
+     const actorId=user.id,actorSession=sessionRequest;
+     const active=()=>user?.id===actorId&&sessionRequest===actorSession&&selectedId===id;
      replyButton.disabled=true;
      try{
        const {error}=await client.rpc('aarohan_support_customer_reply',{p_ticket_id:id,p_message:replyText.value.trim()});
+       if(!active())return;
        if(error)throw error;
        note('Reply saved to ticket history.');
        await listTickets();
-     }catch(err){displayError(err)}
+     }catch(err){if(active())displayError(err)}
      finally{replyButton.disabled=false}
    });
    box.append(replyForm);
