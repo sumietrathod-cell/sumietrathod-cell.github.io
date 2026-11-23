@@ -26,3 +26,20 @@ test('staging preflight fails closed on existing tenant or legacy CRM tables', (
   assert.match(preflight, /raise exception 'STOP: target public tables already exist:/i);
   assert.match(preflight, /table_schema = 'public'/i);
 });
+
+test('campaign contacts cannot forge outcomes or attempts through client RLS', () => {
+  assert.doesNotMatch(sql, /create policy campaign_contacts_operator_write\s+[\s\S]*?for all to authenticated/i);
+  assert.match(sql,/create policy campaign_contacts_operator_insert\s+[\s\S]*?for insert to authenticated/i);
+  const from = sql.indexOf('create policy campaign_contacts_operator_insert');
+  const to = sql.indexOf('create policy suppression_member_select',from);
+  assert.ok(from>=0&&to>from);
+  const p = sql.slice(from,to);
+  assert.match(p,/status\s*=\s*'queued'/i);
+  assert.match(p,/attempts\s*=\s*0/i);
+  assert.match(p,/next_attempt_at is null/i);
+  assert.match(p,/last_outcome is null/i);
+  assert.match(p,/c\.status\s*=\s*'draft'/i);
+  assert.match(p,/c\.dry_run is true/i);
+  assert.doesNotMatch(sql,/create policy campaign_contacts_operator_update/i);
+  assert.doesNotMatch(sql,/create policy campaign_contacts_operator_delete/i);
+});
