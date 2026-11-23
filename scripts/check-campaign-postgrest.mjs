@@ -150,24 +150,56 @@ async function main() {
     phone_e164: "+919999000999",
   }), "consent-associated phone cannot be reassigned");
 
-  blocked(await api(alpha, "PATCH", "/contact_channel_permissions?contact_id=eq." + CONTACT_A, {
-    permission_status: "granted", evidence_reference: null, captured_at: null, captured_by: null,
-  }), "grant without evidence blocked");
-
-  const validPermission = await api(alpha, "PATCH",
+  // A client PATCH can legitimately return 200 [] under RLS (zero affected
+  // rows). Do not mistake that result for authorization to change consent.
+  const plausibleGrant = await api(alpha, "PATCH",
     "/contact_channel_permissions?contact_id=eq." + CONTACT_A, {
-      permission_status: "granted", evidence_reference: "synthetic-integration-only",
-      captured_at: new Date(Date.now()-86400000).toISOString(), captured_by: USER_A,
+      permission_status: "granted",
+      evidence_reference: "plausible-but-self-asserted-fake-proof",
+      captured_at: new Date(Date.now()-86400000).toISOString(),
+      captured_by: USER_A,
     });
-  okResponse(validPermission, "documented synthetic permission");
+  checks("operator cannot forge grant with plausible evidence", () => {
+    if ([200,204].includes(plausibleGrant.status)) {
+      assert.deepEqual(plausibleGrant.payload ?? [], []);
+    } else {
+      assert.ok([400,401,403,409,422].includes(plausibleGrant.status));
+    }
+  });
+
+  blocked(await api(alpha,"POST","/contact_channel_permissions", {
+    organization_id: ORG_A, contact_id: CONTACT_A, channel: "voice",
+    permission_status: "granted",
+    evidence_reference: "fabricated-voice-evidence",
+    captured_at: new Date().toISOString(), captured_by: USER_A,
+  }), "operator cannot insert a new forged grant");
+
+  const afterGrant = okResponse(await api(alpha, "GET",
+    "/contact_channel_permissions?contact_id=eq." + CONTACT_A +
+    "&channel=eq.whatsapp&select=permission_status"), "verify client grant rejected");
+  checks("contact remains unknown after forged grant", () => {
+    assert.equal(afterGrant.length, 1);
+    assert.equal(afterGrant[0].permission_status, "unknown");
+  });
 
   const withdraw = await api(alpha,"PATCH",
     "/contact_channel_permissions?contact_id=eq." + CONTACT_A,
     {permission_status:"withdrawn"});
-  okResponse(withdraw, "withdraw grant");
-  blocked(await api(alpha, "PATCH",
+  const withdrawResponse = okResponse(withdraw, "withdraw unknown permission");
+  checks("authenticated member withdrawal updated exactly one row", () => {
+    assert.equal(withdrawResponse.length, 1);
+    assert.equal(withdrawResponse[0].permission_status, "withdrawn");
+  });
+  const reversed = await api(alpha, "PATCH",
     "/contact_channel_permissions?contact_id=eq." + CONTACT_A,
-    {permission_status:"granted"}), "opt-out reversal denied");
+    {permission_status:"granted"});
+  checks("withdrawn permission cannot be reinstated through direct PATCH", () => {
+    if ([200,204].includes(reversed.status)) {
+      assert.deepEqual(reversed.payload ?? [], []);
+    } else {
+      assert.ok([400,401,403,409,422].includes(reversed.status));
+    }
+  });
 
   const suppressPath = "/suppression_list?on_conflict=contact_id%2Cchannel";
   const suppress = {
