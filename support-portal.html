@@ -63,7 +63,7 @@ const cfg={
 const note=s=>{$('message').textContent=s};
 const element=(tag,txt)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=String(txt);return e};
 let client=null,user=null,isAdmin=false,selectedId=null,loadedTickets=[];
-let sessionRequest=0,detailRequest=0,listRequest=0,hasMoreTickets=false;
+let sessionRequest=0,detailRequest=0,listRequest=0,hasMoreTickets=false,ticketPageOffset=0;
 const ticketPageSize=100;
 client=createClient(cfg.url,cfg.publishableKey,{
  auth:{
@@ -82,6 +82,7 @@ function clearWorkspace(){
  $('createForm').reset();
  loadedTickets=[];
  hasMoreTickets=false;
+ ticketPageOffset=0;
  $('loadMore').hidden=true;
  listRequest++;
  $('ticketSearch').value='';
@@ -195,7 +196,10 @@ async function loadTicketsPage(reset){
  const request=++listRequest;
  const accountId=user.id;
  const button=$('loadMore');
- const start=reset?0:loadedTickets.length;
+ // Track the raw server offset rather than deduplicated visible row count.
+ // Concurrent ticket inserts can overlap pages; counting only unique rows
+ // would repeatedly request the same offset forever.
+ const start=reset?0:ticketPageOffset;
  button.disabled=true;
  try{
    const {data,error}=await client.from('aarohan_support_tickets')
@@ -205,6 +209,7 @@ async function loadTicketsPage(reset){
    if(request!==listRequest||user?.id!==accountId)return;
    if(error)throw error;
    const page=data||[];
+   ticketPageOffset=start+page.length;
    loadedTickets=reset?page:loadedTickets.concat(page.filter(t=>!loadedTickets.some(existing=>existing.id===t.id)));
    hasMoreTickets=page.length===ticketPageSize;
    button.hidden=!hasMoreTickets;
