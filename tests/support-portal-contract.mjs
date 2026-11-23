@@ -28,6 +28,11 @@ for (const fn of [
 }
 assert.match(html, /ticketPageSize=100/, 'Expected paginated ticket list');
 assert.match(js, /\.range\(start,start\+ticketPageSize-1\)/);
+assert.match(js,/ticketPageOffset=0/,'Server pagination cursor must reset on account switch');
+assert.match(js,/const start=reset\?0:ticketPageOffset/,'Load-more must use server cursor, not deduplicated rows');
+assert.match(js,/ticketPageOffset=start\+page.length/,'Every successful page consumes its raw server offset');
+assert.doesNotMatch(js,/const start=reset\?0:loadedTickets.length/,'Deduplicated count can get stuck under concurrent inserts');
+
 assert.match(js, /listRequest\+\+/, 'Missing stale list invalidation');
 assert.match(js, /detailRequest\+\+/, 'Missing stale detail invalidation');
 const actorSnapshots=[...js.matchAll(/const actorId=user\.id,actorSession=sessionRequest/g)];
