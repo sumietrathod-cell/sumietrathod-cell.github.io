@@ -17,7 +17,7 @@ This contract is the boundary between the dashboard and the trusted backend. It 
 | GET/PATCH | /v1/campaigns/{id} | Read/update campaign |
 | POST | /functions/v1/campaign-api/contacts/{id}/opt-out | Record a channel-specific withdrawal, add suppression and append a self-attributed audit event |
 | GET | /functions/v1/campaign-api/campaigns/{id}/contacts?limit=50&offset=0 | List paginated campaign contacts with permission and suppression flags (read-only) |
-| POST | /functions/v1/campaign-api/campaigns/{id}/contacts/import | Import CSV contacts into a draft dry-run campaign; channel permission defaults to unknown unless explicit granted status plus evidence are supplied |
+| POST | /functions/v1/campaign-api/campaigns/{id}/contacts/import | Import CSV contacts into a draft dry-run campaign with permission `unknown` or `withdrawn`; all CSV `granted` rows are rejected |
 | POST | /v1/campaigns/{id}/preview | Return eligible, blocked and invalid contact counts |
 | POST | /v1/campaigns/{id}/approve | Explicitly approve a dry-run or live campaign |
 | POST | /v1/campaigns/{id}/pause | Pause future jobs |
@@ -67,13 +67,13 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - `POST /functions/v1/campaign-api/contacts/{id}/opt-out`: accepts `{ "channel": "voice|whatsapp|email", "reason": "..." }`; inserts a suppression record, marks channel permission withdrawn and records a limited audit event. A failed later step never removes the already-inserted suppression.
 - `POST /functions/v1/campaign-api/campaigns`: create a draft with `dry_run=true`.
 - `POST /functions/v1/campaign-api/campaigns/{id}/contacts/import`: accepts JSON `{ "csv_text": "..." }`; CSV headers must be `full_name,phone_e164,email,consent_status,consent_evidence`. Maximum 1 MB and 500 contact rows. Phone values must already be E.164 (for example, +14155550123); ambiguous/local numbers are rejected.
-- The import endpoint only accepts voice or WhatsApp draft campaigns. It stores contacts and channel permission status. Only a row with `consent_status=granted` and non-empty evidence is recorded as granted; all other rows are recorded as unknown. A phone/email alone is never treated as consent.
+- The import endpoint only accepts voice or WhatsApp draft campaigns. It stores contacts and channel permission status **only as unknown or withdrawn**. Any `consent_status=granted` is rejected regardless of the supplied evidence reference; a phone/email or self-asserted CSV field is never verified opt-in. Existing pre-recorded grants are not overwritten by an unknown import.
 - Import is not a transactional bulk operation yet: row-level failures are returned and partial writes may exist. Review results before proceeding. The endpoint does not send messages or place calls.
 
 ## Tenant integrity hardening
 - The schema now adds composite organization keys and composite foreign keys so campaign contacts, contact permissions, suppression entries and outreach attempts cannot point across organizations.
 - These constraints are included in the schema for a fresh database. If the original schema was already applied, review and test `supabase/migrations/20261117_tenant_integrity.sql`; do not assume `CREATE TABLE IF NOT EXISTS` retrofits constraints.
-- CSV consent evidence is supplied by the importing organization and is not independently verified by this API. Review the evidence and applicable law before any future live campaign.
+- CSV evidence is self-reported and **cannot create a grant** through this API; existing historical grants remain subject to independent consent validation, provider rules and applicable law before any future live campaign.
 
 ## Read-only preflight preview (staging implementation)
 - `POST /functions/v1/campaign-api/campaigns/{id}/preview` now fetches `campaigns.timezone/calling_window_start/calling_window_end`, `campaign_contacts.next_attempt_at`, and permission evidence `captured_at/captured_by` as well as status/reference.
@@ -96,6 +96,6 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 
 ## Opt-out and permission protections
 - Any authenticated organization member may submit an opt-out. RLS only permits member opt-out writes to set permission status to `withdrawn`, add a channel-specific suppression record from this endpoint, and append a self-attributed `contact_permission_withdrawn` audit event.
-- CSV import accepts only `granted`, `unknown` or `withdrawn`. A granted row requires evidence text. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import does not overwrite a previously granted permission/evidence.
+- CSV import accepts `unknown` or `withdrawn` and explicitly rejects `granted` even with purported evidence. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import leaves any historical grant and its original evidence untouched; only the trusted future verification path may add fresh grants.
 - Suppression is checked separately from permission status and remains a block even if a permission row is later changed. Suppression records are not deleted by the customer API.
 - Preview returns `campaign_dispatch_ready=false` in this release because no dispatch worker/provider adapter exists. `campaign_state_allows_dispatch` only describes the campaign status/dry-run fields. Contact-level `eligible` is not permission to dispatch.
