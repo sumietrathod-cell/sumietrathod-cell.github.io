@@ -76,6 +76,8 @@ async function razorpay(settings,path,init={}){
  try{return await response.json();}catch{throw new HttpError(502,'Unexpected payment provider response.');}
 }
 async function startOrder(settings,invoice){
+ const prior=await getVerifiedRow(settings,invoice.id);
+ if(prior)throw new HttpError(409,'A payment has already been verified for this invoice; do not initiate another.');
  const existing=safeOrder(await getOrder(settings,invoice.id),invoice.amount);
  if(existing)return {state:'existing_order',...existing,keyId:settings.razorpayKey,currency:'INR'};
  const provider=await razorpay(settings,'orders',{method:'POST',body:JSON.stringify({
