@@ -4,6 +4,9 @@ on:
     paths:
       - 'campaign-manager.html'
       - 'tests/crm-*.test.cjs'
+      - 'scripts/check-crm-privileged-rpcs.mjs'
+      - 'supabase/release-candidates/admin-rpc-uid-guards-review.sql'
+      - 'supabase/migrations/20261119004000_campaign_sales_followup_report.sql'
       - '.github/workflows/crm-export-checks.yml'
   push:
     branches:
@@ -11,6 +14,9 @@ on:
     paths:
       - 'campaign-manager.html'
       - 'tests/crm-*.test.cjs'
+      - 'scripts/check-crm-privileged-rpcs.mjs'
+      - 'supabase/release-candidates/admin-rpc-uid-guards-review.sql'
+      - 'supabase/migrations/20261119004000_campaign_sales_followup_report.sql'
       - '.github/workflows/crm-export-checks.yml'
 
 permissions:
@@ -26,6 +32,8 @@ jobs:
           node-version: '22'
       - name: Run CRM lead tools regression tests
         run: node --test tests/crm-export.test.cjs tests/crm-followup-queue.test.cjs
+      - name: Verify proposed Admin RPC guard preserves business logic
+        run: node --test scripts/check-crm-privileged-rpcs.mjs
 
   browser-smoke:
     runs-on: ubuntu-latest
