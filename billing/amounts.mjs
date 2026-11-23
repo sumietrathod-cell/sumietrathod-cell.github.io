@@ -58,7 +58,7 @@ export function formatINR(paise) {
 export function validateCustomer(raw) {
   if (typeof raw !== 'string') throw new Error('Customer name must be text.');
   const customer=raw.trim();
-  if (!customer || customer.length>160 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(customer)) {
+  if (!customer || customer.length>160 || /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/.test(customer)) {
     throw new Error('Customer name must be 1–160 printable characters.');
   }
   return customer;
