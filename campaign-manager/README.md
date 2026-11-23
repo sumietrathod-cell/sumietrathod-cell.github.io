@@ -66,6 +66,13 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
 - Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
 
+## Client-side campaign enrollment control (staging only)
+
+- Replaced the broad authenticated `campaign_contacts FOR ALL` RLS rule with **INSERT-only** enrollment into the current organization's **draft, dry-run** campaign. New rows must start `queued`, with 0 attempts and no existing outcome or callback date.
+- Authenticated organization users cannot directly UPDATE or DELETE campaign enrollment rows, manufacture completed/reached outcomes, reset attempts, or enroll into running campaigns. Future state updates belong to audited trusted workers.
+- Disposable PostgreSQL CI `supabase/tests/tenant-enrollment-ci.sql` verifies allowed draft enrollment and blocked outcome/attempt forgery, running-campaign enrollment, cross-tenant enrollment, UPDATE and DELETE.
+- This has **not** been deployed to the AAROHAN production CRM. It is a multi-tenant staging draft with a different schema. Provider integration, real Supabase Auth staging and REST API end-to-end validation are still mandatory.
+
 ## Disposable PostgreSQL integration tests
 
 The `tenant-rls-integration` job in `.github/workflows/campaign-manager-check.yml` boots an ephemeral PostgreSQL 17 container. It installs the **actual** draft schema, tenant RLS policies and queue SQL, with synthetic Auth role/function stubs in `supabase/tests/ci-auth-bootstrap.sql`. The following rollback-only tests run with `psql -v ON_ERROR_STOP=1`:
