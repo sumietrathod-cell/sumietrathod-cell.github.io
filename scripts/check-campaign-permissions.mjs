@@ -97,3 +97,22 @@ test('existing staging suppression migration fails closed on duplicates', () => 
   assert.match(migration,/CREATE UNIQUE INDEX IF NOT EXISTS idx_suppression_contact_channel_unique/i);
   assert.match(migration,/COMMIT;/i);
 });
+
+test('client opt-out audit log entries must reflect real same-tenant withdrawn consent', () => {
+  const policy = sql.slice(sql.indexOf('create policy audit_actor_insert'));
+  for(const clause of [
+    /actor_user_id = \(select auth\.uid\(\)\)/i,
+    /event_type = 'contact_permission_withdrawn'/i,
+    /entity_type = 'contact'/i,
+    /entity_id is not null/i,
+    /details = jsonb_build_object/i,
+    /select 1 from public\.contacts c/i,
+    /select 1 from public\.contact_channel_permissions p/i,
+    /p\.permission_status = 'withdrawn'/i,
+    /select 1 from public\.suppression_list s/i,
+    /s\.source = 'campaign_manager_opt_out'/i
+  ]) assert.match(policy, clause);
+  const ci = readFileSync(new URL('../campaign-manager/supabase/tests/tenant-audit-integrity-ci.sql', import.meta.url), 'utf8');
+  assert.match(ci,/eight invalid opt-out audit claims rejected/i);
+  assert.match(ci,/ROLLBACK;\s*$/i);
+});
