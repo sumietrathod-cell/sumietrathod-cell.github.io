@@ -20,7 +20,7 @@ export function buildItems(lines) {
   const entries=lines.map((entry,index)=>{
     const service=String(entry.service??'').trim();
     const qtyText=String(entry.qty??'').trim();
-    if (service.length<1||service.length>200) {
+    if (service.length<1||service.length>200 || /[\u0000-\u001f\u007f-\u009f]/.test(service)) {
       throw new Error('Service name must be 1–200 characters (line '+(index+1)+').');
     }
     if (!/^[1-9][0-9]{0,3}$/.test(qtyText)||Number(qtyText)>9999) {
@@ -36,7 +36,7 @@ export function totalPaise(items) {
   if (!Array.isArray(items)||items.length<1||items.length>50) throw new Error('Invalid quotation items.');
   let total=0;
   for (const line of items) {
-    if (typeof line.service!=='string'||!line.service.trim()||line.service.length>200 ||
+    if (typeof line.service!=='string'||!line.service.trim()||line.service.length>200 || /[\u0000-\u001f\u007f-\u009f]/.test(line.service) ||
         !Number.isInteger(line.qty)||line.qty<1||line.qty>9999 ||
         !Number.isInteger(line.paise)||line.paise<0||line.paise>999999999) {
       throw new Error('Quotation contains invalid line items.');
