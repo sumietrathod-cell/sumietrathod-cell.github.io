@@ -1,6 +1,11 @@
 -- AAROHAN AI Campaign Manager: initial PostgreSQL/Supabase schema draft.
 -- Apply only after reviewing in a staging project. This file intentionally does not
 -- create permissive policies; authenticated access is denied until RLS policies are added.
+-- Tenant permissions, enrolled contacts, campaigns and outreach attempts preserve
+-- linked evidence via ON DELETE RESTRICT. A direct DELETE cannot silently
+-- cascade away consent history or recorded contact/campaign activity.
+-- A future authorized retention/deletion workflow must handle privacy laws,
+-- audit requirements and explicit business approval; do not bypass this guard.
 
 create extension if not exists pgcrypto;
 
@@ -53,7 +58,7 @@ create table if not exists public.contacts (
 create table if not exists public.contact_channel_permissions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  contact_id uuid not null references public.contacts(id) on delete cascade,
+  contact_id uuid not null references public.contacts(id) on delete restrict,
   channel text not null check (channel in ('voice','whatsapp','email')),
   permission_status text not null check (permission_status in ('granted','unknown','withdrawn')),
   evidence_reference text,
@@ -62,14 +67,14 @@ create table if not exists public.contact_channel_permissions (
   created_at timestamptz not null default now(),
   unique (contact_id, channel),
   constraint permissions_org_contact_fk foreign key (organization_id, contact_id)
-    references public.contacts(organization_id, id) on delete cascade
+    references public.contacts(organization_id, id) on delete restrict
 );
 
 create table if not exists public.campaign_contacts (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
-  contact_id uuid not null references public.contacts(id) on delete cascade,
+  campaign_id uuid not null references public.campaigns(id) on delete restrict,
+  contact_id uuid not null references public.contacts(id) on delete restrict,
   status text not null default 'queued'
     check (status in ('queued','in_progress','reached','qualified','callback','no_answer','do_not_contact','failed','skipped')),
   attempts integer not null default 0 check (attempts >= 0),
@@ -80,9 +85,9 @@ create table if not exists public.campaign_contacts (
   unique (campaign_id, contact_id),
   constraint campaign_contacts_org_id_id_key unique (organization_id, id),
   constraint campaign_contacts_org_campaign_fk foreign key (organization_id, campaign_id)
-    references public.campaigns(organization_id, id) on delete cascade,
+    references public.campaigns(organization_id, id) on delete restrict,
   constraint campaign_contacts_org_contact_fk foreign key (organization_id, contact_id)
-    references public.contacts(organization_id, id) on delete cascade
+    references public.contacts(organization_id, id) on delete restrict
 );
 
 create table if not exists public.suppression_list (
@@ -102,7 +107,7 @@ create table if not exists public.suppression_list (
 create table if not exists public.outreach_attempts (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
-  campaign_contact_id uuid not null references public.campaign_contacts(id) on delete cascade,
+  campaign_contact_id uuid not null references public.campaign_contacts(id) on delete restrict,
   channel text not null check (channel in ('voice','whatsapp','email','manual')),
   provider text,
   provider_reference text,
@@ -115,7 +120,7 @@ create table if not exists public.outreach_attempts (
   created_at timestamptz not null default now(),
   unique (provider, provider_reference),
   constraint attempts_org_campaign_contact_fk foreign key (organization_id, campaign_contact_id)
-    references public.campaign_contacts(organization_id, id) on delete cascade
+    references public.campaign_contacts(organization_id, id) on delete restrict
 );
 
 create table if not exists public.audit_events (
