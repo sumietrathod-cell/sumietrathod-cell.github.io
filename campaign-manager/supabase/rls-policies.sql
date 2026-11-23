@@ -257,8 +257,39 @@ with check (
   actor_user_id = (select auth.uid())
   and public.is_org_member(organization_id)
   and event_type = 'contact_permission_withdrawn'
+  and entity_type = 'contact'
+  and entity_id is not null
+  -- An append-only audit claim must refer to an actual withdrawal already
+  -- recorded within this organization, not a different/fictional contact.
+  and details = jsonb_build_object(
+    'channel', details ->> 'channel',
+    'source', 'campaign_manager_opt_out'
+  )
+  and details ->> 'channel' in ('voice','whatsapp','email')
+  and exists (
+    select 1 from public.contacts c
+    where c.id = audit_events.entity_id
+      and c.organization_id = audit_events.organization_id
+  )
+  and exists (
+    select 1 from public.contact_channel_permissions p
+    where p.contact_id = audit_events.entity_id
+      and p.organization_id = audit_events.organization_id
+      and p.channel = audit_events.details ->> 'channel'
+      and p.permission_status = 'withdrawn'
+  )
+  and exists (
+    select 1 from public.suppression_list s
+    where s.organization_id = audit_events.organization_id
+      and s.contact_id = audit_events.entity_id
+      and s.channel = audit_events.details ->> 'channel'
+      and s.source = 'campaign_manager_opt_out'
+  )
 );
--- Clients may append only narrowly scoped, self-attributed opt-out audit events; no update/delete.
+-- Clients may append only self-attributed opt-out audit events backed by
+-- matching contact/permission/suppression state, not arbitrary activity.
+-- A user can still append a duplicate truthfully backed event; idempotent
+-- audit-event intake remains a separate operational concern.
 
 -- Helpful integrity indexes. The partial unique index prevents duplicate provider callbacks.
 create unique index if not exists idx_attempts_provider_reference_unique
