@@ -58,3 +58,19 @@ test('contact identity cannot change after any permission or campaign enrollment
   assert.match(tests,/real PostgreSQL blocks consent-phone reassignment/i);
   assert.match(tests,/ROLLBACK;\s*$/i);
 });
+
+test('fresh-install foreign keys preserve consent, enrollment and attempt history', () => {
+  const schema = readFileSync(new URL('../campaign-manager/supabase/schema.sql', import.meta.url), 'utf8');
+  for (const fk of [
+    /contact_id uuid not null references public\.contacts\(id\) on delete restrict/i,
+    /campaign_id uuid not null references public\.campaigns\(id\) on delete restrict/i,
+    /campaign_contact_id uuid not null references public\.campaign_contacts\(id\) on delete restrict/i,
+    /references public\.contacts\(organization_id, id\) on delete restrict/i,
+    /references public\.campaigns\(organization_id, id\) on delete restrict/i,
+    /references public\.campaign_contacts\(organization_id, id\) on delete restrict/i,
+  ]) assert.match(schema, fk);
+  const exercise = readFileSync(new URL('../campaign-manager/supabase/tests/tenant-history-retention-ci.sql', import.meta.url), 'utf8');
+  assert.match(exercise, /foreign_key_violation/i);
+  assert.match(exercise, /permission_status='withdrawn'/i);
+  assert.match(exercise, /ROLLBACK;\s*$/i);
+});
