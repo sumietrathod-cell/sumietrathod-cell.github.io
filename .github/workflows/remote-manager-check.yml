@@ -1,0 +1,24 @@
+name: Remote Manager activity checks
+on:
+  pull_request:
+    paths:
+      - 'voice-platform/remote.js'
+      - 'voice-platform/remote.html'
+      - 'voice-platform/health.mjs'
+      - 'tests/voice-activity.test.mjs'
+      - '.github/workflows/remote-manager-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  activity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify browser module syntax
+        run: node --input-type=module --check < voice-platform/remote.js
+      - name: Run synthetic activity count tests
+        run: node --test tests/voice-activity.test.mjs
