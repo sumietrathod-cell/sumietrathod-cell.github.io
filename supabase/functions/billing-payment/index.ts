@@ -125,8 +125,7 @@ async function verifyPayment(settings,invoice,paymentId){
  }
  return {state:'verified_snapshot',invoice_id:invoice.id,razorpay_payment_id:paymentId,amount_paise:invoice.amount,verified_at:record.verified_at};
 }
-export default {
- async fetch(req){
+Deno.serve(async (req)=>{
   const origin=req.headers.get('origin')||'';
   if(origin&&!allowedOrigins.has(origin))return send(403,{error:'Origin not allowed.'},origin);
   if(req.method==='OPTIONS'){
@@ -159,5 +158,4 @@ export default {
    const code=error instanceof HttpError?error.status:500;
    return send(code,{ok:false,error:error instanceof HttpError?error.message:'Payment operation failed.'},origin);
   }
- }
-};
+});
