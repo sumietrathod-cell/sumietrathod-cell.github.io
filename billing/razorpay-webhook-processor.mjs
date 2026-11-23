@@ -27,6 +27,10 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
  const entity=event.payload.payment.entity;
  // A signed capture event that already reports a refund is not eligible,
  // even if a later provider read temporarily appears inconsistent.
+ // Reject a signed payload that contradicts its own captured status.
+ // Razorpay may encode captured as boolean or numeric 1 in event payloads.
+ if (Object.hasOwn(entity,'captured') && entity.captured!==true && entity.captured!==1)
+  return {status:'blocked',reason:'Signed webhook capture flag conflicts with event'};
  if ((Object.hasOwn(entity,'amount_refunded') &&
       (!Number.isSafeInteger(entity.amount_refunded) || entity.amount_refunded!==0)) ||
      (Object.hasOwn(entity,'refund_status') && entity.refund_status!==null))
