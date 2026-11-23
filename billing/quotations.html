@@ -74,6 +74,7 @@ table{width:100%;border-collapse:collapse}
 import {buildItems,totalPaise,formatINR} from './amounts.mjs';
 import {summarizeRecentBilling} from './overview.mjs';
 import {udyamDisplayLine} from './seller-identity.mjs';
+import {requireInvoiceDraft} from './invoice-response.mjs';
 // Fail closed until a trusted, server-backed seller verification flow exists.
 const sellerIdentityVerified=false;
 const base='https://zvrdbekyqbwrztckvkpw.supabase.co', key='sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI';
@@ -249,8 +250,7 @@ function view(r,invoice=null){
  try{
   const response=await api('/rest/v1/rpc/billing_issue_invoice',{method:'POST',body:JSON.stringify({p_quotation_id:r.id})},expectedToken);
   if(!current(expectedToken,expectedEpoch)||!issue.isConnected)return;
-  const saved=Array.isArray(response)?response[0]:response;
-  if(!saved?.id||saved.quotation_id!==r.id)throw Error('Unexpected invoice response.');
+  const saved=requireInvoiceDraft(response,r.id);
   view(r,saved);$('msg').textContent='Invoice draft ready.';
   await refresh(expectedToken,expectedEpoch);
  }catch(err){if(current(expectedToken,expectedEpoch))$('msg').textContent=err.message}
