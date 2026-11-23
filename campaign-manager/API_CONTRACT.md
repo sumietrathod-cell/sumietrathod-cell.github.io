@@ -81,6 +81,11 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - Preview is point-in-time and independent of a provider. Campaign activation is still not implemented; `campaign_state_allows_dispatch` is a status flag only and the endpoint explicitly returns `campaign_dispatch_ready=false` and `dispatch_enabled=false`.
 - Tests: `deno test supabase/functions/campaign-api/preview-eligibility.test.ts` and `node scripts/check-campaign-dashboard.mjs`. No contact data is needed to run them.
 
+## Repeat-safe opt-out endpoint (staging implementation)
+- `POST /functions/v1/campaign-api/contacts/{id}/opt-out` and draft CSV withdrawal import use `upsert` with `onConflict="contact_id,channel"` and `ignoreDuplicates=true` on the shared suppression table. Repeat requests do not overwrite the first recorded suppression.
+- A unique database index on `suppression_list(contact_id, channel)` is mandatory. An existing separate staging database must apply `supabase/migrations/20261123_suppression_idempotency.sql` and pass its duplicate-group preflight before the API is deployed.
+- This reduces duplicate retries but does not make the separate suppression, permission and audit writes transactional. A partial-failure warning requires an administrator to reconcile the saved suppression and audit; no sending is enabled.
+
 ## Opt-out and permission protections
 - Any authenticated organization member may submit an opt-out. RLS only permits member opt-out writes to set permission status to `withdrawn`, add a channel-specific suppression record from this endpoint, and append a self-attributed `contact_permission_withdrawn` audit event.
 - CSV import accepts only `granted`, `unknown` or `withdrawn`. A granted row requires evidence text. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import does not overwrite a previously granted permission/evidence.
