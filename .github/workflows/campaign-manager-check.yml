@@ -37,6 +37,8 @@ jobs:
         run: deno check supabase/functions/campaign-api/index.ts
       - name: Verify synthetic CRM preview eligibility cases
         run: deno test supabase/functions/campaign-api/preview-eligibility.test.ts
+      - name: Test fail-closed CSV consent precedence and retry safety
+        run: deno test supabase/functions/campaign-api/csv-import-policy.test.ts
       - name: Parse PostgreSQL schema and policy SQL
         run: |
           python -m pip install --disable-pip-version-check sqlfluff
