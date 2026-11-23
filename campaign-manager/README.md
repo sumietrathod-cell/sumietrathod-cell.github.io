@@ -65,6 +65,13 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - The routine is **not scheduled**, and the campaign worker/provider dispatch system is **not live**. Before any customer release, reconcile each stale claim against provider receipts, build safe audited reconciliation, and verify exactly-once outcomes with real providers.
 - A synthetic PostgreSQL transaction test is stored at `campaign-manager/supabase/tests/queue-quarantine.sql`; it uses only temporary data and ends with ROLLBACK. `scripts/check-campaign-queue.mjs` verifies that the test's function source matches the proposed implementation and that authenticated users cannot execute it.
 
+## Repeat-safe opt-outs and CSV withdrawals (staging draft)
+- A **unique contact/channel suppression index** in `supabase/schema.sql` prevents duplicate suppression records for the same contact and channel, while allowing separate voice, WhatsApp and email suppression and phone-only blocks.
+- The contact opt-out route and draft CSV withdrawal importer both write with `upsert(..., {onConflict: "contact_id,channel", ignoreDuplicates:true})`. A retried request is accepted without overwriting the original suppression reason/source; the permission-withdrawal step still runs after the suppression write.
+- GitHub CI uses `supabase/tests/tenant-suppression-idempotency-ci.sql` with fictional two-tenant RLS fixtures to test repeated requests, viewer vs operator roles and cross-tenant rejection. All changes roll back.
+- For an **existing dedicated multi-tenant staging install**, first review and run `supabase/migrations/20261123_suppression_idempotency.sql`. It **refuses** to proceed if existing contact/channel duplicates are present; resolve them by an authorized manual data review, never automatically delete consent/suppression records. The Edge Function `upsert` requires the unique index to exist first.
+- Opt-out flow still uses multiple database requests, not a single atomic transaction; a later permission/audit error can leave suppression saved and requires review. This is **not** evidence of real-world deployment or 100% readiness.
+
 ## Consent/opt-out policy hardening (staging draft)
 - The contact-channel permission operator policy is split into INSERT and UPDATE. Direct authenticated DELETE access is deliberately not provided.
 - Database trigger `public.guard_contact_channel_permission()` prohibits changing tenant/contact/channel IDs, reinstalling previously withdrawn permission via UPDATE, or granting permission without evidence reference, actor and timestamp.
