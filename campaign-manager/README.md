@@ -66,6 +66,14 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
 - Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
 
+## Consent-to-phone binding (staging draft)
+
+- The `public.guard_campaign_contact_identity()` BEFORE UPDATE trigger prevents reassigning a contact's `id` or `organization_id`.
+- An operator may correct `phone_e164` **before** the contact has any channel-permission or campaign-enrollment row. Once permission is recorded or the contact is enrolled, the phone becomes immutable so consent for one number cannot be reused to message a different number.
+- Normal name edits remain permitted. A genuine number change after consent requires a separately created contact and freshly verified, channel-specific permission; never transfer old evidence or clear an opt-out to make it work.
+- The real PostgreSQL CI test `supabase/tests/tenant-contact-identity-ci.sql` verifies editable pre-consent phone, allowed name update, denied post-consent and enrolled phone edits, immutable tenant/contact keys and denied cross-tenant changes.
+- This is draft RLS/trigger code tested only in disposable PostgreSQL. It has **not** been applied to the existing live AAROHAN CRM or tested using two signed-in staging Supabase accounts.
+
 ## Client-side campaign enrollment control (staging only)
 
 - Replaced the broad authenticated `campaign_contacts FOR ALL` RLS rule with **INSERT-only** enrollment into the current organization's **draft, dry-run** campaign. New rows must start `queued`, with 0 attempts and no existing outcome or callback date.
