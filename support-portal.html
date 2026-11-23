@@ -204,6 +204,16 @@ async function loadTicketsPage(reset){
  // Concurrent ticket inserts can overlap pages; counting only unique rows
  // would repeatedly request the same offset forever.
  const start=reset?0:ticketPageOffset;
+ // A failed refresh must never leave stale tickets presented as current.
+ // Clear the previous page before awaiting the replacement response.
+ if(reset){
+   loadedTickets=[];
+   ticketPageOffset=0;
+   hasMoreTickets=false;
+   button.hidden=true;
+   $('ticketList').replaceChildren();
+   $('ticketSummary').textContent='Refreshing tickets…';
+ }
  button.disabled=true;
  try{
    const {data,error}=await client.from('aarohan_support_tickets')
