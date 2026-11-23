@@ -29,10 +29,10 @@ th{font-size:12px;color:#425b5a}
 #acknowledgement h2{margin-top:0}
 #acknowledgement .total{font-size:24px;font-weight:800;color:#0c6b4e}
 .wordbreak{overflow-wrap:anywhere;word-break:break-word}
-#documentActions{display:flex;flex-wrap:wrap;gap:9px}
+.documentActions{display:flex;flex-wrap:wrap;gap:9px}
 @page{size:A4;margin:15mm}
 @media print{
- body{background:white}header,main>*:not(#acknowledgement),#documentActions{display:none!important}
+ body{background:white}header,main>*:not(#acknowledgement),.documentActions{display:none!important}
  main{padding:0}#acknowledgement{display:block!important;box-shadow:none;border:0;padding:0;margin:0}
  #acknowledgement *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -49,7 +49,7 @@ th{font-size:12px;color:#425b5a}
  <p><button id="signin">Sign in</button></p>
 </form>
 <section id="workspace" class="panel" hidden>
- <div id="documentActions"><button id="refresh" type="button">Refresh history</button><button id="signout" type="button" class="secondary">Sign out</button></div>
+ <div class="documentActions"><button id="refresh" type="button">Refresh history</button><button id="signout" type="button" class="secondary">Sign out</button></div>
  <h2>Recent payment verifications</h2>
  <p class="note">Latest 50 verification records, not a sales/revenue or settlement report. Click a row’s action for a fresh refund and capture check.</p>
  <div class="table-scroll"><table><thead><tr><th>Customer</th><th>Invoice</th><th>Amount</th><th>Last verified at</th><th>Current confirmation</th></tr></thead><tbody id="history"></tbody></table></div>
@@ -65,7 +65,7 @@ th{font-size:12px;color:#425b5a}
  <p><strong>Fresh provider check:</strong> <span id="ackChecked"></span></p>
  <p class="note" id="ackWarning"></p>
  <p class="note">NOT A GST TAX INVOICE OR TAX RECEIPT. GST not charged or collected. This preview is not proof of final settlement; refunds/disputes may occur after the check.</p>
- <div id="documentActions"><button type="button" id="print">Print / Save acknowledgement preview</button></div>
+ <div class="documentActions"><button type="button" id="print">Print / Save acknowledgement preview</button></div>
 </article>
 <p class="status" id="status" role="status" aria-live="polite"></p>
 </main>
@@ -135,7 +135,7 @@ async function refresh(t=token,e=epoch){
  byId('history').replaceChildren(...rows);byId('status').textContent='Payment history loaded. Historic records are not proof of current payment status.';
 }
 byId('login').onsubmit=async ev=>{
- ev.preventDefault();const loginEpoch=epoch;
+ ev.preventDefault();const loginEpoch=epoch;let activeEpoch=loginEpoch;
  byId('signin').disabled=true;
  try{
   const auth=await fetch(base+'/auth/v1/token?grant_type=password',{method:'POST',headers:{
@@ -147,15 +147,15 @@ byId('login').onsubmit=async ev=>{
   if(result.user?.app_metadata?.campaign_manager_role!=='admin')throw Error('Admin access required.');
   const seconds=Number(result.expires_in);
   if(!Number.isFinite(seconds)||seconds<=0)throw Error('Invalid session expiry.');
-  token=result.access_token;const t=token,e=++epoch;
+  token=result.access_token;const t=token,e=++epoch;activeEpoch=e;
   expires=setTimeout(()=>{if(current(t,e)){clear();byId('status').textContent='Session expired. Sign in again.'}},Math.min(2147483647,seconds*1000));
   await refresh(t,e);
   if(!current(t,e))return;
   byId('login').hidden=true;byId('workspace').hidden=false;
  }catch(err){
-  if(loginEpoch!==epoch)return;
+  if(activeEpoch!==epoch)return;
   clear();byId('status').textContent=err.message;
- }finally{if(loginEpoch===epoch||!token)byId('signin').disabled=false}
+ }finally{if(activeEpoch===epoch||!token)byId('signin').disabled=false}
 };
 byId('refresh').onclick=()=>{const t=token,e=epoch;refresh(t,e).catch(error=>{if(current(t,e)){byId('status').textContent=error.message;byId('acknowledgement').hidden=true}})};
 byId('signout').onclick=()=>{clear();byId('status').textContent='Signed out.'};
