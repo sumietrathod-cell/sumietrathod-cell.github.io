@@ -49,6 +49,10 @@ end $$;
 
 Run once only; it creates a new organization. Membership provisioning is intentionally not exposed as a public API.
 
+### Existing dedicated staging install: suppression index rollout
+The draft fresh-install `schema.sql` now includes a unique `suppression_list(contact_id,channel)` index. If your **dedicated staging** database was initialized before that change, pause import/opt-out writes, back up its data, and review/run `campaign-manager/supabase/migrations/20261123_suppression_idempotency.sql` **before** deploying the updated Edge Function. The migration stops on duplicate contact/channel suppression groups and intentionally never erases existing records. Resolve conflicts only through an authorized, documented manual review. Do **not** apply this draft migration to the existing incompatible AAROHAN production CRM.
+
+
 ## 4. Deploy the Edge Function
 From the repository root on a trusted computer with the Supabase CLI:
 ```sh
