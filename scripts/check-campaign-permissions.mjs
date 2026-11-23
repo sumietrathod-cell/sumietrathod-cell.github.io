@@ -43,3 +43,18 @@ test('campaign contacts cannot forge outcomes or attempts through client RLS', (
   assert.doesNotMatch(sql,/create policy campaign_contacts_operator_update/i);
   assert.doesNotMatch(sql,/create policy campaign_contacts_operator_delete/i);
 });
+
+test('contact identity cannot change after any permission or campaign enrollment', () => {
+  const f = 'public.guard_campaign_contact_identity';
+  assert.ok(sql.includes('create or replace function '+f+'()'));
+  assert.match(sql,/old\.id is distinct from new\.id/i);
+  assert.match(sql,/old\.organization_id is distinct from new\.organization_id/i);
+  assert.match(sql,/old\.phone_e164 is distinct from new\.phone_e164/i);
+  assert.match(sql,/select 1 from public\.contact_channel_permissions p/i);
+  assert.match(sql,/select 1 from public\.campaign_contacts cc/i);
+  assert.match(sql,/before update on public\.contacts/i);
+  assert.match(sql,/revoke all on function public\.guard_campaign_contact_identity\(\) from public, anon, authenticated;/i);
+  const tests = readFileSync(new URL('../campaign-manager/supabase/tests/tenant-contact-identity-ci.sql', import.meta.url), 'utf8');
+  assert.match(tests,/real PostgreSQL blocks consent-phone reassignment/i);
+  assert.match(tests,/ROLLBACK;\s*$/i);
+});
