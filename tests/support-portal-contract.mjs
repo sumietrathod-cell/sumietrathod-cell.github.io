@@ -37,6 +37,15 @@ assert.equal(actorGuards.length,3,'Pending create, owner update and customer rep
 const guardedErrors=[...js.matchAll(/catch\(err\)\{if\(active\(\)\)displayError\(err\)\}/g)];
 assert.equal(guardedErrors.length,3,'No stale mutation error may leak into another signed-in account');
 
+// Account-switch regression: an old ticket detail or history response must not
+// render under a newly authenticated session, including the error path.
+const detailSource=js.slice(js.indexOf('async function openTicket(id)'),js.indexOf('client.auth.onAuthStateChange('));
+assert.ok(detailSource.startsWith('async function openTicket(id)'), 'Missing ticket detail handler');
+assert.match(detailSource,/const request=\+\+detailRequest,actorId=user\.id,actorSession=sessionRequest;/,'Detail must snapshot actor and session');
+assert.match(detailSource,/const active=\(\)=>request===detailRequest&&user\?\.id===actorId&&sessionRequest===actorSession;/,'Detail guard must check request, actor and session');
+assert.equal((detailSource.match(/if\(!active\(\)\)return;/g)||[]).length,3,'Guard ticket, history and error completion');
+assert.doesNotMatch(detailSource,/if\(request!==detailRequest\)return;/,'Request ID alone cannot protect account switching');
+
 assert.match(js, /\.textContent/, 'User-controlled content should render as text');
 assert.doesNotMatch(js, /\.innerHTML\s*=/, 'Do not inject user content as HTML');
 assert.match(sql, /enable row level security/);
