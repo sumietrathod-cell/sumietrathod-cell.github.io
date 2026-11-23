@@ -60,3 +60,20 @@ assert.match(sql, /revoke all on public\.aarohan_support_events from (?:anon,\s*
 assert.match(hardening, /aarohan_support_limit_ticket_creation/);
 assert.match(hardening, /aarohan_support_limit_customer_replies/);
 console.log('Support portal static contract checks passed. Browser and RLS integration tests still required.');
+
+ // Ticket list security regression: token refresh can change the authenticated
+ // session while preserving the same user ID. Old list data/errors must be
+ // discarded even when the account ID is unchanged.
+const listSource=js.slice(js.indexOf('async function loadTicketsPage(reset)'),js.indexOf('async function openTicket(id)'));
+assert.match(listSource,/const accountId=user\.id,accountSession=sessionRequest;/,
+  'List request must snapshot both actor and session generation');
+assert.match(listSource,/const active=\(\)=>request===listRequest&&user\?\.id===accountId&&sessionRequest===accountSession;/,
+  'List guard must include request, user and session generation');
+assert.match(listSource,/if\(!active\(\)\)return;/,
+  'Stale ticket list must be discarded before updating DOM or cached rows');
+assert.match(listSource,/catch\(err\)\{if\(active\(\)\)displayError\(err\)\}/,
+  'Stale ticket list errors must not appear in the new session');
+assert.match(listSource,/finally\{if\(active\(\)\)button\.disabled=false\}/,
+  'Stale request must not alter new session button state');
+assert.doesNotMatch(listSource,/request!==listRequest\|\|user\?\.id!==accountId/,
+  'Actor-only list guard is insufficient after a same-user session refresh');
