@@ -30,7 +30,8 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
  let payment;
  try { payment=await provider.fetchPayment(admission.paymentId); }
  catch { return {status:'retryable',reason:'Payment provider lookup failed'}; }
- if (!payment || payment.id!==admission.paymentId || payment.order_id!==entity.order_id)
+ if (!payment || payment.id!==admission.paymentId || payment.order_id!==entity.order_id ||
+     payment.amount!==admission.amountPaise || payment.currency!==entity.currency)
   return {status:'blocked',reason:'Provider payment identity mismatch'};
  let invoice;
  try { invoice=await store.findInvoiceByOrderId(payment.order_id); }
