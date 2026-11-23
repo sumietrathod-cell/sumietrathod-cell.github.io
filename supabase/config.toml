@@ -1,0 +1,5 @@
+# AAROHAN billing payment function (draft; not deployed)
+# Keep Auth JWT verification enabled. The function ALSO verifies the user
+# through Supabase Auth and authorizes only app_metadata admins.
+[functions.billing-payment]
+verify_jwt = true
