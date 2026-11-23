@@ -82,15 +82,15 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - Tests: `deno test supabase/functions/campaign-api/preview-eligibility.test.ts` and `node scripts/check-campaign-dashboard.mjs`. No contact data is needed to run them.
 
 ## Repeat-safe opt-out endpoint (staging implementation)
-- `POST /functions/v1/campaign-api/contacts/{id}/opt-out` and draft CSV withdrawal import use `upsert` with `onConflict="contact_id,channel"` and `ignoreDuplicates=true` on the shared suppression table. Repeat requests do not overwrite the first recorded suppression.
+- `POST /functions/v1/campaign-api/contacts/{id}/opt-out` now invokes ONE authenticated `public.record_campaign_contact_opt_out` RPC under member RLS; suppression, withdrawn permission and audit commit together. CSV importer alone uses retry-safe suppression `upsert`. First suppression reason and original permission evidence are preserved.
 - A unique database index on `suppression_list(contact_id, channel)` is mandatory. An existing separate staging database must apply `supabase/migrations/20261123_suppression_idempotency.sql` and pass its duplicate-group preflight before the API is deployed.
-- This reduces duplicate retries but does not make the separate suppression, permission and audit writes transactional. A partial-failure warning requires an administrator to reconcile the saved suppression and audit; no sending is enabled.
+- Opt-out is atomic only after the dedicated staging database installs `campaign-manager/supabase/opt-out-rpc.sql` and the suppression unique index before deploying its Edge API. An audit failure rolls back suppression and permission changes. CSV import remains non-transactional and may partially succeed. No sending is enabled.
 
 ## Opt-out audit integrity (staging SQL + HTTP verification)
 
 - An authenticated `audit_events` insert claiming `contact_permission_withdrawn` is accepted only with the same signed-in actor, scoped contact, matching withdrawn permission and existing channel-specific opt-out suppression. The audit `details` keys are limited to `channel` and `source=campaign_manager_opt_out`.
-- Audit history is still restricted to owner/admin reads, so the Edge Function's `.insert()` call **must not chain `.select()` or `RETURNING`** for non-admin organization users.
-- A genuine opt-out is saved separately before the audit attempt; if the later append fails, suppression continues blocking any campaign attempt. The workflow is still not a single database transaction.
+- Audit history is still restricted to owner/admin reads. The opt-out Edge API no longer separately inserts audit events or attempts to SELECT audit rows; it invokes the atomic SQL RPC and returns a narrow success confirmation.
+- The `SECURITY INVOKER` SQL RPC executes all three operations in one PostgreSQL transaction. An injected audit failure rolls back suppression and permission writes; this was verified with disposable PostgreSQL and JWT-backed HTTP, not production Supabase Auth.
 - Verified only with synthetic PostgreSQL and signed JWT HTTP fixtures, not real Supabase Auth sessions. No actual provider or customer communication occurs.
 
 
