@@ -41,5 +41,18 @@ for (const required of [
   assert.ok(dashboardHtml.includes(required), "Dashboard is missing expected integration marker: " + required);
 }
 assert.ok(api.includes("campaign_dispatch_ready: false"), "Backend must keep actual dispatch disabled.");
+assert.ok(api.includes('import { previewBlockReason } from "./preview-eligibility.ts"'),
+  "Read-only preview must use the tested eligibility gate.");
+assert.ok(api.includes('.select("contact_id, permission_status, evidence_reference, captured_at, captured_by")'),
+  "Preview must retrieve evidence actor/date, not status alone.");
+assert.ok(api.includes('.select("id, contact_id, status, attempts, next_attempt_at")'),
+  "Preview must retrieve callback due dates.");
+assert.ok(api.includes("calling_window_start, calling_window_end"),
+  "Preview must retrieve the configured campaign time window.");
+assert.ok(api.includes("const reason = previewBlockReason("),
+  "Preview route must actually invoke the tested fail-closed gate.");
+assert.ok(api.includes("dispatch_enabled: false"),
+  "Preview must never enable delivery.");
+
 
 console.log("Campaign dashboard, demo pages and API static checks passed.");
