@@ -21,7 +21,7 @@ function quotationId(){
  return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
 }
 let token='', historyRows=[], invoiceRows=[], retryId='', retryData='';
-let sessionEpoch=0, loginRequest=0;
+let sessionEpoch=0, loginRequest=0, pendingLoginRequest=null, expires=null;
 function sameQuotationItems(saved,submitted){
  if(!Array.isArray(saved)||!Array.isArray(submitted)||saved.length!==submitted.length)return false;
  return saved.every((line,i)=>line.service===submitted[i].service &&
@@ -30,7 +30,12 @@ function sameQuotationItems(saved,submitted){
 const current=(expectedToken,expectedEpoch)=>Boolean(expectedToken)&&token===expectedToken&&sessionEpoch===expectedEpoch;
 async function api(path, options={}, bearer=token){
  const res=await fetch(base+path,{...options,headers:{apikey:key,Authorization:'Bearer '+(bearer||key),'Content-Type':'application/json',...options.headers}});
- if(!res.ok){const err=new Error('Request failed ('+res.status+').');err.status=res.status;throw err}
+ if(!res.ok){
+  if(res.status===401&&bearer&&bearer===token){
+   reset();$('msg').textContent='Billing session expired. Sign in again.';
+  }
+  const err=new Error('Request failed ('+res.status+').');err.status=res.status;throw err
+ }
  const t=await res.text();return t?JSON.parse(t):null;
 }
 const table='/rest/v1/billing_quotations';
@@ -47,12 +52,13 @@ async function refresh(expectedToken=token,expectedEpoch=sessionEpoch){
  $('open').disabled=!historyRows.length;
  $('openInvoice').disabled=!invoiceRows.length;
 }
-function reset(){sessionEpoch++;loginRequest++;token='';historyRows=[];invoiceRows=[];replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('desk').hidden=true;$('login').hidden=false;$('create').reset();replaceContents($('lines'));addLine()}
+function reset(){sessionEpoch++;loginRequest++;pendingLoginRequest=null;clearTimeout(expires);expires=null;token='';historyRows=[];invoiceRows=[];replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('desk').hidden=true;$('login').hidden=false;$('login').querySelector('button').disabled=false;$('login').querySelector('[name=password]').value='';$('create').reset();replaceContents($('lines'));addLine()}
 $('login').onsubmit=async e=>{
  e.preventDefault();
  const form=e.target;
  const credentials=Object.fromEntries(new FormData(form));
  const expectedEpoch=sessionEpoch, request=++loginRequest;
+ pendingLoginRequest=request;
  let authenticatedEpoch=null, authenticatedToken='';
  form.querySelector('button').disabled=true;
  try{
@@ -61,8 +67,16 @@ $('login').onsubmit=async e=>{
   if(!auth?.access_token||auth.user?.app_metadata?.campaign_manager_role!=='admin'){
    throw Error('Campaign Manager admin access required.');
   }
+  const expiresIn=Number(auth.expires_in);
+  if(!Number.isFinite(expiresIn)||expiresIn<=0)throw Error('Invalid session lifetime. Sign in again.');
   token=authenticatedToken=auth.access_token;
   authenticatedEpoch=++sessionEpoch;
+  // Enforce the server-issued Auth lifetime; never leave private billing
+  // documents on screen after the session is known to be expired.
+  expires=setTimeout(()=>{
+   if(!current(authenticatedToken,authenticatedEpoch))return;
+   reset();$('msg').textContent='Billing session expired. Sign in again.';
+  },Math.min(expiresIn*1000,2147483647));
   await refresh(authenticatedToken,authenticatedEpoch);
   if(!current(authenticatedToken,authenticatedEpoch))return;
   $('desk').hidden=false;form.hidden=true;$('msg').textContent='Signed in.';
@@ -72,8 +86,13 @@ $('login').onsubmit=async e=>{
      !current(authenticatedToken,authenticatedEpoch))return;
   reset();$('msg').textContent=err.message;
  }finally{
-  form.querySelector('button').disabled=false;
-  form.querySelector('[name=password]').value='';
+  // A late old login must not clear a newer login's typed password or
+  // enable its submit button while its request is still in flight.
+  if(pendingLoginRequest===request){
+   pendingLoginRequest=null;
+   form.querySelector('button').disabled=false;
+   form.querySelector('[name=password]').value='';
+  }
  }
 };
 $('logout').onclick=async()=>{
