@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHmac} from 'node:crypto';
+import {createHmac,createHash} from 'node:crypto';
 import {processCapturedWebhook} from '../billing/razorpay-webhook-processor.mjs';
 const secret='synthetic-backend-test-secret';
 const event={event:'payment.captured',payload:{payment:{entity:{id:'pay_Synthetic001',order_id:'order_Synthetic001',status:'captured',currency:'INR',amount:12500}}}};
@@ -124,5 +124,21 @@ test('signed webhook currency disagreement with provider blocks payment recordin
  a.provider.fetchPayment=async()=>({...payment,currency:'USD'});
  const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
  assert.equal(result.status,'blocked');
+ assert.equal(a.writes.length,0);
+});
+
+test('recorded audit metadata contains event type and exact signed raw-body SHA-256',async()=>{
+ const a=adapters();
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.equal(result.status,'verified');
+ assert.equal(a.writes.length,1);
+ assert.equal(a.writes[0].eventId,eventId);
+ assert.equal(a.writes[0].eventType,'payment.captured');
+ assert.equal(a.writes[0].payloadSha256,createHash('sha256').update(rawBody).digest('hex'));
+});
+test('tampered raw body cannot create an audit record',async()=>{
+ const a=adapters();
+ const result=await processCapturedWebhook({rawBody:rawBody+'\\n',signature,eventId,secret,...a});
+ assert.equal(result.status,'rejected');
  assert.equal(a.writes.length,0);
 });
