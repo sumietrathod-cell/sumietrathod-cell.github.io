@@ -42,6 +42,12 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - The SQL policies are a draft, not a substitute for independent security review or integration tests.
 
 
+## Stale outbound job safety (staging draft)
+- `campaign-manager/supabase/queue-worker.sql` contains a **service-role-only** `quarantine_stale_campaign_jobs` function to isolate claims whose processing lease is stale.
+- Quarantine marks old processing jobs as `failed` with `stale_claim_needs_manual_review`, clears lock metadata, and **never requeues or sends**. A worker crash may occur *after* a provider accepted an outbound message, so automatic retry could duplicate it.
+- The routine is **not scheduled**, and the campaign worker/provider dispatch system is **not live**. Before any customer release, reconcile each stale claim against provider receipts, build safe audited reconciliation, and verify exactly-once outcomes with real providers.
+- A synthetic PostgreSQL transaction test is stored at `campaign-manager/supabase/tests/queue-quarantine.sql`; it uses only temporary data and ends with ROLLBACK. `scripts/check-campaign-queue.mjs` verifies that the test's function source matches the proposed implementation and that authenticated users cannot execute it.
+
 ## Consent/opt-out policy hardening (staging draft)
 - The contact-channel permission operator policy is split into INSERT and UPDATE. Direct authenticated DELETE access is deliberately not provided.
 - Database trigger `public.guard_contact_channel_permission()` prohibits changing tenant/contact/channel IDs, reinstalling previously withdrawn permission via UPDATE, or granting permission without evidence reference, actor and timestamp.
