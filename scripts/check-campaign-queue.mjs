@@ -64,7 +64,7 @@ test('queue claim test mirrors exact source with synthetic table names', () => {
     'Synthetic SQL test has drifted from staged queue claim function');
   assert.match(claimSynthetic,/CREATE TEMP TABLE synthetic_jobs/i);
   assert.match(claimSynthetic,/ROLLBACK;\s*$/i);
-  assert.match(claimSynthetic,/11 temporary jobs, 1 eligible/i);
+  assert.match(claimSynthetic,/14 temporary jobs, 2 eligible/i);
 });
 
 test('queue claim cannot bypass explicit local windows or consent metadata', () => {
@@ -81,6 +81,9 @@ test('queue claim cannot bypass explicit local windows or consent metadata', () 
   assert.match(body,/nullif\(trim\(p\.evidence_reference\), ''\) is not null/i);
   assert.match(body,/and c\.dry_run = false/i);
   assert.match(body,/and c\.status = 'running'/i);
+  assert.match(body,/cc\\.next_attempt_at is null or cc\\.next_attempt_at <= now\\(\\)/i);
+  assert.match(body,/cc\\.status in \\('callback', 'no_answer'\\)[\\s\\S]*?cc\\.next_attempt_at is not null and cc\\.next_attempt_at <= now\\(\\)/i);
+  assert.match(worker,/create unique index if not exists idx_campaign_jobs_one_active_per_contact[\\s\\S]*?where status in \\('queued', 'processing'\\)/i);
   assert.match(body,/and not exists\s*\([\s\S]*?from public\.suppression_list as s/i);
   assert.match(worker,/revoke all on function public\.claim_due_campaign_jobs\(integer, text\) from public, anon, authenticated;/i);
   assert.match(worker,/grant execute on function public\.claim_due_campaign_jobs\(integer, text\) to service_role;/i);
