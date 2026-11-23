@@ -76,7 +76,7 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Reject payloads over 1.1 MB and CSV text over 1 MB UTF-8.
 - Reject more than 500 contact rows, missing/duplicate headers, malformed quotes, invalid E.164 phones, invalid email, extra columns and overlong fields.
 - A phone/email alone never grants permission.
-- `granted` requires non-empty evidence text; the operator must separately verify that evidence is lawful and genuine.
+- CSV rows with `granted` are rejected even if they include a plausible evidence reference. Direct authenticated INSERT/UPDATE to a granted permission must also fail. A future independent proof-verification channel is required to grant consent.
 - `unknown` never becomes granted.
 - An unknown import does not overwrite a previously granted permission/evidence.
 - A CSV import cannot reinstate a previously withdrawn permission.
