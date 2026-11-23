@@ -9,7 +9,12 @@ create schema auth;
 create table auth.users (id uuid primary key);
 create or replace function auth.uid()
 returns uuid language sql stable set search_path = '' as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  -- SQL integration checks use the legacy request.jwt.claim.sub GUC.
+  -- Real PostgREST HTTP requests provide the JWT payload in claims JSON.
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid
 $$;
 create or replace function auth.jwt()
 returns jsonb language sql stable set search_path = '' as $$
