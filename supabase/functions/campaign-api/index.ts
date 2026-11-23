@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { previewBlockReason } from "./preview-eligibility.ts";
+import { validWithdrawalPhones } from "./csv-import-policy.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -434,6 +435,10 @@ Deno.serve(async (req) => {
       return json({ error: "Required CSV headers: full_name, phone_e164, email, consent_status, consent_evidence." }, 400);
     }
     const index = Object.fromEntries(headers.map((h, i) => [h, i]));
+    // Inspect the whole file before touching the database. A valid later
+    // "withdrawn" row must take precedence over an earlier "unknown" row
+    // for the same phone, regardless of file order.
+    const withdrawnPhones = validWithdrawalPhones(rows, index);
     const result = { imported: 0, consent_granted: 0, rejected: 0, rows: [] as Array<Record<string, unknown>> };
     const seen = new Set<string>();
 
@@ -463,12 +468,20 @@ Deno.serve(async (req) => {
         result.rows.push({ row: rowNumber, status: "rejected", reason: "Duplicate phone number in this CSV." });
         continue;
       }
-      seen.add(phone);
       // CSV content is self-reported; a nonempty evidence string cannot prove
       // recipient opt-in. Never turn an unverified CSV row into a grant.
       if (consentStatus === "granted") {
         result.rejected++;
         result.rows.push({ row: rowNumber, status: "rejected", reason: "CSV cannot verify granted permission. Import as unknown, or use an independently verified consent workflow (not yet available)." });
+        continue;
+      }
+      if (consentStatus !== "withdrawn" && withdrawnPhones.has(phone)) {
+        result.rejected++;
+        result.rows.push({
+          row: rowNumber,
+          status: "rejected",
+          reason: "This CSV contains a valid withdrawal for the same phone; the withdrawn row must take precedence.",
+        });
         continue;
       }
       const permissionStatus = consentStatus === "withdrawn" ? "withdrawn" : "unknown";
@@ -561,6 +574,9 @@ Deno.serve(async (req) => {
         result.rows.push({ row: rowNumber, status: "rejected", reason: "Contact and permission saved, but campaign enrollment failed." });
         continue;
       }
+      // Mark as seen only after every required persistence step succeeded.
+      // A rejected or failed row must not block a later valid withdrawal.
+      seen.add(phone);
       result.imported++;
       result.rows.push({
         row: rowNumber,
@@ -568,7 +584,7 @@ Deno.serve(async (req) => {
         permission: preserveExisting ? priorPermission.permission_status : permissionStatus,
       });
     }
-    return json({ ...result, note: "CSV cannot grant contact permission. It stores unknown or withdrawn preferences only; historical grants are preserved but must be independently verified. No calls or messages are sent." }, 200);
+    return json({ ...result, note: "CSV cannot grant contact permission. Valid withdrawn rows take precedence over duplicate unknown rows; rejected rows do not block later valid withdrawals. Historical grants still require independent verification. No calls or messages are sent." }, 200);
   }
 
   return json({ error: "Route not found." }, 404);
