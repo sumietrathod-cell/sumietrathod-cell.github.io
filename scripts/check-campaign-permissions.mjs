@@ -3,11 +3,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 const sql = readFileSync(new URL('../campaign-manager/supabase/rls-policies.sql', import.meta.url), 'utf8');
-test('operator policy grants are limited to insert/update, never ALL or DELETE', () => {
+test('all authenticated permission grants fail closed even with fabricated evidence', () => {
   assert.doesNotMatch(sql, /create policy permissions_operator_write\s+[\s\S]*?for all\s+to authenticated/i);
-  assert.match(sql, /create policy permissions_operator_insert\s+[\s\S]*?for insert to authenticated/i);
-  assert.match(sql, /create policy permissions_operator_update\s+[\s\S]*?for update to authenticated/i);
+  const from = sql.indexOf('create policy permissions_operator_insert');
+  const to = sql.indexOf('create or replace function public.guard_contact_channel_permission', from);
+  assert.ok(from >= 0 && to > from, 'Insert policy must precede consent trigger');
+  assert.match(sql.slice(from, to), /permission_status\s*=\s*'unknown'/i);
+  assert.doesNotMatch(sql, /create policy permissions_operator_update\s+[\s\S]*?for update to authenticated/i);
   assert.doesNotMatch(sql, /create policy permissions_operator_delete/i);
+  assert.match(sql, /create policy permissions_member_withdraw_update/i);
+  const api = readFileSync(new URL('../supabase/functions/campaign-api/index.ts', import.meta.url), 'utf8');
+  assert.match(api, /if \(consentStatus === "granted"\) \{/);
+  assert.match(api, /CSV cannot verify granted permission/);
+  assert.doesNotMatch(api, /permission_status: effectiveStatus/);
 });
 test('permission guard blocks withdrawn reversal, cross-tenant mutation and false grants', () => {
   assert.match(sql, /create or replace function public\.guard_contact_channel_permission\(\)/i);
