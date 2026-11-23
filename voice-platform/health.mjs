@@ -12,7 +12,7 @@ export function summarizeVoiceActivity(events) {
     errors,
     connections,
     description: rows.length
-      ? `Last ${rows.length} recorded events: ${completed} completed turns, ${errors} runtime errors, ${connections} connections.`
+      ? `Last ${rows.length} recorded events: ${completed} completed ${completed === 1 ? 'turn' : 'turns'}, ${errors} runtime ${errors === 1 ? 'error' : 'errors'}, ${connections} ${connections === 1 ? 'connection' : 'connections'}.`
       : 'No recorded events for this deployment.',
   };
 }
