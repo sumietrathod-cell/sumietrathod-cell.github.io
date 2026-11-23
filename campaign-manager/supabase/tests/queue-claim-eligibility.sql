@@ -163,7 +163,7 @@ BEGIN
       3
     );
     INSERT INTO pg_temp.synthetic_contacts(id, organization_id, phone_e164)
-      VALUES(contact_id, org_id, '+919876543210');
+      VALUES(contact_id, org_id, ('+9198765432'||lpad(k::text,2,'0')));
     INSERT INTO pg_temp.synthetic_campaign_contacts(
       id, organization_id, campaign_id, contact_id, status, attempts
     ) VALUES(enrollment_id,org_id,camp_id,contact_id,'queued',0);
@@ -188,7 +188,7 @@ BEGIN
     END IF;
     IF k=6 THEN
       INSERT INTO pg_temp.synthetic_suppressions(organization_id,contact_id,phone_e164,channel)
-        VALUES(org_id,contact_id,'+919876543210','whatsapp');
+        VALUES(org_id,contact_id,('+9198765432'||lpad(k::text,2,'0')),'whatsapp');
     END IF;
   END LOOP;
 
