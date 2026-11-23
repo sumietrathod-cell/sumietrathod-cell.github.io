@@ -108,6 +108,45 @@ create policy contacts_admin_delete
 on public.contacts for delete to authenticated
 using (public.has_org_role(organization_id, array['owner','admin']));
 
+-- Contacts are scoped to immutable organization/id pairs. More importantly,
+-- permission evidence belongs to the phone number originally recorded.
+-- A client must not swap the number after consent or campaign enrollment,
+-- because that would reuse permission to contact a different recipient.
+-- A changed phone requires a NEW contact and fresh verified permission.
+create or replace function public.guard_campaign_contact_identity()
+returns trigger language plpgsql security invoker set search_path = '' as $guard$
+begin
+  if old.id is distinct from new.id
+     or old.organization_id is distinct from new.organization_id then
+    raise exception 'Contact identity and organization cannot change'
+      using errcode = '23514';
+  end if;
+  if old.phone_e164 is distinct from new.phone_e164
+     and (
+       exists (
+         select 1 from public.contact_channel_permissions p
+         where p.organization_id = old.organization_id
+           and p.contact_id = old.id
+       )
+       or exists (
+         select 1 from public.campaign_contacts cc
+         where cc.organization_id = old.organization_id
+           and cc.contact_id = old.id
+       )
+     ) then
+    raise exception 'Phone number cannot change after permission or enrollment'
+      using errcode = '23514';
+  end if;
+  return new;
+end
+$guard$;
+drop trigger if exists guard_campaign_contact_identity on public.contacts;
+create trigger guard_campaign_contact_identity
+before update on public.contacts
+for each row execute function public.guard_campaign_contact_identity();
+revoke all on function public.guard_campaign_contact_identity() from public, anon, authenticated;
+
+
 create policy permissions_member_select
 on public.contact_channel_permissions for select to authenticated
 using (public.is_org_member(organization_id));
