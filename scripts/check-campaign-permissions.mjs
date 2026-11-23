@@ -74,3 +74,16 @@ test('fresh-install foreign keys preserve consent, enrollment and attempt histor
   assert.match(exercise, /permission_status='withdrawn'/i);
   assert.match(exercise, /ROLLBACK;\s*$/i);
 });
+
+test('repeat opt-outs and CSV withdrawals are idempotent without overwriting earlier suppression', () => {
+  const schema = readFileSync(new URL('../campaign-manager/supabase/schema.sql', import.meta.url), 'utf8');
+  const api = readFileSync(new URL('../supabase/functions/campaign-api/index.ts', import.meta.url), 'utf8');
+  assert.match(schema,/create unique index if not exists idx_suppression_contact_channel_unique\s+on public\.suppression_list \(contact_id, channel\)/i);
+  const upsert = /from\("suppression_list"\)\.upsert\(\{[\s\S]*?\}, \{ onConflict: "contact_id,channel", ignoreDuplicates: true \}\);/g;
+  const matches = [...api.matchAll(upsert)];
+  assert.equal(matches.length,2,'Both opt-out and CSV withdrawal must preserve first suppression on retry');
+  assert.doesNotMatch(api,/from\("suppression_list"\)\.insert\(\{/i);
+  const ci = readFileSync(new URL('../campaign-manager/supabase/tests/tenant-suppression-idempotency-ci.sql', import.meta.url), 'utf8');
+  assert.match(ci,/ON CONFLICT \(contact_id,channel\) DO NOTHING/i);
+  assert.match(ci,/ROLLBACK;\s*$/i);
+});
