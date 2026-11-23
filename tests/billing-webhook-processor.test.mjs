@@ -142,3 +142,32 @@ test('tampered raw body cannot create an audit record',async()=>{
  assert.equal(result.status,'rejected');
  assert.equal(a.writes.length,0);
 });
+
+test('signed capture with refunded amount fails closed before provider lookup',async()=>{
+ const a=adapters();
+ let providerCalls=0;
+ a.provider.fetchPayment=async()=>{providerCalls++;return payment;};
+ const body=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,amount_refunded:100}}}});
+ const sig=createHmac('sha256',secret).update(body).digest('hex');
+ const result=await processCapturedWebhook({rawBody:body,signature:sig,eventId,secret,...a});
+ assert.equal(result.status,'blocked');
+ assert.equal(providerCalls,0);
+ assert.equal(a.writes.length,0);
+});
+test('signed capture with refund status fails closed before database writes',async()=>{
+ const a=adapters();
+ const body=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,refund_status:'partial'}}}});
+ const sig=createHmac('sha256',secret).update(body).digest('hex');
+ const result=await processCapturedWebhook({rawBody:body,signature:sig,eventId,secret,...a});
+ assert.equal(result.status,'blocked');
+ assert.equal(a.writes.length,0);
+});
+test('signed capture with explicit clear refund fields still requires independent checks',async()=>{
+ const a=adapters();
+ const body=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,amount_refunded:0,refund_status:null}}}});
+ const sig=createHmac('sha256',secret).update(body).digest('hex');
+ const result=await processCapturedWebhook({rawBody:body,signature:sig,eventId,secret,...a});
+ assert.equal(result.status,'verified');
+ assert.equal(a.writes.length,1);
+ assert.equal(result.receiptIssued,false);
+});
