@@ -46,14 +46,14 @@ async function authenticatedAdmin(settings,bearer){
 }
 const single=(data)=>Array.isArray(data)?data[0]:null;
 async function getInvoice(settings,id){
- const result=await supabaseRequest(settings,'/rest/v1/billing_invoices?select=id,quotation_id,billing_quotations(items)&id=eq.'+encodeURIComponent(id)+'&limit=1');
+ const result=await supabaseRequest(settings,'/rest/v1/billing_invoices?select=id,quotation_id,billing_quotations(customer,items)&id=eq.'+encodeURIComponent(id)+'&limit=1');
  const row=single(result);
  if(!row||row.id!==id||!row.billing_quotations)throw new HttpError(404,'Invoice not found.');
  let amount;
  try{amount=invoiceTotalPaise(row.billing_quotations.items);}catch{
   throw new HttpError(422,'This invoice cannot be processed by Razorpay.');
  }
- return {id,amount};
+ return {id,amount,customer:row.billing_quotations.customer};
 }
 async function getOrder(settings,id){
  const data=await supabaseRequest(settings,'/rest/v1/billing_payment_orders?select=invoice_id,razorpay_order_id,amount_paise&invoice_id=eq.'+encodeURIComponent(id)+'&limit=1');
@@ -125,6 +125,59 @@ async function verifyPayment(settings,invoice,paymentId){
  }
  return {state:'verified_snapshot',invoice_id:invoice.id,razorpay_payment_id:paymentId,amount_paise:invoice.amount,verified_at:record.verified_at};
 }
+
+async function getVerifiedRow(settings,invoiceId){
+ const rows=await supabaseRequest(settings,
+  '/rest/v1/billing_verified_payments?select=invoice_id,razorpay_order_id,razorpay_payment_id,amount_paise,verified_at&invoice_id=eq.'+
+  encodeURIComponent(invoiceId)+'&limit=1');
+ return single(rows);
+}
+// A historical ledger row is NOT proof of current paid/refund status.
+async function paymentHistory(settings){
+ const rows=await supabaseRequest(settings,
+  '/rest/v1/billing_verified_payments?select=invoice_id,razorpay_payment_id,amount_paise,verified_at&order=verified_at.desc,invoice_id.desc&limit=50');
+ if(!Array.isArray(rows))throw new HttpError(502,'Payment history could not be loaded.');
+ const ids=rows.map(x=>x.invoice_id);
+ if(ids.some(x=>{try{return requireInvoiceId(x)!==x;}catch{return true;}})){
+  throw new HttpError(502,'Unexpected ledger invoice reference.');
+ }
+ const invoices=ids.length?await supabaseRequest(settings,
+  '/rest/v1/billing_invoices?select=id,billing_quotations(customer)&id=in.('+
+  ids.join(',')+')&limit=50'):[];
+ if(!Array.isArray(invoices))throw new HttpError(502,'Invoice references could not be loaded.');
+ const customers=new Map(invoices.map(x=>[x.id,x.billing_quotations?.customer]));
+ return {state:'history_not_current_payment_status',limit:50,
+  records:rows.map(x=>({
+   invoiceId:x.invoice_id,paymentId:x.razorpay_payment_id,
+   amountPaise:x.amount_paise,verifiedAt:x.verified_at,
+   customer:customers.get(x.invoice_id)||'Customer name unavailable'
+  }))};
+}
+// A confirmation preview requires a FRESH provider check, every single time.
+// This is not a tax invoice, tax receipt, settlement report, or refund guarantee.
+async function previewPaymentAcknowledgement(settings,invoice){
+ const recorded=await getVerifiedRow(settings,invoice.id);
+ if(!recorded)throw new HttpError(404,'No verified payment record exists for this invoice.');
+ const storedOrder=safeOrder(await getOrder(settings,invoice.id),invoice.amount);
+ if(!storedOrder||recorded.razorpay_order_id!==storedOrder.orderId||
+  recorded.amount_paise!==invoice.amount){
+  throw new HttpError(409,'Stored payment record is inconsistent; manual reconciliation required.');
+ }
+ let paymentId;
+ try{paymentId=requirePaymentId(recorded.razorpay_payment_id);}
+ catch{throw new HttpError(409,'Stored payment ID is invalid.');}
+ const latest=await razorpay(settings,'payments/'+encodeURIComponent(paymentId));
+ try{
+  const confirmed=verifyCapturedPayment(latest,storedOrder.orderId,invoice.amount);
+  if(confirmed.paymentId!==paymentId)throw new Error('Provider returned another payment ID.');
+ }catch{throw new HttpError(409,'Provider cannot confirm the current unrefunded captured payment; no acknowledgement preview.');}
+ return {state:'provider_checked_now',kind:'non_gst_payment_acknowledgement_preview',
+  invoiceId:invoice.id,customer:invoice.customer,amountPaise:invoice.amount,
+  paymentId,orderId:storedOrder.orderId,verifiedAt:recorded.verified_at,
+  checkedAt:new Date().toISOString(),
+  warning:'Payment captured and not refunded at the instant of this check. Refunds or disputes may occur later. Not a GST tax invoice, tax receipt, or settlement confirmation.'};
+}
+
 Deno.serve(async (req)=>{
   const origin=req.headers.get('origin')||'';
   if(origin&&!allowedOrigins.has(origin))return send(403,{error:'Origin not allowed.'},origin);
@@ -144,15 +197,22 @@ Deno.serve(async (req)=>{
    let payload;
    try{payload=JSON.parse(raw);}catch{throw new HttpError(400,'Invalid JSON.');}
    if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new HttpError(400,'Invalid request.');
+   if(!['start_order','verify_payment','payment_history','acknowledgement_preview'].includes(payload.action))throw new HttpError(400,'Unknown action.');
    let invoiceId;
-   try{invoiceId=requireInvoiceId(payload.invoice_id);}catch{throw new HttpError(400,'Invalid invoice reference.');}
-   if(!['start_order','verify_payment'].includes(payload.action))throw new HttpError(400,'Unknown action.');
+   if(payload.action!=='payment_history'){
+    try{invoiceId=requireInvoiceId(payload.invoice_id);}catch{throw new HttpError(400,'Invalid invoice reference.');}
+   }
    let paymentId;
    if(payload.action==='verify_payment'){
     try{paymentId=requirePaymentId(payload.payment_id);}catch{throw new HttpError(400,'Invalid payment reference.');}
    }
+   if(payload.action==='payment_history'){
+    return send(200,{ok:true,...await paymentHistory(settings)},origin);
+   }
    const invoice=await getInvoice(settings,invoiceId);
-   const result=payload.action==='start_order'?await startOrder(settings,invoice):await verifyPayment(settings,invoice,paymentId);
+   const result=payload.action==='start_order'?await startOrder(settings,invoice):
+    payload.action==='verify_payment'?await verifyPayment(settings,invoice,paymentId):
+    await previewPaymentAcknowledgement(settings,invoice);
    return send(200,{ok:true,...result},origin);
   }catch(error){
    const code=error instanceof HttpError?error.status:500;
