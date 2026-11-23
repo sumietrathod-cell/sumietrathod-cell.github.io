@@ -15,6 +15,14 @@ Do not run against production data. Use a fresh Supabase staging project and two
 
 The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 service; no Supabase/project secrets or real contacts are used. It runs the actual schema, RLS policies and queue SQL with Auth helper emulation, then all four rollback-only SQL test suites in `supabase/tests/`. The test roles use synthetic Auth UUIDs; failures stop CI. This is stronger than syntax checks but **not** a substitute for actual signed-in Supabase / REST / Edge Function tests with two separate customer tenants.
 
+## Disposable PostgREST JWT + RLS HTTP test (completed in CI)
+
+- Spin up a disposable PostgreSQL 17 service plus pinned PostgREST 14.18; generate a unique test-only HMAC secret each run, never use a production token or service role in the HTTP client.
+- Seed the fictional Alpha operator and Beta viewer fixtures in `supabase/tests/ci-rest-fixtures.sql`. Run `node scripts/check-campaign-postgrest.mjs` and fail CI on unexpected 2xx, RLS leakage, or forbidden writes.
+- 19 synthetic HTTP assertions cover anonymous denial, cross-tenant list visibility, viewer/operator permissions, draft-only creation, campaign enrollment immutability, consent proof guard, opt-out reversal and channel suppression replay. [CI run](https://github.com/sumietrathod-cell/sumietrathod-cell.github.io/actions/runs/45102837669) passed.
+- **Still required:** Repeat with *actual Supabase Auth* identities, browser login/logout, PostgREST and Edge Function deployment to a **dedicated staging** project, authorized owners and genuine API keys. The disposable test does not prove those integrations or authorization revocation/session behavior.
+
+
 ## Authentication and tenant isolation
 - Missing bearer token returns 401.
 - Expired or invalid token returns 401.
