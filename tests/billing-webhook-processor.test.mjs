@@ -50,3 +50,17 @@ test('missing provider event ID header fails closed',async()=>{
  assert.equal(result.status,'ignored');
  assert.equal(a.writes.length,0);
 });
+
+test('rejects provider order mismatch against signed webhook',async()=>{
+ const a=adapters();
+ a.provider.fetchPayment=async()=>({...payment,order_id:'order_Other123'});
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.equal(result.status,'blocked');
+ assert.equal(a.writes.length,0);
+});
+test('rejects invalid event ID before any provider or persistence calls',async()=>{
+ const a=adapters();
+ const result=await processCapturedWebhook({rawBody,signature,eventId:'invalid id',secret,...a});
+ assert.equal(result.status,'ignored');
+ assert.equal(a.writes.length,0);
+});
