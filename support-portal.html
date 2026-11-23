@@ -177,8 +177,8 @@ function renderTickets(){
  );
  const list=$('ticketList');list.replaceChildren();
  const open=loadedTickets.filter(t=>!['Resolved','Closed'].includes(t.status)).length;
- $('ticketSummary').textContent=visible.length+' shown · '+loadedTickets.length+' loaded · '+open+' active';
- if(!visible.length){list.append(element('p','No matching tickets.'));return}
+ $('ticketSummary').textContent=visible.length+' shown · '+loadedTickets.length+' loaded · '+open+' active'+(hasMoreTickets?' · More tickets available; search and status filters apply only to loaded tickets.':'');
+ if(!visible.length){list.append(element('p',hasMoreTickets?'No matches among loaded tickets. Load more to check older tickets.':'No matching tickets.'));return}
  for(const t of visible){
    const row=element('div');row.className='row';
    const btn=element('button','View');btn.type='button';btn.className='secondary';
