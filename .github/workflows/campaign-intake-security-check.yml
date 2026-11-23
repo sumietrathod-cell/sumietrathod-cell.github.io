@@ -1,0 +1,27 @@
+name: Campaign Intake HTTP security tests
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/campaign-intake/**'
+      - '.github/workflows/campaign-intake-security-check.yml'
+  push:
+    branches:
+      - test/campaign-intake-security-20261123
+    paths:
+      - 'supabase/functions/campaign-intake/**'
+      - '.github/workflows/campaign-intake-security-check.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-intake-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check the no-network Edge test module
+        run: node --check supabase/functions/campaign-intake/campaign-intake.test.mjs
+      - name: Exercise actual Deno.serve request handler with synthetic payloads
+        run: node --test supabase/functions/campaign-intake/campaign-intake.test.mjs
