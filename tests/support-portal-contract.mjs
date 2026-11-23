@@ -86,3 +86,12 @@ const ownerSource=js.slice(js.indexOf("form.addEventListener('submit',async e=>"
 assert.match(ownerSource,/finally\{if\(active\(\)\)save\.disabled=false\}/,'Owner update must guard stale finally completion');
 const replySource=js.slice(js.indexOf("replyForm.addEventListener('submit',async e=>"),js.indexOf('box.append(replyForm)'));
 assert.match(replySource,/finally\{if\(active\(\)\)replyButton\.disabled=false\}/,'Customer reply must guard stale finally completion');
+
+// A second submit event while an RPC is pending must not create duplicate
+// tickets, owner updates, or customer replies (including keyboard submits).
+assert.match(createSource,/const button=e\.target\.querySelector\('button'\);if\(button\.disabled\)return;button\.disabled=true;/,
+  'Create form must reject a second submission while the first is pending');
+assert.match(ownerSource,/selectedId!==id\|\|save\.disabled\)return;/,
+  'Owner status update must reject duplicate submissions');
+assert.match(replySource,/\|\|replyButton\.disabled\)return;/,
+  'Customer reply must reject duplicate submissions');
