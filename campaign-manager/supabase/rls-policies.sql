@@ -283,7 +283,10 @@ with check (
     where s.organization_id = audit_events.organization_id
       and s.contact_id = audit_events.entity_id
       and s.channel = audit_events.details ->> 'channel'
-      and s.source = 'campaign_manager_opt_out'
+      -- A contact previously withdrawn through CSV may already carry the
+      -- permanent suppression row; the atomic opt-out RPC must not fail merely
+      -- because it cannot insert a duplicate with its own source.
+      and (s.source = 'campaign_manager_opt_out' or s.source = 'csv_import')
   )
 );
 -- Clients may append only self-attributed opt-out audit events backed by
