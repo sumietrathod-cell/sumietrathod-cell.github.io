@@ -26,6 +26,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Membership records cannot be inserted, updated or deleted by authenticated users.
 - Cross-organization composite foreign-key inserts fail even when a caller has a valid membership in one of the organizations.
 
+## Enrollment integrity and trusted state updates
+
+- An operator may INSERT a `campaign_contacts` row only in a draft, dry-run campaign of their own organization. Initial status must be `queued`, attempts `0`, and outcome/callback date null.
+- Signed-in users cannot directly UPDATE or DELETE `campaign_contacts` to forge a successful outcome, erase history, reset attempt counts or move an enrollment across tenants.
+- The disposable PostgreSQL 17 CI job runs `supabase/tests/tenant-enrollment-ci.sql` with actual RLS enforcement using synthetic Auth identities.
+- Confirm the Supabase Edge Function's `upsert(...ignoreDuplicates:true)` enrollment import in a genuine authenticated staging environment. A green SQL test alone does not prove the deployed REST client works end-to-end.
+
 ## Campaign state safety
 - Campaign creation always stores `status=draft` and `dry_run=true`, regardless of client-supplied values.
 - Authenticated users cannot update campaign `status` or `dry_run` directly through the Supabase REST API.
