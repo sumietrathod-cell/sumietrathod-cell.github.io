@@ -63,7 +63,7 @@ table{width:100%;border-collapse:collapse}
 <header><div class="subtitle">AAROHAN AI WORLD · Billing Desk</div><h1>Non-GST Quotations &amp; Invoices</h1></header>
 <p role="note">Non-GST billing workspace. GST is not charged or collected. Quotations and commercial invoice drafts are NOT GST tax invoices. This page does not verify GST registration, seller identity, payments or tax requirements; review business details and documents before providing them to customers.</p>
 <form id="login"><label>Email <input name="email" type="email" autocomplete="username" required></label><label>Password <input name="password" type="password" autocomplete="current-password" required></label><button>Admin sign in</button></form>
-<main hidden id="desk"><button id="logout">Sign out</button><section class="profile-note"><label for="udyam">Udyam registration number (optional)</label><input id="udyam" type="text" maxlength="20" autocomplete="off" placeholder="UDYAM-XX-00-0000000" aria-describedby="udyam-note"><small id="udyam-note">Shown on the letterhead only if entered in the expected format. Not verified or saved to the database; cleared on sign-out. Udyam is not a GSTIN.</small></section><section><h2>New quotation</h2><form id="create"><label>Customer <input name="customer" required maxlength="160"></label><div id="lines"></div><datalist id="service-catalog"><option value="AI Voice Agent &amp; Receptionist"></option><option value="WhatsApp Business Automation"></option><option value="AI Chatbot &amp; Customer Support"></option><option value="CRM &amp; Lead Management"></option><option value="Power BI &amp; Excel Dashboard"></option><option value="Website &amp; E-Commerce Catalogue"></option><option value="SEO &amp; Digital Marketing"></option><option value="Quotation &amp; Invoice Software Setup"></option><option value="AI Campaign Automation"></option><option value="Pharma QA Data Analytics"></option><option value="Remote AI Agent Management"></option><option value="Website Maintenance &amp; Support"></option></datalist><button type="button" id="add">Add service</button> <button>Save quotation</button></form></section><section><h2>Latest 100 quotations</h2><select id="history" aria-label="Saved quotations"></select> <button id="open">Open</button></section><section><h2>Latest 100 invoices</h2><select id="invoices" aria-label="Saved invoices"></select> <button id="openInvoice">Open invoice</button></section></main><p role="status" id="msg"></p><article id="doc" hidden></article>
+<main hidden id="desk"><button id="logout">Sign out</button><section class="profile-note"><strong>Company registration reference</strong><small>Udyam Registration No.: UDYAM-GJ-01-0013783 (provided by business owner; not independently verified). Udyam is not a GSTIN. GST remains not charged.</small></section><section><h2>New quotation</h2><form id="create"><label>Customer <input name="customer" required maxlength="160"></label><div id="lines"></div><datalist id="service-catalog"><option value="AI Voice Agent &amp; Receptionist"></option><option value="WhatsApp Business Automation"></option><option value="AI Chatbot &amp; Customer Support"></option><option value="CRM &amp; Lead Management"></option><option value="Power BI &amp; Excel Dashboard"></option><option value="Website &amp; E-Commerce Catalogue"></option><option value="SEO &amp; Digital Marketing"></option><option value="Quotation &amp; Invoice Software Setup"></option><option value="AI Campaign Automation"></option><option value="Pharma QA Data Analytics"></option><option value="Remote AI Agent Management"></option><option value="Website Maintenance &amp; Support"></option></datalist><button type="button" id="add">Add service</button> <button>Save quotation</button></form></section><section><h2>Latest 100 quotations</h2><select id="history" aria-label="Saved quotations"></select> <button id="open">Open</button></section><section><h2>Latest 100 invoices</h2><select id="invoices" aria-label="Saved invoices"></select> <button id="openInvoice">Open invoice</button></section></main><p role="status" id="msg"></p><article id="doc" hidden></article>
 <script type="module">
 import {buildItems,totalPaise,formatINR} from './amounts.mjs';
 const base='https://zvrdbekyqbwrztckvkpw.supabase.co', key='sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI';
@@ -112,7 +112,7 @@ async function refresh(expectedToken=token,expectedEpoch=sessionEpoch){
  $('open').disabled=!historyRows.length;
  $('openInvoice').disabled=!invoiceRows.length;
 }
-function reset(){sessionEpoch++;loginRequest++;pendingLoginRequest=null;clearTimeout(expires);expires=null;token='';historyRows=[];invoiceRows=[];replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('udyam').value='';$('desk').hidden=true;$('login').hidden=false;$('login').querySelector('button').disabled=false;$('login').querySelector('[name=password]').value='';$('create').reset();replaceContents($('lines'));addLine()}
+function reset(){sessionEpoch++;loginRequest++;pendingLoginRequest=null;clearTimeout(expires);expires=null;token='';historyRows=[];invoiceRows=[];replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('desk').hidden=true;$('login').hidden=false;$('login').querySelector('button').disabled=false;$('login').querySelector('[name=password]').value='';$('create').reset();replaceContents($('lines'));addLine()}
 $('login').onsubmit=async e=>{
  e.preventDefault();
  const form=e.target;
@@ -177,6 +177,7 @@ function view(r,invoice=null){
  append('div','AAROHAN AI WORLD',identity).className='letterhead-brand';
  append('div','AI Automation · Data & Business Software',identity).className='letterhead-tag';
  append('div','aarohanaiworld.com · aarohananalytics951@gmail.com',identity).className='letterhead-web';
+ append('div','Udyam Registration No.: UDYAM-GJ-01-0013783',identity).className='letterhead-web';
  const content=append('div','');content.className='doc-body';
  const titleRow=append('div','',content);titleRow.className='doc-top';
  const heading=append('div','',titleRow);
@@ -188,8 +189,7 @@ function view(r,invoice=null){
  append('p','Reference: '+(invoice||r).id,meta).className='doc-ref';
  if(invoice)append('p','Quotation reference: '+r.id,meta).className='doc-ref';
  append('p','Date: '+new Date(invoice?.issued_at||r.created_at).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}),meta).className='doc-ref';
- const udyam=$('udyam').value.trim().toUpperCase();
- if(/^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$/.test(udyam))append('p','Udyam Registration No. (entered, not verified): '+udyam,meta).className='doc-ref';
+ append('p','Udyam registration number supplied by business owner; not independently verified.',meta).className='doc-ref';
  const client=append('div','',content);client.className='client-box';
  append('div',invoice?'Billed to':'Prepared for',client).className='doc-label';
  append('h3',r.customer,client);
