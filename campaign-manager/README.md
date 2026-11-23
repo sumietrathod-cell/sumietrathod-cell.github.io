@@ -102,6 +102,15 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Disposable PostgreSQL CI `supabase/tests/tenant-enrollment-ci.sql` verifies allowed draft enrollment and blocked outcome/attempt forgery, running-campaign enrollment, cross-tenant enrollment, UPDATE and DELETE.
 - This has **not** been deployed to the AAROHAN production CRM. It is a multi-tenant staging draft with a different schema. Provider integration, real Supabase Auth staging and REST API end-to-end validation are still mandatory.
 
+## Audit event integrity hardening (staging draft)
+
+- In `rls-policies.sql`, authenticated contact opt-out audit creation is now **bound to existing facts**: a self-attributed actor, same-organization contact, `contact_permission_withdrawn` event with exact `contact` type, matching `contact_channel_permissions` status `withdrawn`, and a matching durable `campaign_manager_opt_out` suppression for that channel. The `details` JSON is strictly restricted to the approved source and channel fields.
+- This blocks forged audit events for another customer/tenant, unsupported channel, false completion type, other actor or arbitrary extra JSON. Authenticated users **cannot read audit history** (admin select only); insertion is intentionally write-only.
+- New `tenant-audit-integrity-ci.sql` tests owner/operator and viewer scenarios with actual PostgreSQL RLS and rollback. `scripts/check-campaign-postgrest.mjs` additionally uses test JWTs to verify valid write-only audit insertion and six forbidden HTTP variants, including suppression without permission withdrawal.
+- GitHub Actions now waits for a healthy PostgREST **schema cache**, not merely a live TCP/HTTP endpoint, to avoid flakiness from temporary `503 PGRST002`.
+- Both jobs passed on [the tested commit](https://github.com/sumietrathod-cell/sumietrathod-cell.github.io/actions/runs/45105015141). These are **disposable synthetic CI** checks, not evidence of a real deployed Supabase Auth/Edge integration or of genuine lawful customer opt-outs.
+
+
 ## Authenticated HTTP/RLS integration (disposable CI only)
 
 - The GitHub workflow now launches **PostgREST v14.18** against the same **ephemeral PostgreSQL 17** fixture used for policy checks. A fresh signing key is generated per workflow run; no real Supabase secrets, customer accounts or provider APIs are involved.
