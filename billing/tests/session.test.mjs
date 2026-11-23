@@ -14,7 +14,7 @@ test('the client script is valid module JavaScript',()=>{
  assert.equal(check.status,0,check.stderr);
 });
 test('sign-out invalidates pending invoice/list writes before a remote network await',()=>{
- assert.match(js,/function reset\(\)\{sessionEpoch\+\+;loginRequest\+\+;token='';/);
+ assert.match(js,/function reset\(\)\{sessionEpoch\+\+;loginRequest\+\+;pendingLoginRequest=null;clearTimeout\(expires\);expires=null;token='';/);
  assert.match(js,/\$\('logout'\)\.onclick=async\(\)=>\{\s*const previousToken=token;\s*reset\(\);/);
  assert.match(js,/await api\('\/auth\/v1\/logout\?scope=local',\{method:'POST'\},previousToken\)/);
 });
