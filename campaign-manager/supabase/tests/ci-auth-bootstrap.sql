@@ -14,7 +14,7 @@ returns jsonb language sql stable set search_path = '' as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
 insert into auth.users(id) values
- ('00000000-0000-4000-8000-000000000001'),
- ('00000000-0000-4000-8000-000000000002');
+ ('00000000-0000-0000-0000-000000000001'),
+ ('00000000-0000-0000-0000-000000000002');
 grant usage on schema auth,public to authenticated,anon;
 grant execute on function auth.uid(),auth.jwt() to authenticated,anon;
