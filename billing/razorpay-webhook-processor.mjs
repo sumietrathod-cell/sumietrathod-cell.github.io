@@ -6,7 +6,7 @@ import {verifyRazorpayWebhook} from './razorpay-webhook-verification.mjs';
 import {webhookAdmission} from './webhook-admission.mjs';
 import {reconcileCapturedPayment} from './payment-reconciliation.mjs';
 
-export async function processCapturedWebhook({rawBody,signature,secret,provider,store}) {
+export async function processCapturedWebhook({rawBody,signature,eventId,secret,provider,store}) {
  if (!verifyRazorpayWebhook(rawBody,signature,secret))
   return {status:'rejected',reason:'Invalid webhook signature'};
  let event;
@@ -14,7 +14,7 @@ export async function processCapturedWebhook({rawBody,signature,secret,provider,
  catch {return {status:'rejected',reason:'Malformed webhook JSON'};}
  // Set is a structural placeholder only; actual replay protection must use
  // an atomic database unique constraint inside store.recordVerifiedPayment.
- const admission=webhookAdmission(event,new Set());
+ // Razorpay event ID is supplied in the x-razorpay-event-id HTTP header.\n // The server adapter must read that header from the authenticated request.\n const admission=webhookAdmission({...event,id:eventId},new Set());
  if (!admission.accepted)return {status:'ignored',reason:admission.reason};
  if (!provider || typeof provider.fetchPayment!=='function' ||
      !provider.fetchDisputeStatus || typeof provider.fetchDisputeStatus!=='function' ||
