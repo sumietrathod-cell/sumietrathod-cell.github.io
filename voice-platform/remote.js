@@ -1,4 +1,5 @@
 import { api, signIn, signOut, showStatus } from './backend.js';
+import { summarizeVoiceActivity } from './health.mjs';
 
 const byId = id => document.getElementById(id);
 const login = byId('login');
@@ -10,15 +11,18 @@ const activity = byId('activity');
 let token;
 let expiration;
 let deployments = [];
+let activityRequest = 0;
 
 function clearSession() {
   clearTimeout(expiration);
+  activityRequest++;
   token = undefined;
   deployments = [];
   selection.replaceChildren(new Option('New deployment',''));
   form.reset();
   activity.replaceChildren();
   byId('last-activity').textContent = '';
+  byId('health-summary').textContent = '';
   byId('runtime-link').hidden = true;
   manager.hidden = true;
   byId('manager-login').hidden = false;
@@ -47,20 +51,31 @@ function showConfiguration() {
 }
 
 async function refreshActivity() {
-  activity.replaceChildren();
+  const requestId = ++activityRequest;
   const deployment = selection.value;
   const session = token;
+  activity.replaceChildren();
   byId('last-activity').textContent = deployment ? 'Loading activity…' : 'Select a saved deployment to view activity.';
+  byId('health-summary').textContent = deployment ? 'Checking recent events…' : 'Select a saved deployment to view its event summary.';
   if (!deployment || !session) return;
-  const rows = await api('/rest/v1/voice_events?select=event_type,created_at&order=created_at.desc&limit=30&deployment_id=eq.' + encodeURIComponent(deployment), { token: session });
-  if (session !== token || deployment !== selection.value) return;
-  const labels = { connected: 'Agent connected', turn_completed: 'Voice turn completed', runtime_error: 'Voice turn failed' };
-  byId('last-activity').textContent = rows.length ? 'Last activity ' + new Date(rows[0].created_at).toLocaleString() : 'No activity received.';
-  activity.replaceChildren(...rows.map(row => {
-    const item = document.createElement('li');
-    item.textContent = (labels[row.event_type] ?? 'Agent activity') + ' · ' + new Date(row.created_at).toLocaleString();
-    return item;
-  }));
+  try {
+    const rows = await api('/rest/v1/voice_events?select=event_type,created_at&order=created_at.desc&limit=100&deployment_id=eq.' + encodeURIComponent(deployment), { token: session });
+    if (session !== token || deployment !== selection.value || requestId !== activityRequest) return;
+    const labels = { connected: 'Agent connected', turn_completed: 'Voice turn completed', runtime_error: 'Voice turn failed' };
+    const recent = summarizeVoiceActivity(rows);
+    byId('health-summary').textContent = recent.description;
+    byId('last-activity').textContent = rows.length ? 'Last activity ' + new Date(rows[0].created_at).toLocaleString() : 'No activity received.';
+    activity.replaceChildren(...rows.slice(0, 30).map(row => {
+      const item = document.createElement('li');
+      item.textContent = (labels[row.event_type] ?? 'Agent activity') + ' · ' + new Date(row.created_at).toLocaleString();
+      return item;
+    }));
+  } catch (error) {
+    if (session === token && deployment === selection.value && requestId === activityRequest) {
+      byId('health-summary').textContent = 'Recent event summary unavailable.';
+      handleError(error, 'Could not load agent activity.');
+    }
+  }
 }
 
 function handleError(error, message) {
@@ -105,9 +120,9 @@ login.addEventListener('submit', async event => {
 
 selection.addEventListener('change', () => {
   showConfiguration();
-  refreshActivity().catch(error => handleError(error, 'Could not load activity.'));
+  void refreshActivity();
 });
-byId('refresh').addEventListener('click', () => refreshActivity().catch(error => handleError(error, 'Could not load activity.')));
+byId('refresh').addEventListener('click', () => { void refreshActivity(); });
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
