@@ -78,7 +78,7 @@ summary { cursor: pointer; color: #86e6d1; }
   <button type="submit">Save password</button>
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
-  <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="more" type="button" hidden>Load more leads</button></div>
+  <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="export-leads" type="button" hidden>Download leads CSV</button><button id="more" type="button" hidden>Load more leads</button></div>
   <article id="sales-report" hidden>
     <h2>Follow-ups and sales</h2>
     <button type="button" id="report-refresh">Refresh report</button>
@@ -262,6 +262,7 @@ const aliases = { business: 'company', business_name: 'company', company_name: '
 let pendingLeads = [];
 let savingLeads = false;
 const more = document.querySelector('#more');
+const exportLeadsButton = document.querySelector('#export-leads');
 let accessToken;
 let expires;
 let offset = 0;
@@ -414,6 +415,66 @@ async function loadLeads() {
   more.hidden = rows.length <= pageSize;
 }
 
+
+function csvSafeCell(value) {
+  const raw = String(value ?? '');
+  // Keep spreadsheet formulas from executing when opening an exported CSV.
+  const safe = /^[\s\u0000-\u001f]*[=+\-@]/.test(raw) ? "'" + raw : raw;
+  return '"' + safe.replace(/"/g, '""') + '"';
+}
+let exportingLeads = false;
+async function downloadLeadsCsv() {
+  if (!adminSession || !accessToken || exportingLeads) return;
+  const token = accessToken;
+  const fields = [
+    ['Name', 'name'], ['Business', 'company'], ['Country', 'country'],
+    ['Email', 'email'], ['Phone', 'phone'], ['Service interest', 'service_interest'],
+    ['Source', 'source'], ['Notes', 'notes'], ['Status', 'status'],
+    ['Follow-up (India date)', 'follow_up_on']
+  ];
+  const select = fields.map(([, key]) => key).join(',');
+  const endpoint = '/rest/v1/leads?select=' + select + '&order=created_at.asc.nullslast,id.asc';
+  const pageSizeExport = 500;
+  const maxRows = 10000;
+  const leads = [];
+  exportingLeads = true;
+  exportLeadsButton.disabled = true;
+  message.textContent = 'Preparing your private CRM CSV backup…';
+  try {
+    for (let offsetExport = 0; offsetExport < maxRows; offsetExport += pageSizeExport) {
+      const rows = await request(endpoint + '&limit=' + pageSizeExport + '&offset=' + offsetExport, {}, token);
+      if (token !== accessToken || !adminSession) return;
+      if (!Array.isArray(rows)) throw new Error('Invalid export response');
+      leads.push(...rows);
+      if (rows.length < pageSizeExport) break;
+    }
+    if (leads.length >= maxRows) {
+      const extra = await request(endpoint + '&limit=1&offset=' + maxRows, {}, token);
+      if (extra.length) throw new Error('Export exceeds 10,000 leads. Use a smaller dataset.');
+    }
+    if (token !== accessToken || !adminSession) return;
+    const header = fields.map(([title]) => csvSafeCell(title)).join(',');
+    const lines = leads.map(row => fields.map(([, key]) => csvSafeCell(row[key])).join(','));
+    const data = '\uFEFF' + [header, ...lines].join('\r\n') + '\r\n';
+    const blobUrl = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'aarohan-crm-leads-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+    message.textContent = leads.length + ' leads exported. Store the file securely.';
+  } catch (error) {
+    if (token === accessToken) message.textContent =
+      error.message.startsWith('Export exceeds') ? error.message : 'Could not export leads. Please retry.';
+  } finally {
+    exportingLeads = false;
+    if (token === accessToken) exportLeadsButton.disabled = false;
+  }
+}
+exportLeadsButton.addEventListener('click', downloadLeadsCsv);
+
 function clearSession() {
   leadFilter='';searchForm.reset();
   clearTimeout(expires);
@@ -450,6 +511,7 @@ function clearSession() {
   partnerCard.hidden = true;
   signOut.hidden = true;
   more.hidden = true;
+  exportLeadsButton.hidden = true;
   partnerList.replaceChildren();
   document.querySelector('#partner-totals').textContent = '';
   leadList.replaceChildren();
@@ -492,6 +554,7 @@ form.addEventListener('submit', async event => {
     recoveryOptions.hidden = true;
     dashboard.hidden = false;
     leadTools.hidden = !admin;
+    exportLeadsButton.hidden = !admin;
     channelHub.hidden = !admin;
     callHistory.hidden = !admin;
     if (admin) {
