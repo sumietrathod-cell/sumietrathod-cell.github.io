@@ -77,7 +77,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Database trigger `public.guard_contact_channel_permission()` prohibits changing tenant/contact/channel IDs, reinstalling previously withdrawn permission via UPDATE, or granting permission without evidence reference, actor and timestamp.
 - A local-equivalent synthetic temporary-table SQL transaction passed 5 scenarios; the actual staging policy and multi-tenant user flows still require independent E2E verification.
 - Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
-- Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
+- New permission grants are **disabled** for all authenticated client paths until a separately reviewed independent verification process exists. Neither a database trigger nor a CSV string independently proves consent. Historical imported grants, where present, still require verification before any future provider dispatch.
 
 ## Consent and campaign history retention (staging draft)
 
@@ -124,7 +124,7 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 The `tenant-rls-integration` job in `.github/workflows/campaign-manager-check.yml` boots an ephemeral PostgreSQL 17 container. It installs the **actual** draft schema, tenant RLS policies and queue SQL, with synthetic Auth role/function stubs in `supabase/tests/ci-auth-bootstrap.sql`. The following rollback-only tests run with `psql -v ON_ERROR_STOP=1`:
 
 - `supabase/tests/campaign-access.sql`: cross-organization campaign isolation, draft-only creation, viewer permissions, and inability to activate directly.
-- `supabase/tests/tenant-permissions-ci.sql`: separate operator/viewer organizations, row isolation, refusal to grant permission without evidence, irreversible opt-out, prohibited direct deletion, and denied cross-tenant updates.
+- `supabase/tests/tenant-permissions-ci.sql`: separate operator/viewer organizations, row isolation, **refusal of any direct granted permission with or without plausible evidence**, irreversible opt-out, prohibited direct deletion, and denied cross-tenant updates.
 - `supabase/tests/queue-claim-eligibility.sql`: eligible vs blocked synthetic outbound claims, without sending.
 - `supabase/tests/queue-quarantine.sql`: safe stale-claim isolation without repeat sending.
 
@@ -147,7 +147,7 @@ The two demo pages use browser-only sample data and never contact anyone. The au
 
 - Latest API increment: paginated `GET /campaigns/{id}/contacts` now returns campaign contact details plus channel permission/evidence-present and suppression flags. Composite organization foreign keys were added to the fresh-install schema to reduce cross-tenant reference risks. Staging validation and any required migration for an already-existing database remain outstanding.
 
-- Consent handling increment: CSV import accepts granted/unknown/withdrawn; granted requires evidence text; withdrawn records are not re-enabled by CSV import; an unknown import preserves an existing grant. Contact opt-out can be recorded by any organization member and adds a channel-specific suppression plus a restricted audit event.
+- Consent hardening increment: CSV import now **rejects `granted`** status even when the supplied evidence string looks valid. CSV may record `unknown` or `withdrawn` only; existing recorded grants are preserved without being newly verified or counted as granted. No authenticated user can directly create or change a permission to `granted` under staged RLS. Only a future independently verified, audited consent workflow can create new grants. Opt-outs stay permitted and are atomic via the staged RPC.
 - Dashboard script syntax and DOM-id consistency checks passed in the current repository snapshot. This is not a browser-to-Supabase integration test.
 
 - Security increment: suppression rows are append-only for authenticated users; direct campaign status/dry-run updates are not permitted by the customer RLS policy. The opt-out route is available to any organization member and cannot grant permission.
