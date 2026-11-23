@@ -33,7 +33,8 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - [ ] Callback and provider webhook workflows
 - [ ] Provider adapters and webhook verification
 - [x] GitHub Actions Deno type-check, PostgreSQL SQL parse and dashboard static checks pass on current draft PR head
-- [ ] Automated integration/RLS tests, deployment and monitoring
+- [x] Disposable PostgreSQL 17 CI integration checks (2 synthetic tenants, real RLS, permission guard, queue SQL; not actual Supabase Auth E2E)
+- [ ] Authenticated staging integration/RLS tests with actual Supabase users, deployment and monitoring
 - [ ] Security and compliance review before live use
 
 ## Security and API design notes
@@ -61,6 +62,17 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - A local-equivalent synthetic temporary-table SQL transaction passed 5 scenarios; the actual staging policy and multi-tenant user flows still require independent E2E verification.
 - Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
 - Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
+
+## Disposable PostgreSQL integration tests
+
+The `tenant-rls-integration` job in `.github/workflows/campaign-manager-check.yml` boots an ephemeral PostgreSQL 17 container. It installs the **actual** draft schema, tenant RLS policies and queue SQL, with synthetic Auth role/function stubs in `supabase/tests/ci-auth-bootstrap.sql`. The following rollback-only tests run with `psql -v ON_ERROR_STOP=1`:
+
+- `supabase/tests/campaign-access.sql`: cross-organization campaign isolation, draft-only creation, viewer permissions, and inability to activate directly.
+- `supabase/tests/tenant-permissions-ci.sql`: separate operator/viewer organizations, row isolation, refusal to grant permission without evidence, irreversible opt-out, prohibited direct deletion, and denied cross-tenant updates.
+- `supabase/tests/queue-claim-eligibility.sql`: eligible vs blocked synthetic outbound claims, without sending.
+- `supabase/tests/queue-quarantine.sql`: safe stale-claim isolation without repeat sending.
+
+**Limits:** This proves policies execute correctly on disposable PostgreSQL, not real Supabase Auth token lifecycle, app/integration correctness, recipient consent legitimacy or multi-customer production readiness. It does not create a real staging organization, configure the provider, merge the pull request, apply the new schema to the legacy production database, or send any messages. A dedicated staging project and two genuine authorized test users remain required.
 
 ## Local development (planned)
 The backend framework and deployment target will be finalized before production implementation. Do not treat this prototype or schema draft as production-ready.
