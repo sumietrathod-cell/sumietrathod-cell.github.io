@@ -11,6 +11,10 @@ Do not run against production data. Use a fresh Supabase staging project and two
 - Deploy the Edge Function to staging and set `APP_ORIGIN` to the exact dashboard origin.
 - Use synthetic contact data only.
 
+## Automated real PostgreSQL tenant RLS checks (disposable CI only)
+
+The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 service; no Supabase/project secrets or real contacts are used. It runs the actual schema, RLS policies and queue SQL with Auth helper emulation, then all four rollback-only SQL test suites in `supabase/tests/`. The test roles use synthetic Auth UUIDs; failures stop CI. This is stronger than syntax checks but **not** a substitute for actual signed-in Supabase / REST / Edge Function tests with two separate customer tenants.
+
 ## Authentication and tenant isolation
 - Missing bearer token returns 401.
 - Expired or invalid token returns 401.
