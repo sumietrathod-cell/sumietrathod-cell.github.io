@@ -67,6 +67,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Repeated import of the same contact does not create duplicate campaign enrollment.
 - Review and document partial-write behavior: the import is not yet transactional.
 
+## Idempotent contact-channel suppression tests
+- A viewer belonging to a tenant can add a channel-specific opt-out; a repeated identical opt-out must succeed without a second suppression row and without replacing the first recorded reason/source.
+- Different channels remain distinct; a viewer must not gain the operator-only CSV withdrawal insert permission or modify a second tenant's suppression.
+- An operator's repeated CSV withdrawal must leave one suppression entry. A raw duplicate INSERT without conflict handling must fail on the unique contact/channel index.
+- The real disposable PostgreSQL suite `supabase/tests/tenant-suppression-idempotency-ci.sql` covers these cases. Validate PostgREST `upsert(ignoreDuplicates)` separately with genuine staging Auth tokens.
+- Existing staging installs must run the fail-closed `supabase/migrations/20261123_suppression_idempotency.sql` before deploying the matching API change. Stop if the migration discovers duplicate contact/channel groups, and do not delete old suppressions automatically.
+
 ## Opt-out and suppression
 - Any authenticated organization member can opt out a contact on voice, WhatsApp or email.
 - Opt-out writes a suppression row, sets permission to withdrawn and attempts to append a self-attributed audit event.
