@@ -464,13 +464,14 @@ Deno.serve(async (req) => {
         continue;
       }
       seen.add(phone);
-      if (consentStatus === "granted" && !consentEvidence.trim()) {
+      // CSV content is self-reported; a nonempty evidence string cannot prove
+      // recipient opt-in. Never turn an unverified CSV row into a grant.
+      if (consentStatus === "granted") {
         result.rejected++;
-        result.rows.push({ row: rowNumber, status: "rejected", reason: "Granted permission requires a non-empty evidence reference." });
+        result.rows.push({ row: rowNumber, status: "rejected", reason: "CSV cannot verify granted permission. Import as unknown, or use an independently verified consent workflow (not yet available)." });
         continue;
       }
-      const granted = consentStatus === "granted";
-      const permissionStatus = consentStatus === "withdrawn" ? "withdrawn" : (granted ? "granted" : "unknown");
+      const permissionStatus = consentStatus === "withdrawn" ? "withdrawn" : "unknown";
 
       const { data: existing } = await supabase.from("contacts")
         .select("id").eq("organization_id", campaign.organization_id).eq("phone_e164", phone).maybeSingle();
@@ -507,25 +508,33 @@ Deno.serve(async (req) => {
         result.rows.push({ row: rowNumber, status: "rejected", reason: "This contact previously withdrew permission. A CSV import cannot reinstate it." });
         continue;
       }
-      const preservePriorGrant = priorPermission?.permission_status === "granted" && permissionStatus === "unknown";
-      const effectiveStatus = preservePriorGrant ? "granted" : permissionStatus;
-      const effectiveEvidence = preservePriorGrant ? priorPermission.evidence_reference : (granted ? consentEvidence : null);
-      const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
-        organization_id: campaign.organization_id,
-        contact_id: contactId,
-        channel: campaign.channel,
-        permission_status: effectiveStatus,
-        evidence_reference: effectiveEvidence,
-        captured_at: preservePriorGrant ? priorPermission.captured_at : new Date().toISOString(),
-        captured_by: preservePriorGrant ? priorPermission.captured_by : authData.user.id,
-      }, { onConflict: "contact_id,channel" });
-      if (permissionError) {
-        result.rejected++;
-        result.rows.push({ row: rowNumber, status: "rejected", reason: "Contact saved, but channel permission record failed. Review this contact before use." });
-        continue;
+      // Unknown imports must not reset pre-existing documented grants; a
+      // repeated withdrawn import must not erase original withdrawal metadata.
+      const preserveExisting = !!priorPermission && (
+        permissionStatus === "unknown" ||
+        (permissionStatus === "withdrawn" && priorPermission.permission_status === "withdrawn")
+      );
+      if (!preserveExisting) {
+        // Changing an existing grant to withdrawn must retain the original
+        // actor/timestamp/reference for later consent-history review.
+        const preserveGrantProof = priorPermission?.permission_status === "granted";
+        const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
+          organization_id: campaign.organization_id,
+          contact_id: contactId,
+          channel: campaign.channel,
+          permission_status: permissionStatus,
+          evidence_reference: preserveGrantProof ? priorPermission.evidence_reference : null,
+          captured_at: preserveGrantProof ? priorPermission.captured_at : new Date().toISOString(),
+          captured_by: preserveGrantProof ? priorPermission.captured_by : authData.user.id,
+        }, { onConflict: "contact_id,channel" });
+        if (permissionError) {
+          result.rejected++;
+          result.rows.push({ row: rowNumber, status: "rejected", reason: "Contact saved, but channel permission record failed. Review this contact before use." });
+          continue;
+        }
       }
 
-      if (effectiveStatus === "withdrawn") {
+      if (permissionStatus === "withdrawn") {
         const { error: suppressionError } = await supabase.from("suppression_list").upsert({
           organization_id: campaign.organization_id,
           contact_id: contactId,
@@ -553,10 +562,13 @@ Deno.serve(async (req) => {
         continue;
       }
       result.imported++;
-      if (effectiveStatus === "granted") result.consent_granted++;
-      result.rows.push({ row: rowNumber, status: "imported", permission: effectiveStatus });
+      result.rows.push({
+        row: rowNumber,
+        status: "imported",
+        permission: preserveExisting ? priorPermission.permission_status : permissionStatus,
+      });
     }
-    return json({ ...result, note: "Import only stores contacts and permission evidence. It does not send calls or messages; unknown permission is not consent." }, 200);
+    return json({ ...result, note: "CSV cannot grant contact permission. It stores unknown or withdrawn preferences only; historical grants are preserved but must be independently verified. No calls or messages are sent." }, 200);
   }
 
   return json({ error: "Route not found." }, 404);
