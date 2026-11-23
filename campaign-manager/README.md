@@ -66,6 +66,14 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - Re-run the `campaign-manager/supabase/tests/permission-guard.sql` rollback test **in dedicated staging**, not against the old production CRM.
 - Granting permission still requires an independent operator review that evidence is legitimate. Neither a database guard nor a CSV string independently proves consent.
 
+## Consent and campaign history retention (staging draft)
+
+- The new-install schema now uses `ON DELETE RESTRICT` on contact permissions, campaign enrollments and outreach-attempt foreign keys. Owner-level deletion of a contact must not silently cascade-delete recorded opt-outs/consent, and deleting an enrolled campaign must not erase contact activity or attempt history.
+- Deleting a **truly unlinked** contact or an empty draft campaign remains permitted under the relevant owner/admin RLS policy.
+- `supabase/tests/tenant-history-retention-ci.sql` tests both allowed cleanup and rejected destructive parent deletes using actual PostgreSQL foreign-key behavior in a disposable database. The whole test transaction rolls back. [CI validation](https://github.com/sumietrathod-cell/sumietrathod-cell.github.io/actions/runs/45101251060) passed both jobs.
+- This rule is a history-integrity safeguard, **not** a completed data-retention or right-to-erasure workflow. Future deletion/anonymization requests require a documented authorized process considering consent evidence, suppression records, lawful retention, and applicable privacy laws.
+- **Existing deployed databases will NOT change by re-running `CREATE TABLE IF NOT EXISTS`**. A separately reviewed migration is necessary if this policy is adopted in a real staging database. Never apply this draft to the legacy production CRM.
+
 ## Consent-to-phone binding (staging draft)
 
 - The `public.guard_campaign_contact_identity()` BEFORE UPDATE trigger prevents reassigning a contact's `id` or `organization_id`.
