@@ -37,7 +37,10 @@ function harness(){
   sessionEpoch:0,loginRequest:0,pendingLoginRequest:null,expires:null,token:'',
   $:name=>dom[name],
   FormData:class{
-   constructor(){return [['email','synthetic@example.invalid'],['password',pwd.value]]};
+   *[Symbol.iterator](){
+    yield ['email','synthetic@example.invalid'];
+    yield ['password',pwd.value];
+   }
   },
   api:()=>{
    const d=deferred();
