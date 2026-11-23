@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - fix/live-crm-safe-signout-20261123
+      - fix/live-crm-login-session-20261123
       - main
     paths:
       - 'campaign-manager.html'
