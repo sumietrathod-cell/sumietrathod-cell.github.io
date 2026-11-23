@@ -96,6 +96,7 @@ test('invoice-specific order idempotent, exact captured payment recorded',async(
  assert.equal(b.body.state,'verified_snapshot');
  assert.equal(h.stored().payment.razorpay_payment_id,paymentId);
  assert.equal(h.stored().payment.amount_paise,250000);
+ assert.equal((await h.invoke('start_order')).status,409);
  assert.equal(JSON.stringify(b.body).includes('fake_razorpay_secret'),false);
 });
 test('payment cannot be verified without invoice order',async()=>{
