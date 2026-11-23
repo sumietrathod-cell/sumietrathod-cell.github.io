@@ -59,6 +59,14 @@ Do not run against production data. Use a fresh Supabase staging project and two
 - Server configuration errors do not disclose secrets.
 - Browser code contains only the Supabase public anon key supplied at runtime; no service-role or provider secret appears in repository history.
 
+## Outbound claim eligibility tests
+- Block jobs with a missing or equal/overnight calling window; do not default to all-day permission.
+- Require nonempty consent evidence, an identified actor and a captured timestamp that is not in the future.
+- Keep withdrawn/unknown/no-permission and explicitly suppressed contacts in queued/not-sent state.
+- Ensure valid campaign is active, not dry-run, and contact/attempt counts are eligible.
+- Run `supabase/tests/queue-claim-eligibility.sql` **only in a designated non-production simulation**; it uses synthetic temporary tables and rolls back. Test uses the same staged claim implementation with temporary-schema names.
+- Recheck all these controls immediately before real provider dispatch. Explicit window still needs recipient-specific legal quiet-hour review.
+
 ## Stale claim reconciliation tests
 - A processing job older than the configured timeout is quarantined as failed, never queued again automatically.
 - A fresh processing job, a queued job, a completed job, or a processing job without locked_at are not altered.
