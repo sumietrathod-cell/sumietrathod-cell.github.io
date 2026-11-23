@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#091b2c">
+<title>Customer Support Centre Preview | AAROHAN AI WORLD</title>
+<style>
+:root{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;color:#173048;background:#f3f7fa}
+*{box-sizing:border-box}body{margin:0}a{color:inherit}header{background:#091b2c;color:white;padding:16px max(18px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+header img{width:38px;height:38px;vertical-align:middle;margin-right:8px}header a{font-size:13px}
+main{max-width:1120px;margin:auto;padding:26px 16px 70px}h1{font-size:clamp(25px,4vw,39px);margin:0 0 6px}h2{font-size:19px;margin:0 0 12px}p{margin:6px 0 14px}
+.banner{background:#fff6e5;border:1px solid #e2c98e;border-radius:12px;padding:13px 16px;margin:16px 0 22px;color:#634619}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tabs button{background:#e4edf3;color:#15334b}.tabs button[aria-selected=true]{background:#0b3150;color:white}
+.panel{background:white;border:1px solid #dbe6ed;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 5px 24px #09203708}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}label{display:block;font-size:13px;font-weight:700}input,select,textarea{display:block;width:100%;border:1px solid #b9cbd8;border-radius:9px;padding:11px;margin-top:5px;font:inherit;background:white;color:#173048}
+textarea{min-height:112px;resize:vertical}.wide{grid-column:1/-1}
+button{border:0;background:#0b3150;color:white;padding:10px 17px;border-radius:9px;cursor:pointer;font:700 13px system-ui,Arial;margin:6px 7px 6px 0}
+button.alt{background:#e8f0f5;color:#173048}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #7abfd3}
+.muted{color:#5c7180;font-size:13px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{padding:15px;background:#f3f8fb;border:1px solid #dce8f0;border-radius:12px}.stat b{display:block;font-size:27px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;text-align:left;border-bottom:1px solid #e4edf3;vertical-align:top}th{color:#566e7d}.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8eef4;font-size:11px;font-weight:700}.open{background:#e7f2ff;color:#19517a}.progress{background:#fff0d7;color:#805300}.resolved{background:#def7e7;color:#126238}
+.timeline{border-left:2px solid #c9dbe5;padding-left:14px;margin:10px 0}.event{padding:7px 0}.event small{display:block;color:#627786}
+#notice{min-height:22px;color:#16643b;font-weight:700}footer{text-align:center;font-size:12px;color:#657c89;padding:20px}
+[hidden]{display:none!important}
+@media(max-width:700px){.grid,.stats{grid-template-columns:1fr 1fr}.panel{padding:14px}th,td{min-width:110px}}
+@media(max-width:440px){.grid,.stats{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><div><img src="aarohan_logo.svg" alt=""> <strong>AAROHAN AI WORLD</strong> · Support Centre</div><a href="index.html">Back to website</a></header>
+<main>
+<h1>Customer Support Centre</h1>
+<p class="muted">Ticket intake, tracking and service operations — interactive product preview.</p>
+<div class="banner"><strong>Prototype — not a live support service.</strong> All records are saved only in this browser, not sent to AAROHAN or stored in a cloud database. This page has no authentication or private admin access. Use fictional demo details only; do not enter real customer information, credentials, payment details or sensitive files. Clearing browser data may erase records.</div>
+<div class="tabs" role="tablist" aria-label="Support centre sections">
+<button type="button" data-tab="new" role="tab" aria-selected="true">Raise a ticket</button>
+<button type="button" data-tab="track" role="tab" aria-selected="false">Track a ticket</button>
+<button type="button" data-tab="desk" role="tab" aria-selected="false">Support desk preview</button>
+</div>
+<div id="notice" role="status" aria-live="polite"></div>
+<section id="new" class="panel" role="tabpanel">
+<h2>Submit a demo support request</h2>
+<form id="ticketForm"><div class="grid">
+<label>Demo contact name<input name="name" required maxlength="80" placeholder="Example Customer"></label>
+<label>Demo contact reference<input name="contact" maxlength="100" placeholder="Demo reference (not a real email)"></label>
+<label>Service<select name="service" required><option value="">Select service</option><option>AI Voice Agent</option><option>WhatsApp Automation</option><option>AI Chatbot</option><option>CRM & Dashboard</option><option>Website & SEO</option><option>Billing Software</option><option>Pharma QA Tools</option><option>Other</option></select></label>
+<label>Issue category<select name="category"><option>Technical issue</option><option>Setup request</option><option>Billing question</option><option>Feature request</option><option>Other</option></select></label>
+<label>Priority<select name="priority"><option>Normal</option><option>High</option><option>Low</option></select></label>
+<label>Subject<input name="subject" required maxlength="140" placeholder="Brief issue summary"></label>
+<label class="wide">Description<textarea name="details" required maxlength="3000" placeholder="Describe the issue using fictional demo information"></textarea></label>
+</div><p class="muted">Attachment upload will be enabled only after secure storage and permissions are configured.</p>
+<button type="submit">Create demo ticket</button></form>
+</section>
+<section id="track" class="panel" role="tabpanel" hidden>
+<h2>Track a demo ticket</h2>
+<label>Ticket reference<input id="lookup" placeholder="e.g. AAR-2026-XXXXXX"></label>
+<button id="lookupBtn" type="button">Find ticket</button>
+<div id="tracking"></div>
+<p class="muted">For the preview, a ticket is available only in the same browser where it was created. A real customer portal will require verified identity and server-side authorization.</p>
+</section>
+<section id="desk" class="panel" role="tabpanel" hidden>
+<h2>Support desk preview</h2>
+<p class="muted">Demo workspace only. This is not a protected admin dashboard. Real customer tickets must never be exposed here without authentication and row-level authorization.</p>
+<div class="stats" id="stats"></div>
+<div class="grid">
+<label>Filter by status<select id="filter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Waiting for Customer</option><option>Resolved</option><option>Closed</option></select></label>
+<label>Search tickets<input id="search" type="search" placeholder="ID, service, subject"></label>
+</div>
+<button class="alt" type="button" id="export">Export demo JSON</button>
+<button class="alt" type="button" id="seed">Add sample ticket</button>
+<div class="scroll"><table><thead><tr><th>Ticket</th><th>Subject</th><th>Service</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div id="editor" hidden class="panel" style="background:#f5f9fc"></div>
+</section>
+</main>
+<footer>© 2026 AAROHAN AI WORLD · Prototype for review only</footer>
+<script>
+(()=>{'use strict';
+const KEY='aarohan-support-preview-v1',STATUSES=['Open','In Progress','Waiting for Customer','Resolved','Closed'];
+const $=id=>document.getElementById(id);
+let tickets=[];
+try{const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(saved))tickets=saved.filter(x=>x&&typeof x.id==='string'&&Array.isArray(x.history)).slice(0,2000)}catch(_){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(tickets));return true}catch(_){alert('Browser storage is unavailable. Export your demo data.');return false}}
+function node(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=String(txt);if(cls)n.className=cls;return n}
+function stamp(){return new Date().toISOString()}
+function id(){const bytes=new Uint8Array(5);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(bytes);else for(let i=0;i<5;i++)bytes[i]=Math.floor(Math.random()*256);return 'AAR-'+new Date().getFullYear()+'-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('').toUpperCase()}
+function notify(s){$('notice').textContent=s;window.scrollTo({top:0,behavior:'smooth'})}
+function switchTab(tab){for(const b of document.querySelectorAll('[data-tab]')){const on=b.dataset.tab===tab;b.setAttribute('aria-selected',String(on));$(b.dataset.tab).hidden=!on}if(tab==='desk')render()}
+for(const b of document.querySelectorAll('[data-tab]'))b.addEventListener('click',()=>switchTab(b.dataset.tab));
+$('ticketForm').addEventListener('submit',e=>{e.preventDefault();const data=new FormData(e.target);let ref=id();while(tickets.some(t=>t.id===ref))ref=id();const t={id:ref,name:String(data.get('name')).trim(),contact:String(data.get('contact')).trim(),service:String(data.get('service')),category:String(data.get('category')),priority:String(data.get('priority')),subject:String(data.get('subject')).trim(),details:String(data.get('details')).trim(),status:'Open',created:stamp(),history:[{at:stamp(),action:'Ticket created',note:'Demo request logged'}]};if(!t.name||!t.subject||!t.details||!t.service)return;tickets.unshift(t);if(!save())return;e.target.reset();$('lookup').value=t.id;switchTab('track');showTicket(t);notify('Demo ticket created: '+t.id+'. Keep this reference for tracking in this browser.')});
+function detail(t,allowEdit){const wrap=node('div');wrap.append(node('h3',t.id+' · '+t.subject));wrap.append(node('p','Status: '+t.status+' | Priority: '+t.priority+' | Service: '+t.service));wrap.append(node('p','Category: '+t.category+' | Created: '+new Date(t.created).toLocaleString()));wrap.append(node('p',t.details));wrap.append(node('h3','Activity history'));const history=node('div',undefined,'timeline');for(const h of t.history){const ev=node('div',undefined,'event');ev.append(node('strong',h.action));ev.append(node('small',new Date(h.at).toLocaleString()));if(h.note)ev.append(node('div',h.note));history.append(ev)}wrap.append(history);if(allowEdit){const form=node('form');const label=node('label','Update status');const select=node('select');for(const s of STATUSES){const o=node('option',s);o.value=s;select.append(o)}select.value=t.status;label.append(select);form.append(label);const comment=node('label','Internal demo note');const textarea=node('textarea');textarea.maxLength=800;textarea.placeholder='Demo update note';comment.append(textarea);form.append(comment);const btn=node('button','Save status update');btn.type='submit';form.append(btn);form.addEventListener('submit',e=>{e.preventDefault();const next=select.value,note=textarea.value.trim();if(next===t.status&&!note)return;const before=t.status;t.status=next;t.history.push({at:stamp(),action:before===next?'Note added':'Status: '+before+' → '+next,note});if(save()){render();notify('Demo ticket updated.')}});wrap.append(form)}return wrap}
+function showTicket(t){$('tracking').replaceChildren(t?detail(t,false):node('p','No matching ticket found in this browser.'))}
+$('lookupBtn').addEventListener('click',()=>showTicket(tickets.find(t=>t.id.toUpperCase()===$('lookup').value.trim().toUpperCase())));
+$('lookup').addEventListener('keydown',e=>{if(e.key==='Enter'){$('lookupBtn').click()}});
+function render(){const counts=[['Total',tickets.length],['Open',tickets.filter(t=>t.status==='Open').length],['In Progress',tickets.filter(t=>t.status==='In Progress').length],['Resolved',tickets.filter(t=>t.status==='Resolved').length]];$('stats').replaceChildren(...counts.map(([k,v])=>{const el=node('div',undefined,'stat');el.append(node('small',k),node('b',v));return el}));const filter=$('filter').value,q=$('search').value.toLowerCase();const rows=$('rows');rows.replaceChildren();for(const t of tickets.filter(t=>(!filter||t.status===filter)&&[t.id,t.subject,t.service,t.name].join(' ').toLowerCase().includes(q))){const tr=node('tr');for(const val of [t.id,t.subject,t.service,t.priority])tr.append(node('td',val));const td=node('td');td.append(node('span',t.status,'pill '+(t.status==='Open'?'open':t.status==='Resolved'?'resolved':'progress')));tr.append(td);const action=node('td');const b=node('button','View / update');b.type='button';b.addEventListener('click',()=>{$('editor').hidden=false;$('editor').replaceChildren(detail(t,true));$('editor').scrollIntoView({behavior:'smooth',block:'nearest'})});action.append(b);tr.append(action);rows.append(tr)}if(!rows.children.length){const tr=node('tr'),td=node('td','No matching demo tickets');td.colSpan=6;tr.append(td);rows.append(tr)}}
+$('filter').addEventListener('change',render);$('search').addEventListener('input',render);
+$('seed').addEventListener('click',()=>{let ref=id();while(tickets.some(t=>t.id===ref))ref=id();tickets.unshift({id:ref,name:'Example Customer',contact:'DEMO-001',service:'AI Voice Agent',category:'Technical issue',priority:'Normal',subject:'Demo voice assistant response issue',details:'Fictional example: the assistant needs a revised greeting.',status:'Open',created:stamp(),history:[{at:stamp(),action:'Ticket created',note:'Sample record'}]});save();render()});
+$('export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(tickets,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='aarohan-support-demo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+render();
+})();
+</script>
+</body></html>
