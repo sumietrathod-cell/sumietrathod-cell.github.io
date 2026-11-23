@@ -1,6 +1,7 @@
 -- Durable queue foundation. Apply after schema.sql and rls-policies.sql in staging.
 -- This SQL only claims eligible jobs; it does not call any provider and is not a complete worker.
--- Do not schedule it until stale-lock recovery, provider dispatch, callbacks and integration tests exist.
+-- Do not schedule it until provider dispatch, callbacks and integration tests exist.
+-- A fail-closed stale-claim quarantine below does NOT retry or send any contact.
 
 create table if not exists public.campaign_jobs (
   id uuid primary key default gen_random_uuid(),
@@ -150,3 +151,65 @@ grant execute on function public.claim_due_campaign_jobs(integer, text) to servi
 -- Before dispatch, a future worker MUST repeat eligibility checks immediately before the call/send
 -- and apply country-specific regulatory, provider, quiet-hour and platform requirements.
 -- This SQL gate is a baseline, not a legal-compliance engine.
+
+-- SAFETY: An abandoned processing claim might have reached a provider before
+-- its worker crashed. Automatically requeueing it could send a duplicate.
+-- Quarantine old claims into a terminal FAILED state for manual reconciliation.
+-- This routine NEVER sends, retries, requeues, or modifies customer permissions.
+-- Call only from a privileged, reviewed backend maintenance workflow.
+create index if not exists idx_campaign_jobs_stale_claim
+  on public.campaign_jobs (locked_at, id)
+  where status = 'processing';
+
+create or replace function public.quarantine_stale_campaign_jobs(
+  p_stale_after_minutes integer default 30,
+  p_batch_size integer default 100
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $quarantine$
+declare
+  affected integer := 0;
+begin
+  if p_stale_after_minutes is null or p_stale_after_minutes < 15
+      or p_stale_after_minutes > 1440 then
+    raise exception 'stale interval must be between 15 and 1440 minutes';
+  end if;
+  if p_batch_size is null or p_batch_size < 1 or p_batch_size > 100 then
+    raise exception 'batch size must be between 1 and 100';
+  end if;
+  with candidates as (
+    select j.id
+    from public.campaign_jobs j
+    where j.status = 'processing'
+      and j.locked_at is not null
+      and j.locked_at <= now() - make_interval(mins => p_stale_after_minutes)
+    order by j.locked_at, j.id
+    limit p_batch_size
+    for update of j skip locked
+  ), quarantined as (
+    update public.campaign_jobs j
+       set status = 'failed',
+           locked_at = null,
+           locked_by = null,
+           last_error_code = 'stale_claim_needs_manual_review',
+           updated_at = now()
+      from candidates c
+     where j.id = c.id and j.status = 'processing'
+    returning j.id
+  )
+  select count(*) into affected from quarantined;
+  return affected;
+end;
+$quarantine$;
+
+revoke all on function public.quarantine_stale_campaign_jobs(integer, integer)
+  from public, anon, authenticated;
+grant execute on function public.quarantine_stale_campaign_jobs(integer, integer)
+  to service_role;
+
+-- No automatic restart. A future operator must check the provider's delivery
+-- status and reconcile the audit before any explicitly reviewed new attempt.
+-- This is ONLY a safe quarantine building block, not a running scheduler.
