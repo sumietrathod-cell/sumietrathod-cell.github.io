@@ -203,6 +203,42 @@ async function main() {
     captured_by:USER_B,
   }),"viewer cannot grant outbound consent");
 
+  // The opt-out audit append must describe a real withdrawal backed by
+  // durable channel suppression. Authenticated operators have INSERT rights
+  // but deliberately lack SELECT rights on audit_events: avoid RETURNING.
+  const validAudit = {
+    organization_id: ORG_A, actor_user_id: USER_A,
+    event_type: "contact_permission_withdrawn", entity_type: "contact",
+    entity_id: CONTACT_A, details: { channel: "whatsapp", source: "campaign_manager_opt_out" },
+  };
+  const recorded = await api(alpha, "POST", "/audit_events", validAudit, "return=minimal");
+  checks("real opt-out audit append succeeds without exposing the audit table", () => {
+    assert.equal(recorded.status, 201,
+      "Authenticated insert-only audit failed: " + JSON.stringify(recorded.payload).slice(0,200));
+  });
+  blocked(await api(alpha,"POST","/audit_events",{
+    ...validAudit, entity_type: "campaign",
+  },"return=minimal"),"cannot forge a campaign event as a contact withdrawal");
+  blocked(await api(alpha,"POST","/audit_events",{
+    ...validAudit, actor_user_id: USER_B,
+  },"return=minimal"),"cannot attribute audit to someone else");
+  blocked(await api(alpha,"POST","/audit_events",{
+    ...validAudit, details: { channel: "voice", source: "campaign_manager_opt_out" },
+  },"return=minimal"),"cannot claim a withdrawal on an unsuppressed channel");
+  blocked(await api(alpha,"POST","/audit_events",{
+    ...validAudit, entity_id: CONTACT_B,
+  },"return=minimal"),"cannot audit a foreign tenant contact");
+  blocked(await api(alpha,"POST","/audit_events",{
+    ...validAudit, details: {
+      channel:"whatsapp",source:"campaign_manager_opt_out",extra:"unsanctioned"
+    },
+  },"return=minimal"),"cannot append unapproved audit payload");
+  blocked(await api(beta,"POST","/audit_events",{
+    organization_id:ORG_B, actor_user_id:USER_B,
+    event_type:"contact_permission_withdrawn",entity_type:"contact",
+    entity_id:CONTACT_B, details:{channel:"voice",source:"campaign_manager_opt_out"},
+  },"return=minimal"),"suppression alone cannot fabricate missing withdrawn permission");
+
   const finalPermissions=okResponse(await api(alpha, "GET",
     "/contact_channel_permissions?contact_id=eq."+CONTACT_A+"&select=permission_status"),"final permissions");
   checks("withdrawn permission persists",()=>{
