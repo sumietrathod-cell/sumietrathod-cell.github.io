@@ -15,7 +15,7 @@ test('non-GST billing is clearly identified before sign-in',()=>{
 });
 test('printed quote and invoice documents cannot imply GST collection',()=>{
   assert.match(script,/GST: Not charged or collected\. This document is not a GST tax invoice\./);
-  assert.match(script,/Service invoice draft/);
+  assert.match(script,/Commercial invoice draft/);
   assert.match(script,/Not a verified tax invoice/);
   assert.doesNotMatch(html,/<input\b[^>]*name="gst(?:in|_rate|_amount)"[^>]*>/i);
 });
