@@ -8,7 +8,7 @@ import { createHmac, webcrypto } from "node:crypto";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const source = readFileSync(new URL("../index.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
 const endpoint = "https://local.invalid/functions/v1/campaign-intake";
 const origin = "https://aarohanaiworld.com";
 const whatsappSecret = "ci-only-fake-meta-secret";
