@@ -71,6 +71,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Run `supabase/tests/queue-claim-eligibility.sql` **only in a designated non-production simulation**; it uses synthetic temporary tables and rolls back. Test uses the same staged claim implementation with temporary-schema names.
 - Recheck all these controls immediately before real provider dispatch. Explicit window still needs recipient-specific legal quiet-hour review.
 
+## Retry timing and duplicate-job prevention
+- A callback/no-answer enrollment with a missing or future `next_attempt_at` **cannot** be claimed, even when a separate job `available_at` is due.
+- A callback/no-answer that is explicitly due **can** be claimed if all other consent/window checks pass.
+- The real database unique partial index rejects two queued/processing jobs for the same enrollment, regardless of distinct idempotency keys; it blocks a queued insert while a job is processing and blocks concurrent active status transitions.
+- After a job is genuinely completed, the active index slot can be reused, but the dispatcher must still enforce max attempts, consent, quiet hours, deduplication against provider results, and manual stale-claim reconciliation.
+- CI uses real PostgreSQL for `supabase/tests/queue-active-uniqueness-ci.sql` and a 14-case temporary-table eligibility simulation; this remains separate from a genuine signed-in Supabase staging E2E test.
+
 ## Stale claim reconciliation tests
 - A processing job older than the configured timeout is quarantined as failed, never queued again automatically.
 - A fresh processing job, a queued job, a completed job, or a processing job without locked_at are not altered.
