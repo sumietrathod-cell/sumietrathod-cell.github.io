@@ -352,50 +352,23 @@ Deno.serve(async (req) => {
     if (!["voice", "whatsapp", "email"].includes(channel)) {
       return json({ error: "channel must be voice, whatsapp or email." }, 400);
     }
-    const { data: contact, error: contactError } = await supabase.from("contacts")
-      .select("id, organization_id, phone_e164")
-      .eq("id", contactId).single();
-    if (contactError || !contact) return json({ error: "Contact not found or access denied." }, 404);
-
-    const now = new Date().toISOString();
-    const { error: suppressionError } = await supabase.from("suppression_list").upsert({
-      organization_id: contact.organization_id,
-      contact_id: contact.id,
-      phone_e164: contact.phone_e164,
-      channel,
-      reason: reason || "contact_request",
-      source: "campaign_manager_opt_out",
-    }, { onConflict: "contact_id,channel", ignoreDuplicates: true });
-    if (suppressionError) return json({ error: "Could not save suppression. No success was recorded; retry or contact the workspace administrator." }, 403);
-
-    const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
-      organization_id: contact.organization_id,
-      contact_id: contact.id,
-      channel,
-      permission_status: "withdrawn",
-      evidence_reference: null,
-      captured_at: now,
-      captured_by: authData.user.id,
-    }, { onConflict: "contact_id,channel" });
-    if (permissionError) {
-      return json({ error: "Suppression was saved, but permission status update failed. The suppression record still blocks outreach; ask an administrator to reconcile this contact." }, 207);
+    // One authenticated PostgreSQL statement. All three writes share the same
+    // transaction under the caller's RLS role; no partial opt-out is possible.
+    const { data: optOut, error: optOutError } = await supabase
+      .rpc("record_campaign_contact_opt_out", {
+        p_contact_id: contactId,
+        p_channel: channel,
+        p_reason: reason || "contact_request",
+      });
+    if (optOutError || !optOut?.success) {
+      return json({
+        error: "Opt-out was not completed. No partial state was committed. Retry or contact an administrator.",
+      }, 403);
     }
-
-    const { error: auditError } = await supabase.from("audit_events").insert({
-      organization_id: contact.organization_id,
-      actor_user_id: authData.user.id,
-      event_type: "contact_permission_withdrawn",
-      entity_type: "contact",
-      entity_id: contact.id,
-      details: { channel, source: "campaign_manager_opt_out" },
-    });
     return json({
-      success: true,
-      suppressed: true,
-      permission_status: "withdrawn",
-      audit_recorded: !auditError,
-      note: auditError ? "Opt-out suppression is saved. Audit event could not be recorded; administrator review is required." : "This contact is suppressed for the selected channel. No further campaign messages or calls should be sent on this channel.",
-    }, auditError ? 207 : 200);
+      ...optOut,
+      note: "Channel suppression, withdrawn preference and audit were recorded in one database transaction. No messages or calls were sent.",
+    });
   }
 
   // CSV import is limited to draft campaigns and never starts outreach.
