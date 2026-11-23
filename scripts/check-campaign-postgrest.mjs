@@ -246,6 +246,54 @@ async function main() {
     assert.equal(finalPermissions[0].permission_status,"withdrawn");
   });
 
+  const atomicOptout = okResponse(await api(alpha, "POST",
+    "/rpc/record_campaign_contact_opt_out", {
+      p_contact_id: "52000000-0000-4000-8000-000000000002",
+      p_channel: "whatsapp",
+      p_reason: "synthetic_atomic_withdrawal",
+    }), "atomic authenticated opt-out RPC");
+  checks("opt-out RPC commits suppression, permission, and audit together",()=>{
+    assert.equal(atomicOptout.success,true);
+    assert.equal(atomicOptout.suppressed,true);
+    assert.equal(atomicOptout.permission_status,"withdrawn");
+    assert.equal(atomicOptout.audit_recorded,true);
+  });
+  const afterAtomicSuppression = okResponse(await api(alpha, "GET",
+    "/suppression_list?contact_id=eq.52000000-0000-4000-8000-000000000002&select=channel,reason"),
+    "suppression after atomic RPC");
+  const afterAtomicPermission = okResponse(await api(alpha, "GET",
+    "/contact_channel_permissions?contact_id=eq.52000000-0000-4000-8000-000000000002&select=channel,permission_status"),
+    "permission after atomic RPC");
+  checks("new opt-out RPC wrote both durable records",()=>{
+    assert.equal(afterAtomicSuppression.length,1);
+    assert.equal(afterAtomicSuppression[0].reason,"synthetic_atomic_withdrawal");
+    assert.equal(afterAtomicPermission.length,1);
+    assert.equal(afterAtomicPermission[0].permission_status,"withdrawn");
+  });
+  const repeatedAtomic = okResponse(await api(alpha, "POST",
+    "/rpc/record_campaign_contact_opt_out", {
+      p_contact_id: "52000000-0000-4000-8000-000000000002",
+      p_channel: "whatsapp",
+      p_reason: "repeat_synthetic_request",
+    }), "idempotent authenticated opt-out RPC");
+  checks("repeat opt-out RPC reports success",()=>assert.equal(repeatedAtomic.audit_recorded,true));
+  const afterRetry = okResponse(await api(alpha, "GET",
+    "/suppression_list?contact_id=eq.52000000-0000-4000-8000-000000000002&select=reason"),
+    "suppression after atomic retry");
+  checks("retry does not rewrite original suppression",()=>{
+    assert.equal(afterRetry.length,1);
+    assert.equal(afterRetry[0].reason,"synthetic_atomic_withdrawal");
+  });
+  blocked(await api(beta,"POST","/rpc/record_campaign_contact_opt_out",{
+    p_contact_id: "52000000-0000-4000-8000-000000000002",
+    p_channel: "voice",
+    p_reason: "foreign_tenant",
+  }),"viewer cannot opt out a foreign tenant");
+  blocked(await api(null,"POST","/rpc/record_campaign_contact_opt_out",{
+    p_contact_id: "52000000-0000-4000-8000-000000000002",
+    p_channel: "voice",
+  }),"anon cannot invoke atomic opt-out");
+
   console.log("PASS: "+passed+" HTTP JWT/RLS assertions against disposable fictional PostgREST tenant database.");
   console.log("No customer data, real credentials, SMS, WhatsApp messages or calls used.");
 }
