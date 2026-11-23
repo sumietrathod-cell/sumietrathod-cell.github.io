@@ -22,6 +22,11 @@ function quotationId(){
 }
 let token='', historyRows=[], invoiceRows=[], retryId='', retryData='';
 let sessionEpoch=0, loginRequest=0;
+function sameQuotationItems(saved,submitted){
+ if(!Array.isArray(saved)||!Array.isArray(submitted)||saved.length!==submitted.length)return false;
+ return saved.every((line,i)=>line.service===submitted[i].service &&
+  line.qty===submitted[i].qty && line.paise===submitted[i].paise);
+}
 const current=(expectedToken,expectedEpoch)=>Boolean(expectedToken)&&token===expectedToken&&sessionEpoch===expectedEpoch;
 async function api(path, options={}, bearer=token){
  const res=await fetch(base+path,{...options,headers:{apikey:key,Authorization:'Bearer '+(bearer||key),'Content-Type':'application/json',...options.headers}});
@@ -48,6 +53,7 @@ $('login').onsubmit=async e=>{
  const form=e.target;
  const credentials=Object.fromEntries(new FormData(form));
  const expectedEpoch=sessionEpoch, request=++loginRequest;
+ let authenticatedEpoch=null, authenticatedToken='';
  form.querySelector('button').disabled=true;
  try{
   const auth=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify(credentials)},key);
@@ -55,13 +61,15 @@ $('login').onsubmit=async e=>{
   if(!auth?.access_token||auth.user?.app_metadata?.campaign_manager_role!=='admin'){
    throw Error('Campaign Manager admin access required.');
   }
-  token=auth.access_token;
-  const signedInEpoch=++sessionEpoch;
-  await refresh(token,signedInEpoch);
-  if(!current(auth.access_token,signedInEpoch))return;
+  token=authenticatedToken=auth.access_token;
+  authenticatedEpoch=++sessionEpoch;
+  await refresh(authenticatedToken,authenticatedEpoch);
+  if(!current(authenticatedToken,authenticatedEpoch))return;
   $('desk').hidden=false;form.hidden=true;$('msg').textContent='Signed in.';
  }catch(err){
-  if(expectedEpoch!==sessionEpoch||request!==loginRequest)return;
+  if(request!==loginRequest)return;
+  if(authenticatedEpoch===null ? expectedEpoch!==sessionEpoch :
+     !current(authenticatedToken,authenticatedEpoch))return;
   reset();$('msg').textContent=err.message;
  }finally{
   form.querySelector('button').disabled=false;
@@ -128,7 +136,7 @@ $('create').onsubmit=async e=>{
    [saved]=await api(table+'?id=eq.'+chosenId+'&select=id,customer,items,created_at',{},expectedToken);
   }
   if(!current(expectedToken,expectedEpoch))return;
-  if(!saved||saved.id!==chosenId||saved.customer!==customer||JSON.stringify(saved.items)!==JSON.stringify(items)){
+  if(!saved||saved.id!==chosenId||saved.customer!==customer||!sameQuotationItems(saved.items,items)){
    throw Error('Saved quotation did not match the submitted request.');
   }
   view(saved);
