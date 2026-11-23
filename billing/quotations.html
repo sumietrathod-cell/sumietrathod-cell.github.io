@@ -47,6 +47,12 @@ table{width:100%;border-collapse:collapse}
 #doc .doc-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:20px}
 #doc .doc-actions a{font-size:13px;overflow-wrap:anywhere;color:#176d52}
 #doc .doc-actions button{font-size:13px}
+#overview .overview-note{font-size:12px;color:#5b6b70;margin:8px 0 12px}
+#overview .overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px}
+#overview .overview-stat{padding:16px 14px;border:1px solid #dce9e2;border-radius:12px;background:#f5faf7}
+#overview .overview-stat strong{display:block;font-size:22px;color:#174c3f;overflow-wrap:anywhere}
+#overview .overview-stat small{color:#526970;font-weight:600;font-size:12px}
+#overview .overview-risk{font-size:12px;color:#4e625f;border-left:3px solid #c6a96b;padding:8px 12px;background:#fcfbf6;margin-top:12px}
 @media(max-width:550px){body{padding:12px 10px 35px}section,article,#login{padding:16px}#doc .letterhead{padding:17px 16px;gap:11px}#doc .letterhead-logo{width:54px;height:54px}#doc .letterhead-brand{font-size:18px}#doc .doc-body{padding:17px 14px}#doc .doc-top h2{font-size:19px}#doc .invoice-table{font-size:11px}#doc .invoice-table th,#doc .invoice-table td{padding:7px 4px}}
 @page{size:A4;margin:12mm}
 @media print{
@@ -63,9 +69,10 @@ table{width:100%;border-collapse:collapse}
 <header><div class="subtitle">AAROHAN AI WORLD · Billing Desk</div><h1>Non-GST Quotations &amp; Invoices</h1></header>
 <p role="note">Non-GST billing workspace. GST is not charged or collected. Quotations and commercial invoice drafts are NOT GST tax invoices. This page does not verify GST registration, seller identity, payments or tax requirements; review business details and documents before providing them to customers.</p>
 <form id="login"><label>Email <input name="email" type="email" autocomplete="username" required></label><label>Password <input name="password" type="password" autocomplete="current-password" required></label><button>Admin sign in</button></form>
-<main hidden id="desk"><button id="logout">Sign out</button><section class="profile-note"><strong>Company registration reference</strong><small>Udyam Registration No.: UDYAM-GJ-01-0013783 (provided by business owner; not independently verified). Udyam is not a GSTIN. GST remains not charged.</small></section><section><h2>New quotation</h2><form id="create"><label>Customer <input name="customer" required maxlength="160"></label><div id="lines"></div><datalist id="service-catalog"><option value="AI Voice Agent &amp; Receptionist"></option><option value="WhatsApp Business Automation"></option><option value="AI Chatbot &amp; Customer Support"></option><option value="CRM &amp; Lead Management"></option><option value="Power BI &amp; Excel Dashboard"></option><option value="Website &amp; E-Commerce Catalogue"></option><option value="SEO &amp; Digital Marketing"></option><option value="Quotation &amp; Invoice Software Setup"></option><option value="AI Campaign Automation"></option><option value="Pharma QA Data Analytics"></option><option value="Remote AI Agent Management"></option><option value="Website Maintenance &amp; Support"></option></datalist><button type="button" id="add">Add service</button> <button>Save quotation</button></form></section><section><h2>Latest 100 quotations</h2><select id="history" aria-label="Saved quotations"></select> <button id="open">Open</button></section><section><h2>Latest 100 invoices</h2><select id="invoices" aria-label="Saved invoices"></select> <button id="openInvoice">Open invoice</button></section></main><p role="status" id="msg"></p><article id="doc" hidden></article>
+<main hidden id="desk"><button id="logout">Sign out</button><section class="profile-note"><strong>Company registration reference</strong><small>Udyam Registration No.: UDYAM-GJ-01-0013783 (provided by business owner; not independently verified). Udyam is not a GSTIN. GST remains not charged.</small></section><section id="overview" aria-labelledby="overview-heading"><h2 id="overview-heading">Billing overview</h2><p class="overview-note">Read-only snapshot of the latest 100 saved quotations and latest 100 invoice drafts. These are document values, not revenue or received payments.</p><div class="overview-grid"><div class="overview-stat"><small>Recent quotations</small><strong id="recent-quote-count">0</strong></div><div class="overview-stat"><small>Quoted face value</small><strong id="recent-quote-value">₹0.00</strong></div><div class="overview-stat"><small>Recent invoice drafts</small><strong id="recent-invoice-count">0</strong></div><div class="overview-stat"><small>Invoice draft face value</small><strong id="recent-invoice-value">₹0.00</strong></div></div><p id="overview-warning" class="overview-risk" role="status">Payment verification is not connected. Check Razorpay separately; do not treat invoice drafts as paid.</p><button type="button" id="refreshOverview">Refresh overview</button></section><section><h2>New quotation</h2><form id="create"><label>Customer <input name="customer" required maxlength="160"></label><div id="lines"></div><datalist id="service-catalog"><option value="AI Voice Agent &amp; Receptionist"></option><option value="WhatsApp Business Automation"></option><option value="AI Chatbot &amp; Customer Support"></option><option value="CRM &amp; Lead Management"></option><option value="Power BI &amp; Excel Dashboard"></option><option value="Website &amp; E-Commerce Catalogue"></option><option value="SEO &amp; Digital Marketing"></option><option value="Quotation &amp; Invoice Software Setup"></option><option value="AI Campaign Automation"></option><option value="Pharma QA Data Analytics"></option><option value="Remote AI Agent Management"></option><option value="Website Maintenance &amp; Support"></option></datalist><button type="button" id="add">Add service</button> <button>Save quotation</button></form></section><section><h2>Latest 100 quotations</h2><select id="history" aria-label="Saved quotations"></select> <button id="open">Open</button></section><section><h2>Latest 100 invoices</h2><select id="invoices" aria-label="Saved invoices"></select> <button id="openInvoice">Open invoice</button></section></main><p role="status" id="msg"></p><article id="doc" hidden></article>
 <script type="module">
 import {buildItems,totalPaise,formatINR} from './amounts.mjs';
+import {summarizeRecentBilling} from './overview.mjs';
 const base='https://zvrdbekyqbwrztckvkpw.supabase.co', key='sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI';
 const $=id=>document.getElementById(id);
 function replaceContents(element,...children){
@@ -99,6 +106,17 @@ async function api(path, options={}, bearer=token){
  const t=await res.text();return t?JSON.parse(t):null;
 }
 const table='/rest/v1/billing_quotations';
+function renderOverview(){
+ const summary=summarizeRecentBilling(historyRows,invoiceRows);
+ $('recent-quote-count').textContent=String(summary.quotationCount);
+ $('recent-quote-value').textContent=summary.quotationFaceValue??'Unavailable';
+ $('recent-invoice-count').textContent=String(summary.invoiceDraftCount);
+ $('recent-invoice-value').textContent=summary.invoiceDraftFaceValue??'Unavailable';
+ let note='Payments: '+summary.paymentStatus+'. Receipts: '+summary.receiptStatus+'. No figures here represent confirmed revenue.';
+ if(summary.quotationListLimitReached||summary.invoiceListLimitReached) note+=' At least one list has reached the 100-record limit; values shown are only a recent snapshot.';
+ if(summary.incompleteValues) note+=' Some document values could not be calculated safely.';
+ $('overview-warning').textContent=note;
+}
 async function refresh(expectedToken=token,expectedEpoch=sessionEpoch){
  if(!current(expectedToken,expectedEpoch))return;
  const newHistory=await api(table+'?select=id,customer,items,created_at&order=created_at.desc,id.desc&limit=100',{},expectedToken);
@@ -107,12 +125,13 @@ async function refresh(expectedToken=token,expectedEpoch=sessionEpoch){
  if(!current(expectedToken,expectedEpoch))return;
  historyRows=newHistory;
  invoiceRows=newInvoices;
+ renderOverview();
  replaceContents($('history'),...historyRows.map((r,i)=>new Option(r.customer+' · '+r.created_at.slice(0,10)+' · '+r.id.slice(0,8),i)));
  replaceContents($('invoices'),...invoiceRows.map((r,i)=>new Option(r.billing_quotations.customer+' · '+r.issued_at.slice(0,10)+' · '+r.id.slice(0,8),i)));
  $('open').disabled=!historyRows.length;
  $('openInvoice').disabled=!invoiceRows.length;
 }
-function reset(){sessionEpoch++;loginRequest++;pendingLoginRequest=null;clearTimeout(expires);expires=null;token='';historyRows=[];invoiceRows=[];replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('desk').hidden=true;$('login').hidden=false;$('login').querySelector('button').disabled=false;$('login').querySelector('[name=password]').value='';$('create').reset();replaceContents($('lines'));addLine()}
+function reset(){sessionEpoch++;loginRequest++;pendingLoginRequest=null;clearTimeout(expires);expires=null;token='';historyRows=[];invoiceRows=[];renderOverview();replaceContents($('invoices'));retryId='';retryData='';replaceContents($('history'));replaceContents($('doc'));$('doc').hidden=true;$('desk').hidden=true;$('login').hidden=false;$('login').querySelector('button').disabled=false;$('login').querySelector('[name=password]').value='';$('create').reset();replaceContents($('lines'));addLine()}
 $('login').onsubmit=async e=>{
  e.preventDefault();
  const form=e.target;
@@ -154,6 +173,16 @@ $('login').onsubmit=async e=>{
    form.querySelector('[name=password]').value='';
   }
  }
+};
+$('refreshOverview').onclick=async()=>{
+ if(!token)return;
+ const expectedToken=token,expectedEpoch=sessionEpoch;
+ const button=$('refreshOverview');button.disabled=true;
+ try{
+  await refresh(expectedToken,expectedEpoch);
+  if(current(expectedToken,expectedEpoch))$('msg').textContent='Billing overview refreshed.';
+ }catch(err){if(current(expectedToken,expectedEpoch))$('msg').textContent=err.message}
+ finally{button.disabled=false}
 };
 $('logout').onclick=async()=>{
  const previousToken=token;
