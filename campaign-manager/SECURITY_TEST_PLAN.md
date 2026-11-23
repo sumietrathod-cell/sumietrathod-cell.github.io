@@ -15,6 +15,15 @@ Do not run against production data. Use a fresh Supabase staging project and two
 
 The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 service; no Supabase/project secrets or real contacts are used. It runs the actual schema, RLS policies and queue SQL with Auth helper emulation, then all four rollback-only SQL test suites in `supabase/tests/`. The test roles use synthetic Auth UUIDs; failures stop CI. This is stronger than syntax checks but **not** a substitute for actual signed-in Supabase / REST / Edge Function tests with two separate customer tenants.
 
+## Authenticated opt-out audit integrity
+
+- An authenticated audit append must be allowed only after recorded permission status is `withdrawn` and a matching `campaign_manager_opt_out` suppression exists in the same organization for the same contact and channel.
+- A contact opt-out event may only name its actual actor, `entity_type='contact'`, `event_type='contact_permission_withdrawn'`, and `details={channel,source}` using an approved channel/source. Other tenant, false entity type, unsuppressed channel, forged actor and extra keys must all fail.
+- Appending the event should succeed **without a SELECT/RETURNING projection**; ordinary members cannot read `audit_events`. Test persisted row counts after restoring trusted CI database role, not via client RLS.
+- Verify with `tenant-audit-integrity-ci.sql` and the HTTP JWT checks in `scripts/check-campaign-postgrest.mjs`. A valid audit still does **not** prove the underlying consent claim was independently verified.
+- Readiness polling must not interpret `503 PGRST002` (schema cache initializing) as successful HTTP startup. Follow the explicit status-based retry logic in CI.
+
+
 ## Disposable PostgREST JWT + RLS HTTP test (completed in CI)
 
 - Spin up a disposable PostgreSQL 17 service plus pinned PostgREST 14.18; generate a unique test-only HMAC secret each run, never use a production token or service role in the HTTP client.
