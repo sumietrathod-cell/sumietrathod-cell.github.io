@@ -8,6 +8,7 @@ on:
       - "campaign-manager-dashboard.html"
       - "scripts/check-campaign-dashboard.mjs"
       - "scripts/check-campaign-permissions.mjs"
+      - "scripts/check-campaign-queue.mjs"
       - ".github/workflows/campaign-manager-check.yml"
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - "campaign-manager-dashboard.html"
       - "scripts/check-campaign-dashboard.mjs"
       - "scripts/check-campaign-permissions.mjs"
+      - "scripts/check-campaign-queue.mjs"
       - ".github/workflows/campaign-manager-check.yml"
 
 jobs:
@@ -43,3 +45,5 @@ jobs:
         run: node scripts/check-campaign-dashboard.mjs
       - name: Check permission RLS and immutable opt-outs
         run: node --test scripts/check-campaign-permissions.mjs
+      - name: Check stale-claim quarantine does not automatically resend
+        run: node --test scripts/check-campaign-queue.mjs
