@@ -18,7 +18,7 @@ CREATE TEMP TABLE synthetic_campaigns (
 );
 CREATE TEMP TABLE synthetic_campaign_contacts (
  id uuid primary key, organization_id uuid not null, campaign_id uuid not null,
- contact_id uuid not null, status text not null, attempts integer not null default 0
+ contact_id uuid not null, status text not null, attempts integer not null default 0, next_attempt_at timestamptz
 );
 CREATE TEMP TABLE synthetic_contacts (
  id uuid primary key, organization_id uuid not null, phone_e164 text
@@ -74,6 +74,13 @@ begin
       and c.dry_run = false
       and c.channel in ('voice', 'whatsapp')
       and cc.status in ('queued', 'callback', 'no_answer')
+      -- First contact can be unscheduled; retries/callbacks must have an
+      -- explicit due time. A future callback can never be claimed early.
+      and (
+        (cc.status = 'queued' and (cc.next_attempt_at is null or cc.next_attempt_at <= now()))
+        or (cc.status in ('callback', 'no_answer')
+            and cc.next_attempt_at is not null and cc.next_attempt_at <= now())
+      )
       and cc.attempts < c.max_attempts
       and j.attempts < c.max_attempts
       and ct.phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
@@ -145,7 +152,10 @@ DECLARE
     'attempt_cap',
     'empty_evidence',
     'missing_captured_at',
-    'missing_permission'
+    'missing_permission',
+    'callback_future',
+    'callback_missing_due',
+    'callback_due'
   ];
 BEGIN
   FOR k IN 1..array_length(case_names,1) LOOP
@@ -165,8 +175,14 @@ BEGIN
     INSERT INTO pg_temp.synthetic_contacts(id, organization_id, phone_e164)
       VALUES(contact_id, org_id, ('+9198765432'||lpad(k::text,2,'0')));
     INSERT INTO pg_temp.synthetic_campaign_contacts(
-      id, organization_id, campaign_id, contact_id, status, attempts
-    ) VALUES(enrollment_id,org_id,camp_id,contact_id,'queued',0);
+      id, organization_id, campaign_id, contact_id, status, attempts, next_attempt_at
+    ) VALUES(
+      enrollment_id,org_id,camp_id,contact_id,
+      CASE WHEN k IN (12,13,14) THEN 'callback' ELSE 'queued' END,0,
+      CASE WHEN k=12 THEN now()+interval '1 hour'
+           WHEN k=14 THEN now()-interval '1 minute'
+           ELSE NULL END
+    );
     INSERT INTO pg_temp.synthetic_jobs(
       id,organization_id,campaign_contact_id,idempotency_key,status,
       available_at,created_at,attempts,case_name
@@ -194,19 +210,19 @@ BEGIN
 
   SELECT count(*) INTO count_claimed
   FROM pg_temp.claim_due_campaign_jobs_test(100,'synthetic-test-worker');
-  IF count_claimed <> 1 THEN
-    RAISE EXCEPTION 'FAIL: expected one eligible queue claim, got %',count_claimed;
+  IF count_claimed <> 2 THEN
+    RAISE EXCEPTION 'FAIL: expected two eligible queue claims, got %',count_claimed;
   END IF;
   IF NOT EXISTS(
     SELECT 1 FROM pg_temp.synthetic_jobs
-    WHERE case_name='eligible' AND status='processing'
+    WHERE case_name IN ('eligible','callback_due') AND status='processing'
       AND attempts=1 AND locked_by='synthetic-test-worker'
   ) THEN
     RAISE EXCEPTION 'FAIL: valid consent and window did not claim';
   END IF;
   IF EXISTS(
     SELECT 1 FROM pg_temp.synthetic_jobs
-    WHERE case_name<>'eligible' AND (status<>'queued' OR locked_at IS NOT NULL)
+    WHERE case_name NOT IN ('eligible','callback_due') AND (status<>'queued' OR locked_at IS NOT NULL)
   ) THEN
     RAISE EXCEPTION 'FAIL: forbidden job claimed';
   END IF;
@@ -217,5 +233,5 @@ BEGIN
   END IF;
   RAISE NOTICE 'PASS: explicit window, consent proof, suppression and attempts verified';
 END $test$;
-SELECT 'PASS: 11 temporary jobs, 1 eligible, no contacts sent, rollback' AS verdict;
+SELECT 'PASS: 14 temporary jobs, 2 eligible, no contacts sent, rollback' AS verdict;
 ROLLBACK;
