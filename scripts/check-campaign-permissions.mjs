@@ -138,3 +138,21 @@ test('client opt-out audit log entries must reflect real same-tenant withdrawn c
   assert.match(ci,/eight invalid opt-out audit claims rejected/i);
   assert.match(ci,/ROLLBACK;\s*$/i);
 });
+
+test('a later CSV withdrawal must win over earlier unknown and failed rows must not poison deduplication', () => {
+  const api = readFileSync(new URL('../supabase/functions/campaign-api/index.ts', import.meta.url), 'utf8');
+  const helper = readFileSync(new URL('../supabase/functions/campaign-api/csv-import-policy.ts', import.meta.url), 'utf8');
+  assert.match(api, /import \{ validWithdrawalPhones \} from "\.\/csv-import-policy\.ts"/);
+  assert.match(api, /const withdrawnPhones = validWithdrawalPhones\(rows, index\)/);
+  assert.match(api, /consentStatus !== "withdrawn" && withdrawnPhones\.has\(phone\)/);
+  assert.match(helper, /get\(row, "consent_status"\)\.toLowerCase\(\) !== "withdrawn"/);
+  const early = api.indexOf('if (seen.has(phone))');
+  const marked = api.indexOf('seen.add(phone)', early);
+  const successful = api.indexOf('result.imported++', early);
+  assert.ok(early >= 0 && successful > early && marked > early && marked < successful,
+    'Mark a number as imported only after all writes succeed');
+  assert.ok(api.slice(early, marked).includes('if (enrollError)'),
+    'Enrollment errors must not mark a number as imported');
+  assert.ok(api.slice(early, marked).includes('consentStatus === "granted"'),
+    'Rejected fabricated grants must not block valid later rows');
+});
