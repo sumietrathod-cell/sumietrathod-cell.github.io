@@ -77,3 +77,12 @@ assert.match(listSource,/finally\{if\(active\(\)\)button\.disabled=false\}/,
   'Stale request must not alter new session button state');
 assert.doesNotMatch(listSource,/request!==listRequest\|\|user\?\.id!==accountId/,
   'Actor-only list guard is insufficient after a same-user session refresh');
+
+// Mutation account-switch regression: stale completion must not re-enable a
+// control belonging to the newly authenticated session (even same user ID).
+const createSource=js.slice(js.indexOf("$('createForm').addEventListener('submit'"),js.indexOf('function renderTickets()'));
+assert.match(createSource,/finally\{if\(active\(\)\)button\.disabled=false\}/,'Create submit must guard stale finally completion');
+const ownerSource=js.slice(js.indexOf("form.addEventListener('submit',async e=>"),js.indexOf('box.append(form)'));
+assert.match(ownerSource,/finally\{if\(active\(\)\)save\.disabled=false\}/,'Owner update must guard stale finally completion');
+const replySource=js.slice(js.indexOf("replyForm.addEventListener('submit',async e=>"),js.indexOf('box.append(replyForm)'));
+assert.match(replySource,/finally\{if\(active\(\)\)replyButton\.disabled=false\}/,'Customer reply must guard stale finally completion');
