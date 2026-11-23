@@ -78,6 +78,15 @@ assert.match(listSource,/finally\{if\(active\(\)\)button\.disabled=false\}/,
 assert.doesNotMatch(listSource,/request!==listRequest\|\|user\?\.id!==accountId/,
   'Actor-only list guard is insufficient after a same-user session refresh');
 
+// Pagination concurrency regression: repeated Load more actions must not race
+// on the same server offset, while Refresh can supersede an in-flight page.
+assert.match(listSource,/if\(!reset&&\$\('loadMore'\)\.disabled\)return;/,
+  'Reject duplicate Load more while a request is in flight');
+assert.match(listSource,/const request=\+\+listRequest;/,
+  'Refresh must still invalidate and supersede an older page request');
+assert.match(listSource,/finally\{if\(active\(\)\)button\.disabled=false\}/,
+  'Only the active page request may re-enable pagination');
+
 // Mutation account-switch regression: stale completion must not re-enable a
 // control belonging to the newly authenticated session (even same user ID).
 const createSource=js.slice(js.indexOf("$('createForm').addEventListener('submit'"),js.indexOf('function renderTickets()'));
