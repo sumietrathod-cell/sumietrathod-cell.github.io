@@ -264,6 +264,7 @@ let savingLeads = false;
 const more = document.querySelector('#more');
 const exportLeadsButton = document.querySelector('#export-leads');
 let accessToken;
+let loginRequestId = 0;
 let expires;
 let offset = 0;
 const searchForm=document.getElementById('find-leads');
@@ -476,6 +477,9 @@ async function downloadLeadsCsv() {
 exportLeadsButton.addEventListener('click', downloadLeadsCsv);
 
 function clearSession() {
+  // Invalidate any outstanding sign-in before clearing the UI. A slow
+  // authenticated fetch must never reopen private CRM data after logout.
+  loginRequestId++;
   leadFilter='';searchForm.reset();
   clearTimeout(expires);
   accessToken = undefined;
@@ -522,6 +526,7 @@ function clearSession() {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  const loginAttempt = ++loginRequestId;
   submit.disabled = true;
   message.textContent = '';
   let session;
@@ -531,11 +536,14 @@ form.addEventListener('submit', async event => {
       body: JSON.stringify({ email: form.elements.email.value.trim(), password: password.value }),
     });
     password.value = '';
+    if (loginAttempt !== loginRequestId) return;
+    if (!session?.access_token || !session?.user?.id) throw new Error('Incomplete authentication response');
     accessToken = session.access_token;
     const admin = session.user?.app_metadata?.campaign_manager_role === 'admin';
     adminSession = admin;
     if (!admin) {
       const profiles = await request('/rest/v1/partners?select=name,commission_rate&limit=1');
+      if (loginAttempt !== loginRequestId || accessToken !== session.access_token) return;
       if (!profiles.length) {
         message.textContent = 'Your account does not have Campaign Manager access.';
         await request('/auth/v1/logout', { method: 'POST' }).catch(() => {});
@@ -550,6 +558,7 @@ form.addEventListener('submit', async event => {
       refreshPartnerTotals();
     }
     await loadLeads();
+    if (loginAttempt !== loginRequestId || accessToken !== session.access_token) return;
     roleHeading.textContent = admin ? 'Admin dashboard' : 'Partner dashboard';
     form.hidden = true;
     recoveryOptions.hidden = true;
@@ -573,8 +582,12 @@ form.addEventListener('submit', async event => {
       message.textContent = 'Your session expired. Sign in again.';
     }, session.expires_in * 1000);
   } catch (error) {
-    if (accessToken) await request('/auth/v1/logout', { method: 'POST' }).catch(() => {});
+    if (loginAttempt !== loginRequestId) return;
+    const failedToken = accessToken;
     clearSession();
+    if (failedToken) await request('/auth/v1/logout', { method: 'POST' }, failedToken).catch(() => {});
+    // A new login may have started while remote logout was pending.
+    if (loginRequestId !== loginAttempt + 1) return;
     message.textContent = !session && [400, 401, 422].includes(error.status)
       ? 'Email or password is incorrect, or the account needs confirmation.'
       : 'Campaign Manager is unavailable. Try again.';
