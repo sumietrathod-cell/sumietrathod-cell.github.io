@@ -14,7 +14,9 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
  catch {return {status:'rejected',reason:'Malformed webhook JSON'};}
  // Set is a structural placeholder only; actual replay protection must use
  // an atomic database unique constraint inside store.recordVerifiedPayment.
- // Razorpay event ID is supplied in the x-razorpay-event-id HTTP header.\n // The server adapter must read that header from the authenticated request.\n const admission=webhookAdmission({...event,id:eventId},new Set());
+ // Razorpay event ID is supplied in the x-razorpay-event-id HTTP header.
+ // The server adapter must read that header from the authenticated request.
+ const admission=webhookAdmission({...event,id:eventId},new Set());
  if (!admission.accepted)return {status:'ignored',reason:admission.reason};
  if (!provider || typeof provider.fetchPayment!=='function' ||
      !provider.fetchDisputeStatus || typeof provider.fetchDisputeStatus!=='function' ||
@@ -26,7 +28,7 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
   return {status:'blocked',reason:'Missing payment order'};
  // The provider API lookup is authoritative, not the webhook's payment object.
  const payment=await provider.fetchPayment(admission.paymentId);
- if (!payment || payment.id!==admission.paymentId)
+ if (!payment || payment.id!==admission.paymentId || payment.order_id!==entity.order_id)
   return {status:'blocked',reason:'Provider payment identity mismatch'};
  const invoice=await store.findInvoiceByOrderId(payment.order_id);
  const matched=reconcileCapturedPayment(invoice,payment);
