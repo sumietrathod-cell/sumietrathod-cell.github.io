@@ -336,7 +336,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Contact opt-out: immediately suppress this channel and record a self-attributed audit event.
+  // Contact opt-out: durable idempotent suppression first, then permission and audit.
+  // A repeated withdrawal must not fail because a suppression row already exists.
   if (req.method === "POST" && segments.length >= 3 &&
       segments[segments.length - 1] === "opt-out" &&
       segments[segments.length - 3] === "contacts") {
@@ -357,14 +358,14 @@ Deno.serve(async (req) => {
     if (contactError || !contact) return json({ error: "Contact not found or access denied." }, 404);
 
     const now = new Date().toISOString();
-    const { error: suppressionError } = await supabase.from("suppression_list").insert({
+    const { error: suppressionError } = await supabase.from("suppression_list").upsert({
       organization_id: contact.organization_id,
       contact_id: contact.id,
       phone_e164: contact.phone_e164,
       channel,
       reason: reason || "contact_request",
       source: "campaign_manager_opt_out",
-    });
+    }, { onConflict: "contact_id,channel", ignoreDuplicates: true });
     if (suppressionError) return json({ error: "Could not save suppression. No success was recorded; retry or contact the workspace administrator." }, 403);
 
     const { error: permissionError } = await supabase.from("contact_channel_permissions").upsert({
@@ -552,14 +553,14 @@ Deno.serve(async (req) => {
       }
 
       if (effectiveStatus === "withdrawn") {
-        const { error: suppressionError } = await supabase.from("suppression_list").insert({
+        const { error: suppressionError } = await supabase.from("suppression_list").upsert({
           organization_id: campaign.organization_id,
           contact_id: contactId,
           phone_e164: phone,
           channel: campaign.channel,
           reason: "permission_withdrawn",
           source: "csv_import",
-        });
+        }, { onConflict: "contact_id,channel", ignoreDuplicates: true });
         if (suppressionError) {
           result.rejected++;
           result.rows.push({ row: rowNumber, status: "rejected", reason: "Withdrawal recorded, but suppression record failed. Manually verify before any future use." });
