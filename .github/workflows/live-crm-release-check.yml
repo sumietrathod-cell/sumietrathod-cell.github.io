@@ -4,14 +4,17 @@ on:
     paths:
       - 'campaign-manager.html'
       - 'tests/live-crm-signout.test.mjs'
+      - 'tests/live-crm-login.test.mjs'
       - '.github/workflows/live-crm-release-check.yml'
   push:
     branches:
       - fix/live-crm-safe-signout-20261123
+      - fix/live-crm-login-session-20261123
       - main
     paths:
       - 'campaign-manager.html'
       - 'tests/live-crm-signout.test.mjs'
+      - 'tests/live-crm-login.test.mjs'
       - '.github/workflows/live-crm-release-check.yml'
 permissions:
   contents: read
@@ -24,7 +27,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check synthetic login state regression tests
-        run: node --check tests/live-crm-signout.test.mjs
-      - name: Execute actual CRM signout event with synthetic delayed network
-        run: node --test tests/live-crm-signout.test.mjs
+      - name: Parse login and logout regression test modules
+        run: |
+          node --check tests/live-crm-signout.test.mjs
+          node --check tests/live-crm-login.test.mjs
+      - name: Test sign-in, sign-out, stale session and rejected Auth response
+        run: node --test tests/live-crm-*.test.mjs
