@@ -113,3 +113,14 @@ assert.match(renderSource,/hasMoreTickets\?'No matches among loaded tickets\. Lo
   'No-results state must not claim older unloaded tickets have been searched');
 assert.match(renderSource,/\('ticketSummary'\)\.textContent/,
   'Pagination scope warning must be exposed through the existing live summary');
+
+
+// A failed refresh must not display cached ticket rows as current data.
+// Static regression guard: clearing must happen before the network request.
+const refreshStart=js.indexOf('if(reset){\n   loadedTickets=[];');
+const refreshFetch=js.indexOf("const {data,error}=await client.from('aarohan_support_tickets')",refreshStart);
+assert.ok(refreshStart!==-1 && refreshFetch>refreshStart,'Refresh clears cached ticket rows before fetching');
+const refreshBlock=js.slice(refreshStart,refreshFetch);
+for(const statement of ['loadedTickets=[]','ticketPageOffset=0','hasMoreTickets=false',"$('ticketList').replaceChildren()","$('ticketSummary').textContent='Refreshing tickets…'"]){
+  assert.ok(refreshBlock.includes(statement),'Missing safe refresh reset: '+statement);
+}
