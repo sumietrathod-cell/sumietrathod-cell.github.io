@@ -612,16 +612,23 @@ more.addEventListener('click', async () => {
 });
 
 signOut.addEventListener('click', async () => {
+  if (!accessToken) return;
+  const previousToken = accessToken;
   signOut.disabled = true;
   message.textContent = '';
+  // Remove private CRM data immediately, before an unpredictable network
+  // response. Do not leave invoices, leads or contacts visible while logout
+  // requests time out on slow or interrupted mobile connections.
+  clearSession();
+  form.elements.email.focus();
   try {
-    await request('/auth/v1/logout', { method: 'POST' });
+    await request('/auth/v1/logout', { method: 'POST' }, previousToken);
   } catch {
-    message.textContent = 'Signed out on this page. Supabase could not confirm sign-out.';
+    if (!accessToken) {
+      message.textContent = 'Signed out locally. Supabase could not confirm remote session revocation.';
+    }
   } finally {
-    clearSession();
     signOut.disabled = false;
-    form.elements.email.focus();
   }
 });
 async function refreshCalls(older = false) {
