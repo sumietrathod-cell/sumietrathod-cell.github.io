@@ -38,9 +38,9 @@ assert.match(js, /detailRequest\+\+/, 'Missing stale detail invalidation');
 const actorSnapshots=[...js.matchAll(/const actorId=user\.id,actorSession=sessionRequest/g)];
 assert.equal(actorSnapshots.length,3,'Every async mutation requires an authenticated actor/session snapshot');
 const actorGuards=[...js.matchAll(/if\(!active\(\)\)return;/g)];
-assert.equal(actorGuards.length,6,'Pending create, owner update, customer reply, and ticket detail/history/error completions must discard stale responses');
+assert.equal(actorGuards.length,7,'Pending create, owner update, customer reply, and ticket detail/history/error completions must discard stale responses');
 const guardedErrors=[...js.matchAll(/catch\(err\)\{if\(active\(\)\)displayError\(err\)\}/g)];
-assert.equal(guardedErrors.length,3,'No stale mutation error may leak into another signed-in account');
+assert.equal(guardedErrors.length,4,'No stale mutation error may leak into another signed-in account');
 
 // Account-switch regression: an old ticket detail or history response must not
 // render under a newly authenticated session, including the error path.
