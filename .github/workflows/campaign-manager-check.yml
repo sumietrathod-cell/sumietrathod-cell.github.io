@@ -128,10 +128,23 @@ jobs:
             -e PGRST_JWT_SECRET="$PGRST_JWT_SECRET" \
             postgrest/postgrest:v14.18
           trap 'docker logs aarohan-pgrst-ci --tail 30 || true; docker rm -f aarohan-pgrst-ci >/dev/null 2>&1 || true' EXIT
+          # curl's exit status is zero for HTTP 503 too. PostgREST can
+          # accept TCP requests before its schema cache has finished loading.
+          # An unauthenticated /contacts request should return 401/403 once
+          # the API is actually ready; 200 is also "ready" so the later test
+          # can independently fail if anonymous access is mistakenly allowed.
+          ready=0
           for attempt in $(seq 1 40); do
-            if curl --silent --output /dev/null http://127.0.0.1:3000/; then
+            status="$(curl --silent --output /dev/null --max-time 2 \
+              --write-out '%{http_code}' 'http://127.0.0.1:3000/contacts?select=id' || true)"
+            if [[ "$status" == "401" || "$status" == "403" || "$status" == "200" ]]; then
+              ready=1
               break
             fi
             sleep 1
           done
+          if [[ "$ready" != "1" ]]; then
+            echo "PostgREST schema cache not ready after bounded retries"
+            exit 1
+          fi
           node scripts/check-campaign-postgrest.mjs
