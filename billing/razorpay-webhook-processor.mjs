@@ -27,20 +27,29 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
  if (typeof entity.order_id!=='string' || !/^order_[A-Za-z0-9]+$/.test(entity.order_id))
   return {status:'blocked',reason:'Missing payment order'};
  // The provider API lookup is authoritative, not the webhook's payment object.
- const payment=await provider.fetchPayment(admission.paymentId);
+ let payment;
+ try { payment=await provider.fetchPayment(admission.paymentId); }
+ catch { return {status:'retryable',reason:'Payment provider lookup failed'}; }
  if (!payment || payment.id!==admission.paymentId || payment.order_id!==entity.order_id)
   return {status:'blocked',reason:'Provider payment identity mismatch'};
- const invoice=await store.findInvoiceByOrderId(payment.order_id);
+ let invoice;
+ try { invoice=await store.findInvoiceByOrderId(payment.order_id); }
+ catch { return {status:'retryable',reason:'Invoice lookup failed'}; }
  const matched=reconcileCapturedPayment(invoice,payment);
  if (!matched.matched)return {status:'blocked',reason:matched.reason};
- const dispute=await provider.fetchDisputeStatus(payment.id);
+ let dispute;
+ try { dispute=await provider.fetchDisputeStatus(payment.id); }
+ catch { return {status:'retryable',reason:'Dispute lookup failed'}; }
  if (dispute!==false)return {status:'blocked',reason:'Dispute status not confirmed clear'};
  // Must atomically enforce event_id and payment_id uniqueness, invoice lock,
  // exact amount/currency, and all server-side invariants. Do not issue receipt.
- const recorded=await store.recordVerifiedPayment({
-  eventId:admission.eventId,paymentId:payment.id,invoiceId:matched.invoiceId,
-  amountPaise:matched.amountPaise,currency:'INR',refunded:false,disputed:false
- });
+ let recorded;
+ try {
+  recorded=await store.recordVerifiedPayment({
+   eventId:admission.eventId,paymentId:payment.id,invoiceId:matched.invoiceId,
+   amountPaise:matched.amountPaise,currency:'INR',refunded:false,disputed:false
+  });
+ } catch { return {status:'retryable',reason:'Payment persistence failed'}; }
  if (recorded==='duplicate')return {status:'duplicate'};
  if (recorded!=='recorded')return {status:'blocked',reason:'Persistence not confirmed'};
  return {status:'verified',paymentId:payment.id,receiptIssued:false};
