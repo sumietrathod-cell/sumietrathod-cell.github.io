@@ -13,7 +13,7 @@ test('the billing page always uses the tested exact paise parser',()=>{
  assert.match(page,/const total=totalPaise\(r\.items\)/);
 });
 test('the draft page must never falsely claim tax, legal or payment validation',()=>{
- assert.match(page,/Draft billing workspace/);
+ assert.match(page,/Non-GST billing workspace/);
  assert.match(page,/Not a verified tax invoice/);
  assert.match(page,/GST registration/);
  assert.match(page,/payment status/i);
