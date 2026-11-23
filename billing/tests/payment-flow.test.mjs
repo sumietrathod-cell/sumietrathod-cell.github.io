@@ -20,6 +20,7 @@ const invoice={id:invoiceId,quotation_id:invoiceId,billing_quotations:{customer:
 function json(value,status=200){return Response.json(value,{status});}
 function createHarness(options={}){
  let order=null,payment=null;
+ const provider={...options};
  const calls=[];
  const mocks=async (url,init={})=>{
   url=String(url);calls.push({url,method:init.method||'GET'});
@@ -32,9 +33,9 @@ function createHarness(options={}){
   }
   if(url.endsWith('/v1/orders'))return json({id:orderId,amount:250000,amount_paid:0,currency:'INR',status:'created'});
   if(url.includes('/v1/payments/'+paymentId))return json({
-   id:paymentId,order_id:options.mismatchOrder?'order_DIFFERENT1':orderId,
-   status:options.notCaptured?'authorized':'captured',captured:!options.notCaptured,
-   amount:250000,currency:'INR',amount_refunded:options.refunded?250000:0
+   id:paymentId,order_id:provider.mismatchOrder?'order_DIFFERENT1':orderId,
+   status:provider.notCaptured?'authorized':'captured',captured:!provider.notCaptured,
+   amount:250000,currency:'INR',amount_refunded:provider.refunded?250000:0
   });
   if(url.endsWith('/rest/v1/billing_verified_payments')&&init.method==='POST'){
    payment={...JSON.parse(init.body),verified_at:'2026-11-23T12:00:00Z'};
@@ -60,7 +61,7 @@ function createHarness(options={}){
   const result=await handler(req);
   return {status:result.status,body:await result.json()};
  }
- return {invoke,handler,calls,stored:()=>({order,payment})};
+ return {invoke,handler,calls,setProvider:(updates)=>Object.assign(provider,updates),stored:()=>({order,payment})};
 }
 test('no auth denies before database/provider access',async()=>{
  const h=createHarness();
@@ -148,14 +149,24 @@ test('acknowledgement requires ledger and current unrefunded provider match',asy
  assert.equal(h.calls.filter(x=>x.url.includes('/v1/payments/')).length,2);
 });
 test('fresh refund update blocks acknowledgement despite previously verified ledger',async()=>{
- const h=createHarness({refunded:false});
+ const h=createHarness();
  await h.invoke('start_order');
  await h.invoke('verify_payment',{payment_id:paymentId});
  assert.equal((await h.invoke('acknowledgement_preview')).status,200);
- const h2=createHarness({refunded:true});
- // Fresh provider result after a refund is handled in the separate provider validation test.
- const old={id:paymentId,order_id:orderId,status:'captured',captured:true,
-  amount:250000,currency:'INR',amount_refunded:250000};
- assert.throws(()=>verifyCapturedPayment(old,orderId,250000));
- assert.equal(h2.stored().payment,null);
+ h.setProvider({refunded:true});
+ const rejected=await h.invoke('acknowledgement_preview');
+ assert.equal(rejected.status,409);
+ assert.equal(JSON.stringify(rejected.body).includes('provider_checked_now'),false);
+ const history=await h.invoke('payment_history',{invoice_id:null});
+ assert.equal(history.status,200);
+ assert.equal(history.body.state,'history_not_current_payment_status');
+});
+test('historical payment with changed order or authorization is not previewable',async()=>{
+ for(const change of [{mismatchOrder:true},{notCaptured:true}]){
+  const h=createHarness();
+  await h.invoke('start_order');
+  await h.invoke('verify_payment',{payment_id:paymentId});
+  h.setProvider(change);
+  assert.equal((await h.invoke('acknowledgement_preview')).status,409);
+ }
 });
