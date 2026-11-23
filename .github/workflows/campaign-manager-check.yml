@@ -106,3 +106,31 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-claim-eligibility.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-quarantine.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-active-uniqueness-ci.sql
+
+      - name: Seed fictional contact data for real HTTP tenant tests
+        run: psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/ci-rest-fixtures.sql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Actual authenticated PostgREST HTTP/RLS checks (synthetic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A newly generated test-only signing key. No real Supabase JWT,
+          # service key, live customer credential or outbound provider in CI.
+          export PGRST_JWT_SECRET="$(openssl rand -hex 32)"
+          docker run --rm -d --name aarohan-pgrst-ci --network host \
+            -e PGRST_DB_URI="postgres://postgres:ci-only-disposable-postgres@127.0.0.1:5432/aarohan_campaign_ci" \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_SERVER_PORT=3000 \
+            -e PGRST_JWT_SECRET="$PGRST_JWT_SECRET" \
+            postgrest/postgrest:v14.18
+          trap 'docker logs aarohan-pgrst-ci --tail 30 || true; docker rm -f aarohan-pgrst-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --silent --output /dev/null http://127.0.0.1:3000/; then
+              break
+            fi
+            sleep 1
+          done
+          node scripts/check-campaign-postgrest.mjs
