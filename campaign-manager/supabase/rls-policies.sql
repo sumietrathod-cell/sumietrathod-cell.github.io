@@ -154,13 +154,19 @@ using (public.is_org_member(organization_id));
 -- remove a withdrawn permission row and then reinsert it as "granted".
 -- Keep explicit INSERT/UPDATE for approved operators and the separate opt-out
 -- policies below; RLS deliberately has no authenticated DELETE policy.
+-- An operator can record UNKNOWN state only. No customer-supplied CSV field,
+-- self-reported evidence string or browser REST call is verified consent.
+-- Only a future independently reviewed, authorized consent-verification
+-- workflow may grant a channel. Existing grants can only be withdrawn by
+-- authenticated members; no operator UPDATE policy that can forge a grant.
 create policy permissions_operator_insert
 on public.contact_channel_permissions for insert to authenticated
-with check (public.has_org_role(organization_id, array['owner','admin','operator']));
-create policy permissions_operator_update
-on public.contact_channel_permissions for update to authenticated
-using (public.has_org_role(organization_id, array['owner','admin','operator']))
-with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+with check (
+  public.has_org_role(organization_id, array['owner','admin','operator'])
+  and permission_status = 'unknown'
+);
+-- No permissions_operator_update policy is created. The dedicated
+-- permissions_member_withdraw_update policy below permits withdrawal only.
 
 -- DB-enforced guard: no direct user update can undo a withdrawn preference,
 -- alter a permission's tenant/contact/channel identity, or manufacture a grant
