@@ -1,4 +1,4 @@
--- AAROHAN AI WORLD — REVIEW-ONLY draft, NOT applied to production.
+-- AAROHAN AI WORLD — schema applied to existing billing Supabase project on 2026-11-23; retained here for reproducibility.
 -- One Razorpay order and at most one captured payment per existing invoice.
 -- Requires actual admin authorization and provider verification inside Edge Function.
 -- No GST or legal tax-invoice logic, no refunds/partial payments.
