@@ -265,6 +265,7 @@ const more = document.querySelector('#more');
 const exportLeadsButton = document.querySelector('#export-leads');
 let accessToken;
 let loginRequestId = 0;
+let pendingLoginRequestId = null;
 let expires;
 let offset = 0;
 const searchForm=document.getElementById('find-leads');
@@ -527,6 +528,7 @@ function clearSession() {
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const loginAttempt = ++loginRequestId;
+  pendingLoginRequestId = loginAttempt;
   submit.disabled = true;
   message.textContent = '';
   let session;
@@ -535,8 +537,8 @@ form.addEventListener('submit', async event => {
       method: 'POST',
       body: JSON.stringify({ email: form.elements.email.value.trim(), password: password.value }),
     });
-    password.value = '';
     if (loginAttempt !== loginRequestId) return;
+    password.value = '';
     if (!session?.access_token || !session?.user?.id) throw new Error('Incomplete authentication response');
     accessToken = session.access_token;
     const admin = session.user?.app_metadata?.campaign_manager_role === 'admin';
@@ -592,8 +594,11 @@ form.addEventListener('submit', async event => {
       ? 'Email or password is incorrect, or the account needs confirmation.'
       : 'Campaign Manager is unavailable. Try again.';
   } finally {
-    password.value = '';
-    submit.disabled = false;
+    if (pendingLoginRequestId === loginAttempt) {
+      password.value = '';
+      submit.disabled = false;
+      pendingLoginRequestId = null;
+    }
   }
 });
 
