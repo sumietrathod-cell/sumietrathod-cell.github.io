@@ -42,6 +42,13 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - The SQL policies are a draft, not a substitute for independent security review or integration tests.
 
 
+## Outbound eligibility safety (staging draft)
+- `claim_due_campaign_jobs` now requires a **real non-empty consent evidence reference**, a non-future `captured_at` timestamp and a `captured_by` actor before considering any voice/WhatsApp job.
+- Campaigns must configure **both** calling-window times, with `start < end`. Missing windows and overnight ranges now **fail closed**; an absent window is **not** treated as 24/7 authorization.
+- All existing checks still require an active non-dry-run campaign, a queued eligible enrollment, valid E.164 phone, non-suppressed channel, and bounded attempt count.
+- Verified in `supabase/tests/queue-claim-eligibility.sql` using 11 synthetic jobs and the same proposed claim function translated to temporary tables. One eligible job was claimed; all other jobs stayed queued. The whole transaction rolled back.
+- **No outbound provider is connected, no job worker is scheduled, and no contact was messaged.** An explicit calling window is not sufficient for legal compliance; a future provider must recheck the actual recipient's time zone, jurisdiction, opt-out, consent and platform restrictions immediately before each send.
+
 ## Stale outbound job safety (staging draft)
 - `campaign-manager/supabase/queue-worker.sql` contains a **service-role-only** `quarantine_stale_campaign_jobs` function to isolate claims whose processing lease is stale.
 - Quarantine marks old processing jobs as `failed` with `stale_claim_needs_manual_review`, clears lock metadata, and **never requeues or sends**. A worker crash may occur *after* a provider accepted an outbound message, so automatic retry could duplicate it.
