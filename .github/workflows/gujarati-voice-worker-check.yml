@@ -1,0 +1,27 @@
+name: Gujarati Voice Worker Regression
+on:
+  push:
+    branches:
+      - qa/gujarati-voice-dictation
+    paths:
+      - 'voice-platform/transcriber.js'
+      - 'voice-platform/tests/**'
+      - '.github/workflows/gujarati-voice-worker-check.yml'
+  pull_request:
+    paths:
+      - 'voice-platform/transcriber.js'
+      - 'voice-platform/tests/**'
+      - '.github/workflows/gujarati-voice-worker-check.yml'
+permissions:
+  contents: read
+jobs:
+  speech-worker-synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline Whisper worker cache regression
+        run: node --test voice-platform/tests/transcriber-model.test.mjs
