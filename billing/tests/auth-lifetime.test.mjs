@@ -83,6 +83,7 @@ test('successful login uses server-issued JWT lifetime and protected timer',()=>
  assert.match(eventSource,/if\(!current\(authenticatedToken,authenticatedEpoch\)\)return;/);
  assert.match(eventSource,/Math\.min\(expiresIn\*1000,2147483647\)/);
  const h=harness(),done=h.run();
+ assert.equal(h.requests.length,1,'Auth request was not reached: '+h.msg.textContent);
  h.requests[0].resolve(fakeAuth('one',2));
  return done.then(()=>{
   assert.equal(h.desk.hidden,false);
