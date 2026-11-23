@@ -40,7 +40,7 @@ jobs:
       - name: Parse PostgreSQL schema and policy SQL
         run: |
           python -m pip install --disable-pip-version-check sqlfluff
-          for file in campaign-manager/supabase/preflight.sql campaign-manager/supabase/schema.sql campaign-manager/supabase/rls-policies.sql campaign-manager/supabase/migrations/20261117_tenant_integrity.sql campaign-manager/supabase/queue-worker.sql; do
+          for file in campaign-manager/supabase/preflight.sql campaign-manager/supabase/schema.sql campaign-manager/supabase/rls-policies.sql campaign-manager/supabase/migrations/20261117_tenant_integrity.sql campaign-manager/supabase/migrations/20261123_suppression_idempotency.sql campaign-manager/supabase/queue-worker.sql; do
             sqlfluff parse --dialect postgres "$file"
           done
       - name: Check dashboard script and DOM references
@@ -87,6 +87,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/ci-auth-bootstrap.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/preflight.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/migrations/20261123_suppression_idempotency.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/rls-policies.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/queue-worker.sql
           # Mimic the Supabase Data API role privileges. RLS still controls rows.
