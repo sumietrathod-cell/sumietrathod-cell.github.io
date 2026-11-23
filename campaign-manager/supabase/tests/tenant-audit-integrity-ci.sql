@@ -30,6 +30,7 @@ SELECT set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000
 DO $check_alpha$
 DECLARE denied boolean;
 DECLARE count_before integer;
+DECLARE audit_id bigint;
 BEGIN
   INSERT INTO public.audit_events(
     organization_id,actor_user_id,event_type,entity_type,entity_id,details
@@ -39,9 +40,8 @@ BEGIN
     'contact_permission_withdrawn','contact',
     '62000000-0000-4000-8000-000000000001',
     '{"channel":"whatsapp","source":"campaign_manager_opt_out"}'
-  );
-  IF (SELECT count(*) FROM public.audit_events
-    WHERE organization_id='61000000-0000-4000-8000-000000000001') <> 1 THEN
+  ) RETURNING id INTO audit_id;
+  IF audit_id IS NULL THEN
     RAISE EXCEPTION 'FAIL: real opt-out audit event was blocked';
   END IF;
 
@@ -80,10 +80,8 @@ BEGIN
       RAISE EXCEPTION 'FAIL: forged audit insert was accepted, case %',count_before;
     END IF;
   END LOOP;
-  IF (SELECT count(*) FROM public.audit_events
-    WHERE organization_id='61000000-0000-4000-8000-000000000001') <> 1 THEN
-    RAISE EXCEPTION 'FAIL: rejected audit events persisted';
-  END IF;
+  -- Client role has no audit SELECT policy (by design). Validate stored
+  -- counts after RESET ROLE, not through an operator who cannot read logs.
   RAISE NOTICE 'PASS: eight invalid opt-out audit claims rejected by RLS';
 END
 $check_alpha$;
@@ -93,6 +91,7 @@ SELECT set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000
 
 DO $check_beta$
 DECLARE denied boolean := false;
+DECLARE audit_id bigint;
 BEGIN
   INSERT INTO public.audit_events(
     organization_id,actor_user_id,event_type,entity_type,entity_id,details
@@ -102,9 +101,8 @@ BEGIN
     'contact_permission_withdrawn','contact',
     '62000000-0000-4000-8000-000000000003',
     '{"channel":"voice","source":"campaign_manager_opt_out"}'
-  );
-  IF (SELECT count(*) FROM public.audit_events
-      WHERE organization_id='61000000-0000-4000-8000-000000000002') <> 1 THEN
+  ) RETURNING id INTO audit_id;
+  IF audit_id IS NULL THEN
     RAISE EXCEPTION 'FAIL: viewer cannot record evidence-backed own opt-out';
   END IF;
   BEGIN
@@ -123,5 +121,14 @@ BEGIN
 END
 $check_beta$;
 RESET ROLE;
+DO $admin_verify$
+BEGIN
+  IF (SELECT count(*) FROM public.audit_events
+      WHERE organization_id='61000000-0000-4000-8000-000000000001') <> 1
+    OR (SELECT count(*) FROM public.audit_events
+      WHERE organization_id='61000000-0000-4000-8000-000000000002') <> 1 THEN
+    RAISE EXCEPTION 'FAIL: unexpected audit event count after rejected attempts';
+  END IF;
+END $admin_verify$;
 SELECT 'PASS: audit inserts require same-tenant consent withdrawal and durable suppression, rolled back' AS verdict;
 ROLLBACK;
