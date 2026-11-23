@@ -4,7 +4,8 @@ import {createHmac} from 'node:crypto';
 import {processCapturedWebhook} from '../billing/razorpay-webhook-processor.mjs';
 const secret='synthetic-backend-test-secret';
 const event={event:'payment.captured',payload:{payment:{entity:{id:'pay_Synthetic001',order_id:'order_Synthetic001',status:'captured',currency:'INR',amount:12500}}}};
-const eventId='evt_Synthetic001';\nconst rawBody=JSON.stringify(event);
+const eventId='evt_Synthetic001';
+const rawBody=JSON.stringify(event);
 const signature=createHmac('sha256',secret).update(rawBody).digest('hex');
 const payment={id:'pay_Synthetic001',order_id:'order_Synthetic001',status:'captured',captured:true,currency:'INR',amount:12500,amount_refunded:0,refund_status:null};
 function adapters(){
