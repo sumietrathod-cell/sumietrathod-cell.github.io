@@ -53,3 +53,13 @@ export function formatINR(paise) {
   if (!Number.isSafeInteger(paise)||paise<0) throw new Error('Invalid paise value.');
   return (paise/100).toLocaleString('en-IN',{style:'currency',currency:'INR'});
 }
+
+// Reject invisible/control characters in customer names before saving or printing.
+export function validateCustomer(raw) {
+  if (typeof raw !== 'string') throw new Error('Customer name must be text.');
+  const customer=raw.trim();
+  if (!customer || customer.length>160 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(customer)) {
+    throw new Error('Customer name must be 1–160 printable characters.');
+  }
+  return customer;
+}
