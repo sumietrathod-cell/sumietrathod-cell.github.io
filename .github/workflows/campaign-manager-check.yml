@@ -94,6 +94,7 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/campaign-access.sql
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/tenant-permissions-ci.sql
+          psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/tenant-enrollment-ci.sql
       - name: Actual PostgreSQL synthetic queue safety tests
         run: |
           psql -X -v ON_ERROR_STOP=1 -f campaign-manager/supabase/tests/queue-claim-eligibility.sql
