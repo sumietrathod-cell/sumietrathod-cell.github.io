@@ -20,7 +20,7 @@ test('only the two Admin RPC guards and CREATE OR REPLACE changed', () => {
   assert.equal(originalFunctions.split(guard).length - 1, 2, 'Unexpected original Admin checks');
   const expected = originalFunctions
     .replaceAll('create function public.', 'create or replace function public.')
-    .replaceAll(guard, "if auth.uid() is null or " + guard);
+    .replaceAll(guard, "if auth.uid() is null or " + guard.slice(3));
   assert.equal(candidateFunctions, expected, 'The candidate must not alter existing sales or reporting logic');
 });
 
