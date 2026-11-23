@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AAROHAN AI Campaign Manager</title>
+<meta name="description" content="AAROHAN AI Campaign Manager dashboard for consent-aware campaign operations.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ink:#14243b;--muted:#61728a;--line:#dce5ef;--paper:#f4f7fb;--blue:#145bd7;--navy:#102a50;--green:#147d54;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:linear-gradient(120deg,#0c2143,#145bd7);color:#fff;padding:26px max(20px,calc((100% - 1180px)/2))}
+header .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}h1{margin:5px 0;font-size:clamp(25px,4vw,36px)}header p{margin:4px 0 0;opacity:.88}
+main{max-width:1180px;margin:24px auto;padding:0 18px 50px}.notice{padding:12px 15px;border:1px solid #f0d58a;background:#fff9e8;border-radius:12px;color:#684c00;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 8px 24px #102a5008}.span4{grid-column:span 4}.span5{grid-column:span 5}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
+h2{font-size:18px;margin:0 0 14px}.muted{color:var(--muted);font-size:13px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;margin:10px 0;min-width:0;flex:1}label{font-size:13px;font-weight:650;color:#34445b}input,select,textarea{width:100%;border:1px solid #cbd7e5;border-radius:9px;padding:10px 11px;font:inherit;background:#fff;color:var(--ink)}textarea{min-height:90px;resize:vertical}button{border:0;border-radius:9px;padding:10px 14px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}button.secondary{background:#eaf1fc;color:#174b9c}button.ghost{background:#f1f4f8;color:#35465d}button.danger{background:#fff0ef;color:var(--red)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:13px;padding:7px 10px;border-radius:30px;background:#eef3fa;color:#41546c}.status.ok{background:#e8f7ef;color:var(--green)}.status.err{background:#fff0ef;color:var(--red)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{background:#f5f8fc;border-radius:12px;padding:12px}.metric strong{display:block;font-size:24px}.metric span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #edf1f6;vertical-align:top}th{color:#51627a;font-size:12px;text-transform:uppercase;letter-spacing:.04em} .tablewrap{overflow:auto;max-height:420px}
+.hidden{display:none!important}.right{margin-left:auto}.pill{display:inline-block;border-radius:30px;padding:3px 8px;background:#eef3fa;font-size:11px}.pill.granted{background:#e8f7ef;color:#147d54}.pill.withdrawn,.pill.missing{background:#fff0ef;color:#b42318}
+@media(max-width:800px){.span4,.span5,.span7,.span8{grid-column:span 12}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">AAROHAN AI WORLD</div><h1>AI Campaign Manager</h1><p>Consent-aware campaign workspace · Voice and WhatsApp · Dry-run first</p></header>
+<main>
+<div class="notice"><b>Staging / integration status:</b> This dashboard is ready to connect, but it is not live yet. Add your own Supabase project URL and public anon key below after the backend has been deployed. No calls or WhatsApp messages can be sent from this dashboard; campaign creation stays in draft / dry-run mode.</div>
+<div class="grid">
+<section class="card span5">
+<h2>1. Connect your workspace</h2>
+<div class="field"><label for="projectUrl">Supabase Project URL</label><input id="projectUrl" placeholder="https://your-project.supabase.co" autocomplete="url"></div>
+<div class="field"><label for="anonKey">Supabase public anon key</label><input id="anonKey" type="password" placeholder="Public anon key (never service-role key)" autocomplete="off"></div>
+<div class="row"><button id="connectBtn">Connect</button><button id="disconnectBtn" class="ghost">Disconnect</button><span id="connection" class="status">Not connected</span></div>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<h2>2. Sign in</h2>
+<div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username"></div>
+<div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password"></div>
+<div class="row"><button id="loginBtn">Sign in</button><button id="logoutBtn" class="secondary" disabled>Sign out</button></div>
+<p id="authStatus" class="muted">Connect a configured Supabase project to sign in.</p>
+</section>
+<section class="card span7">
+<h2>Workspace</h2>
+<div class="row"><div class="field"><label for="orgSelect">Organization</label><select id="orgSelect" disabled><option value="">Sign in to load organizations</option></select></div><button id="loadCampaignsBtn" class="secondary" disabled>Refresh campaigns</button></div>
+<div class="metrics">
+<div class="metric"><strong id="metricCampaigns">—</strong><span>Campaigns loaded</span></div>
+<div class="metric"><strong id="metricContacts">—</strong><span>Contacts on current page</span></div>
+<div class="metric"><strong id="metricEligible">—</strong><span>Preview eligible</span></div>
+<div class="metric"><strong id="metricBlocked">—</strong><span>Preview blocked</span></div>
+</div>
+<div class="field"><label for="campaignSelect">Campaign</label><select id="campaignSelect" disabled><option value="">Create or load a campaign</option></select></div>
+<div id="workspaceStatus" class="muted">Your memberships and campaigns will appear here after sign-in.</div>
+</section>
+<section class="card span4">
+<h2>3. Create a draft campaign</h2>
+<div class="field"><label for="campaignName">Campaign name</label><input id="campaignName" maxlength="120" placeholder="Example: Product enquiry follow-up"></div>
+<div class="field"><label for="campaignGoal">Goal / instructions</label><textarea id="campaignGoal" maxlength="1000" placeholder="Describe the permitted purpose and expected outcome."></textarea></div>
+<div class="row"><div class="field"><label for="channel">Channel</label><select id="channel"><option value="voice">Voice</option><option value="whatsapp">WhatsApp</option></select></div><div class="field"><label for="timezone">Timezone</label><input id="timezone" value="Asia/Kolkata"></div></div>
+<button id="createCampaignBtn" disabled>Create draft</button>
+<p class="muted">Every campaign is created with status Draft and dry_run=true.</p>
+</section>
+<section class="card span8">
+<h2>4. Import contacts (CSV)</h2>
+<p class="muted">Required headers: full_name, phone_e164, email, consent_status, consent_evidence. Phone numbers must already be E.164. CSV imports can record only unknown or withdrawn permission. Rows marked granted are rejected because self-reported evidence cannot verify consent. Existing recorded grants are preserved but require separate verification before any future outreach.</p>
+<div class="field"><label for="csvFile">CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv"></div>
+<div class="row"><button id="importBtn" disabled>Import into selected draft</button><button id="templateBtn" class="secondary">Download CSV template</button></div>
+<pre id="importResult" class="muted" style="white-space:pre-wrap"></pre>
+</section>
+<section class="card span12">
+<div class="row"><div><h2>5. Campaign contacts</h2><p class="muted">Read-only contact list with permission and suppression indicators.</p></div><button id="contactsBtn" class="secondary right" disabled>Load contacts</button></div>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Campaign status</th><th>Permission</th><th>Evidence</th><th>Suppressed</th><th>Attempts</th><th>Opt-out</th></tr></thead><tbody id="contactsBody"><tr><td colspan="9" class="muted">Select a campaign to load contacts.</td></tr></tbody></table></div>
+<div class="row" style="margin-top:12px"><button id="prevPageBtn" class="ghost" disabled>Previous</button><span id="pageInfo" class="muted">Page 1</span><button id="nextPageBtn" class="ghost" disabled>Next</button></div>
+</section>
+<section class="card span12">
+<div class="row"><div><h2>6. Eligibility preview</h2><p class="muted">Read-only safety check. It never sends or queues calls or messages.</p></div><button id="previewBtn" class="secondary right" disabled>Run preview</button></div>
+<div id="previewResult" class="muted">Select a campaign and run a preview.</div>
+</section>
+</div>
+</main>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+let client = null, session = null, apiBase = "", anon = "", memberships = [], campaigns = [], pageOffset = 0, pageLimit = 50, totalContacts = 0, activeCampaignChannel = "";
+const setStatus = (id, text, kind="") => { $(id).textContent=text; $(id).className="status "+kind; };
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const campaignId = () => $("campaignSelect").value;
+const orgId = () => $("orgSelect").value;
+const authHeaders = () => ({ "Authorization":"Bearer "+session.access_token, "apikey":anon, "Content-Type":"application/json" });
+async function api(path, options={}) {
+  if (!session || !apiBase) throw new Error("Connect and sign in first.");
+  const response = await fetch(apiBase+path, { ...options, headers:{...authHeaders(), ...(options.headers||{})} });
+  const data = await response.json().catch(()=>({error:"The server returned an unreadable response."}));
+  if (!response.ok) throw new Error(data.error || "Request failed ("+response.status+").");
+  return data;
+}
+function setSignedIn(on) {
+  $("logoutBtn").disabled=!on; $("orgSelect").disabled=!on; $("loadCampaignsBtn").disabled=!on;
+  $("createCampaignBtn").disabled=!on; $("campaignSelect").disabled=!on;
+  $("importBtn").disabled=!on || !campaignId(); $("contactsBtn").disabled=!on || !campaignId();
+  $("previewBtn").disabled=!on || !campaignId();
+}
+async function connect() {
+  const url=$("projectUrl").value.trim().replace(/\/$/,""), key=$("anonKey").value.trim();
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) || !key) throw new Error("Enter a valid Supabase project URL and public anon key.");
+  if (!window.supabase?.createClient) throw new Error("Supabase client library did not load. Refresh and try again.");
+  apiBase=url+"/functions/v1/campaign-api"; anon=key;
+  client=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  client.auth.onAuthStateChange((_event,newSession)=>{ session=newSession; if(!newSession) setSignedIn(false); });
+  sessionStorage.setItem("aarohan_campaign_url",url); sessionStorage.setItem("aarohan_campaign_anon",key);
+  const {data,error}=await client.auth.getSession(); if(error) throw error;
+  session=data.session;
+  setStatus("connection","Project configured","ok");
+  if(session) await afterLogin();
+  else $("authStatus").textContent="Project configured. Sign in with an account already provisioned in this Supabase project.";
+}
+async function afterLogin() {
+  if(!session) return;
+  $("authStatus").textContent="Signed in as "+(session.user.email||session.user.id);
+  setSignedIn(true);
+  const me=await api("/me");
+  memberships=me.memberships||[];
+  $("orgSelect").innerHTML=memberships.length ? memberships.map(m=>'<option value="'+escapeHtml(m.organization_id)+'">'+escapeHtml(m.organizations?.name||m.organization_id)+' · '+escapeHtml(m.role)+'</option>').join("") : '<option value="">No organization membership found</option>';
+  if(!memberships.length) { $("workspaceStatus").textContent="Your user has no organization membership. Ask the workspace owner to provision access."; return; }
+  await loadCampaigns();
+}
+async function login() {
+  if(!client) await connect();
+  const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error) throw error; session=data.session; await afterLogin();
+}
+async function loadCampaigns() {
+  if(!orgId()) return;
+  const data=await api("/campaigns?organization_id="+encodeURIComponent(orgId()));
+  campaigns=data.campaigns||[];
+  $("campaignSelect").innerHTML=campaigns.length?campaigns.map(c=>'<option value="'+escapeHtml(c.id)+'">'+escapeHtml(c.name)+' · '+escapeHtml(c.status)+'</option>').join(""):'<option value="">No campaigns yet</option>';
+  $("metricCampaigns").textContent=campaigns.length;
+  $("workspaceStatus").textContent=campaigns.length+" campaign(s) loaded. All new campaigns remain draft / dry-run.";
+  setSignedIn(true);
+  if(campaigns.length) { pageOffset=0; await loadContacts(); }
+}
+async function createCampaign() {
+  const name=$("campaignName").value.trim(), goal=$("campaignGoal").value.trim();
+  if(!name||!goal||!orgId()) throw new Error("Select an organization and enter campaign name and goal.");
+  const data=await api("/campaigns",{method:"POST",body:JSON.stringify({organization_id:orgId(),name,goal,channel:$("channel").value,timezone:$("timezone").value.trim()||"Asia/Kolkata"})});
+  await loadCampaigns(); $("campaignSelect").value=data.campaign.id; await loadContacts();
+  $("workspaceStatus").textContent="Draft campaign created. Dry-run is enabled; no outreach was started.";
+}
+async function loadContacts() {
+  if(!campaignId()) return;
+  const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/contacts?limit="+pageLimit+"&offset="+pageOffset);
+  activeCampaignChannel=data.campaign.channel;
+  totalContacts=data.pagination.total; $("metricContacts").textContent=data.contacts.length;
+  $("contactsBody").innerHTML=data.contacts.length?data.contacts.map(row=>{
+    const c=row.contact||{}, perm=row.permission_status||"missing";
+    const isBlocked = row.suppressed || perm === "withdrawn";
+    return '<tr><td>'+escapeHtml(c.full_name||"—")+'</td><td>'+escapeHtml(c.phone_e164||"—")+'</td><td>'+escapeHtml(c.email||"—")+'</td><td>'+escapeHtml(row.status)+'</td><td><span class="pill '+escapeHtml(perm)+'">'+escapeHtml(perm)+'</span></td><td>'+(row.permission_evidence_present?"Yes":"No")+'</td><td>'+(row.suppressed?"Yes":"No")+'</td><td>'+Number(row.attempts||0)+'</td><td><button class="danger optoutBtn" data-contact-id="'+escapeHtml(row.contact_id)+'" '+(isBlocked?"disabled":"")+'>'+(isBlocked?"Suppressed":"Opt out")+'</button></td></tr>';
+  }).join(""):'<tr><td colspan="9" class="muted">No contacts enrolled in this campaign yet.</td></tr>';
+  $("pageInfo").textContent="Showing "+(totalContacts?pageOffset+1:0)+"–"+Math.min(pageOffset+data.contacts.length,totalContacts)+" of "+totalContacts;
+  $("prevPageBtn").disabled=pageOffset===0; $("nextPageBtn").disabled=pageOffset+pageLimit>=totalContacts;
+  setSignedIn(true);
+}
+async function importCsv() {
+  const file=$("csvFile").files[0]; if(!file) throw new Error("Choose a CSV file first.");
+  if(file.size>1000000) throw new Error("CSV must be no larger than 1 MB.");
+  const csv_text=await file.text();
+  const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/contacts/import",{method:"POST",body:JSON.stringify({csv_text})});
+  $("importResult").textContent=JSON.stringify(data,null,2);
+  pageOffset=0; await loadContacts();
+}
+async function optOut(contactId) {
+  if(!confirm("Record opt-out for this contact on the "+activeCampaignChannel+" channel? This blocks future outreach on this channel.")) return;
+  const data=await api("/contacts/"+encodeURIComponent(contactId)+"/opt-out",{method:"POST",body:JSON.stringify({channel:activeCampaignChannel,reason:"operator_requested_opt_out"})});
+  $("workspaceStatus").textContent=data.note||"Contact suppressed.";
+  await loadContacts();
+}
+async function preview() {
+  const data=await api("/campaigns/"+encodeURIComponent(campaignId())+"/preview",{method:"POST",body:JSON.stringify({})});
+  const c=data.counts||{};
+  $("metricEligible").textContent=c.eligible??"—"; $("metricBlocked").textContent=c.blocked??"—";
+  $("previewResult").innerHTML='<p><b>Campaign state permits dispatch: </b>'+(data.campaign_state_allows_dispatch?"Yes":"No — draft, paused or dry-run campaign")+"</p>"+'<div class="metrics">'+[
+    ["Total",c.total],["Eligible",c.eligible],["Blocked",c.blocked],["Permission unknown",c.permission_unknown],
+    ["Withdrawn",c.permission_withdrawn],["Missing evidence",c.missing_permission_or_evidence],["Suppressed",c.suppressed],["Invalid",c.invalid_contact]
+  ].map(x=>'<div class="metric"><strong>'+escapeHtml(x[1]??0)+'</strong><span>'+escapeHtml(x[0])+'</span></div>').join("")+'</div><p class="muted">'+escapeHtml(data.note||"Read-only preview.")+'</p>';
+}
+function downloadTemplate(){
+ const csv="full_name,phone_e164,email,consent_status,consent_evidence\nExample Contact,+14155550123,example@example.com,unknown,\n";
+ const blob=new Blob([csv],{type:"text/csv"}), url=URL.createObjectURL(blob), a=document.createElement("a");
+ a.href=url;a.download="aarohan-campaign-contacts-template.csv";a.click();URL.revokeObjectURL(url);
+}
+async function disconnect(){if(client) await client.auth.signOut();client=null;session=null;apiBase="";anon="";memberships=[];campaigns=[];sessionStorage.removeItem("aarohan_campaign_url");sessionStorage.removeItem("aarohan_campaign_anon");setStatus("connection","Not connected");$("authStatus").textContent="Disconnected and signed out.";setSignedIn(false);}
+async function run(fn){try{await fn();}catch(e){console.error(e);$("workspaceStatus").textContent=e.message||"Something went wrong."; $("authStatus").textContent=e.message||"Something went wrong.";}}
+$("connectBtn").addEventListener("click",()=>run(connect));
+$("disconnectBtn").addEventListener("click",()=>run(disconnect));
+$("loginBtn").addEventListener("click",()=>run(login));
+$("logoutBtn").addEventListener("click",()=>run(async()=>{if(client) await client.auth.signOut();session=null;setSignedIn(false);$("authStatus").textContent="Signed out.";}));
+$("orgSelect").addEventListener("change",()=>run(loadCampaigns));
+$("loadCampaignsBtn").addEventListener("click",()=>run(loadCampaigns));
+$("createCampaignBtn").addEventListener("click",()=>run(createCampaign));
+$("campaignSelect").addEventListener("change",()=>{pageOffset=0;run(loadContacts);setSignedIn(true);});
+$("contactsBtn").addEventListener("click",()=>run(loadContacts));
+$("importBtn").addEventListener("click",()=>run(importCsv));
+$("previewBtn").addEventListener("click",()=>run(preview));
+$("templateBtn").addEventListener("click",downloadTemplate);
+$("prevPageBtn").addEventListener("click",()=>{pageOffset=Math.max(0,pageOffset-pageLimit);run(loadContacts);});
+$("nextPageBtn").addEventListener("click",()=>{pageOffset+=pageLimit;run(loadContacts);});
+(async()=>{
+ const savedUrl=sessionStorage.getItem("aarohan_campaign_url"), savedKey=sessionStorage.getItem("aarohan_campaign_anon");
+ if(savedUrl&&savedKey){$("projectUrl").value=savedUrl;$("anonKey").value=savedKey;await run(connect);}
+})();
+})();
+</script>
+</body></html>
