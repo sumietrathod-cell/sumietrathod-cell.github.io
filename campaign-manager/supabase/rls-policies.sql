@@ -57,6 +57,7 @@ drop policy if exists permissions_member_withdraw_insert on public.contact_chann
 drop policy if exists permissions_member_withdraw_update on public.contact_channel_permissions;
 drop policy if exists campaign_contacts_member_select on public.campaign_contacts;
 drop policy if exists campaign_contacts_operator_write on public.campaign_contacts;
+drop policy if exists campaign_contacts_operator_insert on public.campaign_contacts;
 drop policy if exists suppression_member_select on public.suppression_list;
 drop policy if exists suppression_operator_write on public.suppression_list;
 drop policy if exists suppression_operator_insert on public.suppression_list;
@@ -166,10 +167,28 @@ with check (public.is_org_member(organization_id) and permission_status = 'withd
 create policy campaign_contacts_member_select
 on public.campaign_contacts for select to authenticated
 using (public.is_org_member(organization_id));
-create policy campaign_contacts_operator_write
-on public.campaign_contacts for all to authenticated
-using (public.has_org_role(organization_id, array['owner','admin','operator']))
-with check (public.has_org_role(organization_id, array['owner','admin','operator']));
+-- CRM client users may enroll contacts into DRAFT dry-run campaigns only.
+-- The old FOR ALL policy let users forge outcomes, reset attempts, modify
+-- arbitrary status fields, and DELETE enrollments from an active campaign.
+-- Any legitimate status change belongs in a future audited trusted worker.
+create policy campaign_contacts_operator_insert
+on public.campaign_contacts for insert to authenticated
+with check (
+  public.has_org_role(organization_id, array['owner','admin','operator'])
+  and status = 'queued'
+  and attempts = 0
+  and next_attempt_at is null
+  and last_outcome is null
+  and exists (
+    select 1 from public.campaigns c
+    where c.organization_id = campaign_contacts.organization_id
+      and c.id = campaign_contacts.campaign_id
+      and c.status = 'draft'
+      and c.dry_run is true
+  )
+);
+-- Deliberately NO authenticated UPDATE or DELETE policy on enrollments.
+-- SELECT remains available to members under campaign_contacts_member_select.
 
 create policy suppression_member_select
 on public.suppression_list for select to authenticated
