@@ -194,7 +194,8 @@ async function listTickets(){await loadTicketsPage(true)}
 async function loadTicketsPage(reset){
  if(!user)return;
  const request=++listRequest;
- const accountId=user.id;
+ const accountId=user.id,accountSession=sessionRequest;
+ const active=()=>request===listRequest&&user?.id===accountId&&sessionRequest===accountSession;
  const button=$('loadMore');
  // Track the raw server offset rather than deduplicated visible row count.
  // Concurrent ticket inserts can overlap pages; counting only unique rows
@@ -206,7 +207,7 @@ async function loadTicketsPage(reset){
      .select('id,ticket_number,subject,service,priority,status,created_at,customer_name')
      .order('created_at',{ascending:false}).order('id',{ascending:false})
      .range(start,start+ticketPageSize-1);
-   if(request!==listRequest||user?.id!==accountId)return;
+   if(!active())return;
    if(error)throw error;
    const page=data||[];
    ticketPageOffset=start+page.length;
@@ -215,8 +216,8 @@ async function loadTicketsPage(reset){
    button.hidden=!hasMoreTickets;
    renderTickets();
    if(reset&&selectedId)await openTicket(selectedId);
- }catch(err){if(request===listRequest&&user?.id===accountId)displayError(err)}
- finally{if(request===listRequest)button.disabled=false}
+ }catch(err){if(active())displayError(err)}
+ finally{if(active())button.disabled=false}
 }
 async function openTicket(id){if(!user)return;const request=++detailRequest,actorId=user.id,actorSession=sessionRequest;const active=()=>request===detailRequest&&user?.id===actorId&&sessionRequest===actorSession;try{
  const {data:t,error}=await client.from('aarohan_support_tickets').select('id,ticket_number,subject,service,category,priority,status,details,customer_name,created_at').eq('id',id).single();if(!active())return;if(error)throw error;
