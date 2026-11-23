@@ -86,6 +86,14 @@ If any check fails, mark skipped with a machine-readable reason. Fail closed on 
 - A unique database index on `suppression_list(contact_id, channel)` is mandatory. An existing separate staging database must apply `supabase/migrations/20261123_suppression_idempotency.sql` and pass its duplicate-group preflight before the API is deployed.
 - This reduces duplicate retries but does not make the separate suppression, permission and audit writes transactional. A partial-failure warning requires an administrator to reconcile the saved suppression and audit; no sending is enabled.
 
+## Opt-out audit integrity (staging SQL + HTTP verification)
+
+- An authenticated `audit_events` insert claiming `contact_permission_withdrawn` is accepted only with the same signed-in actor, scoped contact, matching withdrawn permission and existing channel-specific opt-out suppression. The audit `details` keys are limited to `channel` and `source=campaign_manager_opt_out`.
+- Audit history is still restricted to owner/admin reads, so the Edge Function's `.insert()` call **must not chain `.select()` or `RETURNING`** for non-admin organization users.
+- A genuine opt-out is saved separately before the audit attempt; if the later append fails, suppression continues blocking any campaign attempt. The workflow is still not a single database transaction.
+- Verified only with synthetic PostgreSQL and signed JWT HTTP fixtures, not real Supabase Auth sessions. No actual provider or customer communication occurs.
+
+
 ## Opt-out and permission protections
 - Any authenticated organization member may submit an opt-out. RLS only permits member opt-out writes to set permission status to `withdrawn`, add a channel-specific suppression record from this endpoint, and append a self-attributed `contact_permission_withdrawn` audit event.
 - CSV import accepts only `granted`, `unknown` or `withdrawn`. A granted row requires evidence text. Existing withdrawn permission cannot be reinstated by CSV import. An unknown import does not overwrite a previously granted permission/evidence.
