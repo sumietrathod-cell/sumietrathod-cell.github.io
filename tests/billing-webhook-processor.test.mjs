@@ -110,3 +110,19 @@ test('webhook byte limit measures UTF-8 bytes rather than characters',async()=>{
  assert.equal(result.status,'rejected');
  assert.equal(a.writes.length,0);
 });
+
+test('signed webhook amount disagreement with provider blocks payment recording',async()=>{
+ const a=adapters();
+ const mismatchedBody=JSON.stringify({...event,payload:{payment:{entity:{...event.payload.payment.entity,amount:12499}}}});
+ const mismatchedSignature=createHmac('sha256',secret).update(mismatchedBody).digest('hex');
+ const result=await processCapturedWebhook({rawBody:mismatchedBody,signature:mismatchedSignature,eventId,secret,...a});
+ assert.equal(result.status,'blocked');
+ assert.equal(a.writes.length,0);
+});
+test('signed webhook currency disagreement with provider blocks payment recording',async()=>{
+ const a=adapters();
+ a.provider.fetchPayment=async()=>({...payment,currency:'USD'});
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.equal(result.status,'blocked');
+ assert.equal(a.writes.length,0);
+});
