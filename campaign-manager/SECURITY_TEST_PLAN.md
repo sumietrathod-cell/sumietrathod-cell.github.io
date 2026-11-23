@@ -72,6 +72,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - `campaign_dispatch_ready` is false for draft, paused, completed, cancelled and dry-run campaigns.
 - No endpoint in this starter schedules, queues or dispatches calls/messages.
 
+## Same-file duplicate consent and withdrawal precedence
+
+- When a CSV contains the same syntactically valid E.164 number as **unknown** and **withdrawn**, import the valid withdrawal and reject the other row, regardless of order. A later withdrawal must never be dismissed merely because an earlier unknown row appeared first.
+- Rejected fabricated `granted` rows, invalid rows and failed database writes must not consume the duplicate-phone marker. Only a fully successful contact + permission/suppression + enrollment path marks the number seen.
+- `supabase/functions/campaign-api/csv-import-policy.test.ts` tests six synthetic cases: withdrawal before/after unknown, unverified grant refusal, malformed withdrawal exclusions, case/whitespace normalization, and duplicate collapse. Real Supabase staging with two Auth users remains necessary.
+- CSV import still spans multiple database requests. A later failed suppression/enrollment can leave partial data: do not enable delivery based on these import-only safety tests.
+
 ## CSV and permission safety
 - Reject payloads over 1.1 MB and CSV text over 1 MB UTF-8.
 - Reject more than 500 contact rows, missing/duplicate headers, malformed quotes, invalid E.164 phones, invalid email, extra columns and overlong fields.
