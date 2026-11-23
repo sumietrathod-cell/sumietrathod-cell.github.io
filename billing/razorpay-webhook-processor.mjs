@@ -2,6 +2,7 @@
 // Dependencies MUST be trusted server adapters: provider.fetchPayment must use
 // Razorpay server credentials; store must implement atomic dedup/reconciliation.
 // Never pass request-controlled invoice, provider data, or a client-side store.
+import {createHash} from 'node:crypto';
 import {verifyRazorpayWebhook} from './razorpay-webhook-verification.mjs';
 import {webhookAdmission} from './webhook-admission.mjs';
 import {reconcileCapturedPayment} from './payment-reconciliation.mjs';
@@ -47,7 +48,9 @@ export async function processCapturedWebhook({rawBody,signature,eventId,secret,p
  let recorded;
  try {
   recorded=await store.recordVerifiedPayment({
-   eventId:admission.eventId,paymentId:payment.id,invoiceId:matched.invoiceId,
+   eventId:admission.eventId,eventType:'payment.captured',
+   payloadSha256:createHash('sha256').update(rawBody).digest('hex'),
+   paymentId:payment.id,invoiceId:matched.invoiceId,
    amountPaise:matched.amountPaise,currency:'INR',refunded:false,disputed:false
   });
  } catch { return {status:'retryable',reason:'Payment persistence failed'}; }
