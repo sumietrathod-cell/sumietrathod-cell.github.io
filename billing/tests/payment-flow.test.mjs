@@ -50,7 +50,7 @@ function createHarness(options={}){
  assert.match(source,/return async \(req\)=>\{/);
  const make=new Function('Deno','fetch','btoa','invoiceTotalPaise','requireInvoiceId','requirePaymentId',
   'verifyOrderSnapshot','verifyCapturedPayment',source);
- const handler=make({env:{get:(name)=>options.noSecrets?undefined:credentials[name]}},
+ const handler=make({env:{get:(name)=>options.noSecrets||(options.noRazorpaySecrets&&name.startsWith('RAZORPAY_'))?undefined:credentials[name]}},
   mocks,btoa,invoiceTotalPaise,requireInvoiceId,requirePaymentId,verifyOrderSnapshot,verifyCapturedPayment);
  async function invoke(action,extra={},override={}){
   const headers={origin:override.origin||validOrigin};
@@ -170,4 +170,14 @@ test('historical payment with changed order or authorization is not previewable'
   h.setProvider(change);
   assert.equal((await h.invoke('acknowledgement_preview')).status,409);
  }
+});
+
+test('no Razorpay keys: authenticated history remains accessible, payment order unavailable',async()=>{
+ const h=createHarness({noRazorpaySecrets:true});
+ const rows=await h.invoke('payment_history',{invoice_id:null});
+ assert.equal(rows.status,200);
+ assert.equal(rows.body.records.length,0);
+ const blocked=await h.invoke('start_order');
+ assert.equal(blocked.status,503);
+ assert.equal(h.calls.some(c=>c.url.includes('/v1/orders')),false);
 });
