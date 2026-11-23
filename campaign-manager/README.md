@@ -72,6 +72,10 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - For an **existing dedicated multi-tenant staging install**, first review and run `supabase/migrations/20261123_suppression_idempotency.sql`. It **refuses** to proceed if existing contact/channel duplicates are present; resolve them by an authorized manual data review, never automatically delete consent/suppression records. The Edge Function `upsert` requires the unique index to exist first.
 - The opt-out route is now atomic in staging SQL: `supabase/opt-out-rpc.sql`, with `tests/tenant-opt-out-atomic-ci.sql` proving all-or-nothing rollback after a synthetic failed audit write. Existing consent evidence is preserved. CSV import remains non-transactional. This draft is NOT deployed to live Supabase.
 
+### Same-CSV duplicate opt-out safety
+
+The staged CSV importer now inspects all syntactically valid withdrawn rows before saving contacts. If one phone appears as both unknown and withdrawn, the withdrawn row is prioritized regardless of order. Invalid or refused rows do not block later valid rows for the same phone; only a successfully imported contact consumes the duplicate marker. Six offline Deno tests plus static checks guard this behavior. CSV imports are still non-transactional, with customer messaging disabled and real staging tests pending.
+
 ## Consent/opt-out policy hardening (staging draft)
 - The contact-channel permission operator policy is split into INSERT and UPDATE. Direct authenticated DELETE access is deliberately not provided.
 - Database trigger `public.guard_contact_channel_permission()` prohibits changing tenant/contact/channel IDs, reinstalling previously withdrawn permission via UPDATE, or granting permission without evidence reference, actor and timestamp.
