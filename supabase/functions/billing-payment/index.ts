@@ -1,4 +1,4 @@
-// AAROHAN billing — PRE-DEPLOYMENT DRAFT. No live keys or DB changes here.
+// AAROHAN billing — protected backend; payment operations remain disabled until secrets and live verification are completed.
 // One verified captured Razorpay payment per invoice, no partial payments.
 // The legacy generic Razorpay payment page is NEVER used for automatic matching.
 import {invoiceTotalPaise,requireInvoiceId,requirePaymentId,verifyOrderSnapshot,verifyCapturedPayment} from '../_shared/payment-contract.mjs';
