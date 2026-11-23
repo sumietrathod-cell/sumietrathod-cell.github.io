@@ -59,6 +59,14 @@ Do not run against production data. Use a fresh Supabase staging project and two
 - Server configuration errors do not disclose secrets.
 - Browser code contains only the Supabase public anon key supplied at runtime; no service-role or provider secret appears in repository history.
 
+## Stale claim reconciliation tests
+- A processing job older than the configured timeout is quarantined as failed, never queued again automatically.
+- A fresh processing job, a queued job, a completed job, or a processing job without locked_at are not altered.
+- Re-running quarantine after a successful pass changes zero further jobs; attempt counts are preserved.
+- Invalid timeout/batch sizes fail closed; only service_role may execute the routine, never anon or authenticated.
+- Check delivery receipts manually before changing the job; **no automatic retry of a quarantined claim**.
+- `supabase/tests/queue-quarantine.sql` tests a temporary synthetic queue transaction and rolls back; it is not proof of production provider behavior.
+
 ## Release gate
 Do not merge to `main`, publish to the public website, activate providers, or send live outreach until:
 1. CI type-check and dashboard static checks pass.
