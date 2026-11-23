@@ -64,3 +64,32 @@ test('rejects invalid event ID before any provider or persistence calls',async()
  assert.equal(result.status,'ignored');
  assert.equal(a.writes.length,0);
 });
+
+test('provider outage is retryable and never records a payment',async()=>{
+ const a=adapters();
+ a.provider.fetchPayment=async()=>{throw new Error('synthetic provider outage');};
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.deepEqual(result,{status:'retryable',reason:'Payment provider lookup failed'});
+ assert.equal(a.writes.length,0);
+});
+test('invoice lookup outage is retryable without persistence',async()=>{
+ const a=adapters();
+ a.store.findInvoiceByOrderId=async()=>{throw new Error('synthetic database outage');};
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.deepEqual(result,{status:'retryable',reason:'Invoice lookup failed'});
+ assert.equal(a.writes.length,0);
+});
+test('dispute lookup outage is retryable without persistence',async()=>{
+ const a=adapters();
+ a.provider.fetchDisputeStatus=async()=>{throw new Error('synthetic dispute outage');};
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.deepEqual(result,{status:'retryable',reason:'Dispute lookup failed'});
+ assert.equal(a.writes.length,0);
+});
+test('transaction failure is retryable and cannot report verified',async()=>{
+ const a=adapters();
+ a.store.recordVerifiedPayment=async()=>{throw new Error('synthetic transaction rollback');};
+ const result=await processCapturedWebhook({rawBody,signature,eventId,secret,...a});
+ assert.deepEqual(result,{status:'retryable',reason:'Payment persistence failed'});
+ assert.equal(a.writes.length,0);
+});
