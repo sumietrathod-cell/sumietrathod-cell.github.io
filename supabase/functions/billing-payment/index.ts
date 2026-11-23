@@ -13,7 +13,7 @@ const config=()=>{
   razorpayKey:Deno.env.get('RAZORPAY_KEY_ID'),
   razorpaySecret:Deno.env.get('RAZORPAY_KEY_SECRET'),
  };
- if(Object.values(value).some(x=>!x))throw new HttpError(503,'Payment verification is not configured.');
+ if(!value.url||!value.serviceKey||!value.publicKey)throw new HttpError(503,'Billing backend configuration is unavailable.');
  return value;
 };
 function send(status,body,origin){
@@ -66,7 +66,12 @@ function safeOrder(record,amount){
  }
  return {orderId:record.razorpay_order_id,amountPaise:amount};
 }
+function requireRazorpay(settings){
+ if(!settings.razorpayKey||!settings.razorpaySecret)
+  throw new HttpError(503,'Razorpay keys are not configured; payment operations remain disabled.');
+}
 async function razorpay(settings,path,init={}){
+ requireRazorpay(settings);
  const response=await fetch('https://api.razorpay.com/v1/'+path,{
   ...init,
   headers:{'Authorization':'Basic '+btoa(settings.razorpayKey+':'+settings.razorpaySecret),
@@ -76,6 +81,7 @@ async function razorpay(settings,path,init={}){
  try{return await response.json();}catch{throw new HttpError(502,'Unexpected payment provider response.');}
 }
 async function startOrder(settings,invoice){
+ requireRazorpay(settings);
  const prior=await getVerifiedRow(settings,invoice.id);
  if(prior)throw new HttpError(409,'A payment has already been verified for this invoice; do not initiate another.');
  const existing=safeOrder(await getOrder(settings,invoice.id),invoice.amount);
