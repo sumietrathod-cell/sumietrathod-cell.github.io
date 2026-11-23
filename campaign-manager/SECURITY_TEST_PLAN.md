@@ -26,6 +26,14 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Membership records cannot be inserted, updated or deleted by authenticated users.
 - Cross-organization composite foreign-key inserts fail even when a caller has a valid membership in one of the organizations.
 
+## Parent deletion and consent-history integrity
+
+- Direct owner/admin deletion of a contact with ANY channel permission must fail; no cascade may erase withdrawn consent, evidence or associated audit context.
+- Deletion of an enrolled contact or campaign must fail while campaign history is linked. Check that draft campaigns with no enrollments and unlinked contacts may still be deleted when authorized.
+- Verify this with the disposable PostgreSQL `supabase/tests/tenant-history-retention-ci.sql` test and separately in real staging before any release.
+- **Important:** parent organization deletion and legal data-erasure obligations are not handled by these FK constraints alone. Design separate authenticated approvals, retention schedule, suppression continuity and privacy-safe erasure procedures.
+- Existing-install migration must be reviewed; the fresh-install schema policy does not automatically retrofit an earlier database.
+
 ## Contact identity / consent binding
 
 - Before recording permission, an operator can correct a contact's phone; after permission or campaign enrollment, changing or clearing the phone must fail. A fresh phone number requires a distinct contact with its own consent and suppression checks.
