@@ -159,7 +159,27 @@ byId('login').onsubmit=async ev=>{
 };
 byId('refresh').onclick=()=>{const t=token,e=epoch;refresh(t,e).catch(error=>{if(current(t,e)){byId('status').textContent=error.message;byId('acknowledgement').hidden=true}})};
 byId('signout').onclick=()=>{clear();byId('status').textContent='Signed out.'};
-byId('print').onclick=()=>{if(!byId('acknowledgement').hidden&&token)window.print()};
+byId('print').onclick=async()=>{
+ if(byId('acknowledgement').hidden||!token)return;
+ const t=token,e=epoch,invoiceId=byId('ackInvoice').textContent,paymentId=byId('ackPayment').textContent;
+ byId('print').disabled=true;
+ try{
+  const proof=await call('/functions/v1/billing-payment',{action:'acknowledgement_preview',invoice_id:invoiceId},t);
+  if(!current(t,e)||byId('acknowledgement').hidden||
+   byId('ackInvoice').textContent!==invoiceId||byId('ackPayment').textContent!==paymentId)return;
+  if(proof?.state!=='provider_checked_now'||proof?.paymentId!==paymentId)throw Error('Fresh payment confirmation no longer matches.');
+  const checked=new Date(proof.checkedAt);
+  if(Number.isNaN(checked.getTime()))throw Error('Provider check timestamp unavailable.');
+  byId('ackChecked').textContent=checked.toLocaleString('en-IN',{timeZone:'Asia/Kolkata'});
+  byId('status').textContent='Fresh provider verification succeeded for this print preview.';
+  window.print();
+ }catch(err){
+  if(current(t,e)){
+   byId('acknowledgement').hidden=true;
+   byId('status').textContent='Acknowledgement printing blocked: '+err.message;
+  }
+ }finally{byId('print').disabled=false}
+};
 </script>
 </body>
 </html>
