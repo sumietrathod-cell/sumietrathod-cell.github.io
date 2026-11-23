@@ -261,6 +261,7 @@ const leadFieldLimits = { name: 200, company: 200, country: 100, email: 254, pho
 const aliases = { business: 'company', business_name: 'company', company_name: 'company', lead_name: 'name', contact_name: 'name', email_address: 'email', phone_number: 'phone' };
 let pendingLeads = [];
 let savingLeads = false;
+let leadImportRequest = 0;
 const more = document.querySelector('#more');
 const exportLeadsButton = document.querySelector('#export-leads');
 let accessToken;
@@ -481,6 +482,14 @@ function clearSession() {
   // Invalidate any outstanding sign-in before clearing the UI. A slow
   // authenticated fetch must never reopen private CRM data after logout.
   loginRequestId++;
+  // A pending CSV/lead import must not keep the next account's controls
+  // disabled or release a newer import's lock when its old request finishes.
+  leadImportRequest++;
+  savingLeads = false;
+  leadFile.disabled = false;
+  addLead.querySelector('button').disabled = false;
+  importSubmit.disabled = true;
+  more.disabled = false;
   leadFilter='';searchForm.reset();
   clearTimeout(expires);
   accessToken = undefined;
@@ -617,15 +626,19 @@ async function searchLeads(event){
 searchForm.onsubmit=searchLeads;
 document.getElementById('clear-search').onclick=event=>{searchForm.reset();searchLeads(event)};
 more.addEventListener('click', async () => {
+  const token = accessToken;
+  if (!token || more.disabled) return;
   more.disabled = true;
   message.textContent = '';
   try {
     await loadLeads();
   } catch (error) {
+    // A 401 from a superseded user must not sign out a different account.
+    if (token !== accessToken) return;
     if (error.status === 401) clearSession();
     message.textContent = error.status === 401 ? 'Your session expired. Sign in again.' : 'Could not load more leads. Try again.';
   } finally {
-    more.disabled = false;
+    if (token === accessToken) more.disabled = false;
   }
 });
 
@@ -1057,6 +1070,7 @@ async function saveLeadBatch(entries, retryForm) {
   if (!accessToken || savingLeads) return;
   savingLeads = true;
   const token = accessToken;
+  const importRequest = ++leadImportRequest;
   const manualSubmit = addLead.querySelector('button');
   manualSubmit.disabled = true;
   importSubmit.disabled = true;
@@ -1083,10 +1097,14 @@ async function saveLeadBatch(entries, retryForm) {
       leadFeedback.textContent = 'Could not save leads. You can retry without creating duplicates.';
     }
   } finally {
-    savingLeads = false;
-    leadFile.disabled = false;
-    manualSubmit.disabled = false;
-    importSubmit.disabled = !pendingLeads.length;
+    // Do not unlock controls belonging to a newer user/import. A logout
+    // invalidates the old request and resets controls synchronously.
+    if (leadImportRequest === importRequest && token === accessToken) {
+      savingLeads = false;
+      leadFile.disabled = false;
+      manualSubmit.disabled = false;
+      importSubmit.disabled = !pendingLeads.length;
+    }
   }
 }
 
