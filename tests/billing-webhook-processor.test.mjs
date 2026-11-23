@@ -93,3 +93,20 @@ test('transaction failure is retryable and cannot report verified',async()=>{
  assert.deepEqual(result,{status:'retryable',reason:'Payment persistence failed'});
  assert.equal(a.writes.length,0);
 });
+
+test('oversized signed webhook is rejected before provider and storage',async()=>{
+ const a=adapters();
+ const hugeBody=JSON.stringify({...event,padding:'x'.repeat(256*1024)});
+ const hugeSignature=createHmac('sha256',secret).update(hugeBody).digest('hex');
+ const result=await processCapturedWebhook({rawBody:hugeBody,signature:hugeSignature,eventId,secret,...a});
+ assert.equal(result.status,'rejected');
+ assert.equal(a.writes.length,0);
+});
+test('webhook byte limit measures UTF-8 bytes rather than characters',async()=>{
+ const a=adapters();
+ const hugeBody=JSON.stringify({...event,padding:'é'.repeat(140000)});
+ const hugeSignature=createHmac('sha256',secret).update(hugeBody).digest('hex');
+ const result=await processCapturedWebhook({rawBody:hugeBody,signature:hugeSignature,eventId,secret,...a});
+ assert.equal(result.status,'rejected');
+ assert.equal(a.writes.length,0);
+});
