@@ -26,6 +26,13 @@ The `tenant-rls-integration` workflow job spins up a short-lived PostgreSQL 17 s
 - Membership records cannot be inserted, updated or deleted by authenticated users.
 - Cross-organization composite foreign-key inserts fail even when a caller has a valid membership in one of the organizations.
 
+## Contact identity / consent binding
+
+- Before recording permission, an operator can correct a contact's phone; after permission or campaign enrollment, changing or clearing the phone must fail. A fresh phone number requires a distinct contact with its own consent and suppression checks.
+- A contact's primary key and organization must be immutable, even if the operator belongs to two organizations. Changing a contact name without changing its identity remains permitted.
+- Authenticated users cannot reassign an existing consent proof to a different recipient by editing `contacts.phone_e164`; they also cannot delete channel-permission history or enrolled-contact rows under existing RLS.
+- The GitHub disposable PostgreSQL CI executes `supabase/tests/tenant-contact-identity-ci.sql` with separate fictional orgs/users, using the real SQL trigger and role policies. Retest with actual Supabase Auth users in a separate staging project before any release.
+
 ## Enrollment integrity and trusted state updates
 
 - An operator may INSERT a `campaign_contacts` row only in a draft, dry-run campaign of their own organization. Initial status must be `queued`, attempts `0`, and outcome/callback date null.
