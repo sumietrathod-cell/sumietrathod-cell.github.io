@@ -1,0 +1,51 @@
+name: CRM Lead Tools Safety Tests
+on:
+  pull_request:
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/crm-*.test.cjs'
+      - 'scripts/check-crm-privileged-rpcs.mjs'
+      - 'supabase/release-candidates/admin-rpc-uid-guards-review.sql'
+      - 'supabase/migrations/20261119004000_campaign_sales_followup_report.sql'
+      - '.github/workflows/crm-export-checks.yml'
+  push:
+    branches:
+      - 'feature/crm-admin-csv-export-20261122'
+    paths:
+      - 'campaign-manager.html'
+      - 'tests/crm-*.test.cjs'
+      - 'scripts/check-crm-privileged-rpcs.mjs'
+      - 'supabase/release-candidates/admin-rpc-uid-guards-review.sql'
+      - 'supabase/migrations/20261119004000_campaign_sales_followup_report.sql'
+      - '.github/workflows/crm-export-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run CRM lead tools regression tests
+        run: node --test tests/crm-export.test.cjs tests/crm-followup-queue.test.cjs
+      - name: Verify proposed Admin RPC guard preserves business logic
+        run: node --test scripts/check-crm-privileged-rpcs.mjs
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Playwright for synthetic browser tests
+        run: npm install --no-save --package-lock=false playwright@1.64.1
+      - name: Install Chromium for Ubuntu 26.04
+        run: npx playwright install --with-deps chromium
+      - name: Test Admin and Partner CRM mobile workflow without production credentials
+        run: node --test tests/crm-browser.test.cjs

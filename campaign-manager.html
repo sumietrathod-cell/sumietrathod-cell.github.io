@@ -85,6 +85,21 @@ summary { cursor: pointer; color: #86e6d1; }
     <p id="report-status" role="status"></p>
     <h3>Due and overdue follow-ups</h3><p>First 100 open reminders, oldest first. Dates use India time.</p>
     <ul class="list" id="due-list"></ul>
+    <h3>Follow-up work queue</h3>
+    <p>Manual work list only. Selecting a lead does not send WhatsApp, email, or voice messages.</p>
+    <div class="inbox-actions">
+      <label for="followup-view">Show
+        <select id="followup-view">
+          <option value="today">Due today</option>
+          <option value="overdue">Overdue</option>
+          <option value="unscheduled">No follow-up date</option>
+        </select>
+      </label>
+      <button id="followup-refresh" type="button">Refresh queue</button>
+      <button id="followup-more" type="button" hidden>Load more</button>
+    </div>
+    <p id="followup-feedback" role="status"></p>
+    <ul class="list" id="followup-list"></ul>
     <h3>Lead pipeline</h3><ul class="list" id="stage-list"></ul>
     <h3>Recorded sales · all time</h3><p id="sales-total"></p>
     <ul class="list" id="commission-list"></ul>
@@ -97,7 +112,7 @@ summary { cursor: pointer; color: #86e6d1; }
       <a href="chatbot.html">Chatbot</a>
       <a href="whatsapp-business-automation.html">WhatsApp</a>
     </nav>
-    <p>Website enquiries and manually logged messages appear here. WhatsApp messages are received automatically after its Cloud API webhook is connected.</p>
+    <p>Website enquiries and manually logged messages appear here. WhatsApp Cloud API integration is not yet verified for production. Until an approved phone number, signed webhook, opt-in/opt-out handling and delivery receipts are tested, enquiries here are manually logged only; this dashboard does not send messages.</p>
     <div class="inbox-actions">
       <button id="inbox-refresh" type="button">Refresh inbox</button>
       <button id="inbox-older" type="button" hidden>Older enquiries</button>
@@ -131,6 +146,9 @@ summary { cursor: pointer; color: #86e6d1; }
   </article>
   <article id="lead-tools" hidden>
     <h2>Manage leads</h2>
+    <p>Export lead records to a private CSV backup. This is for authorized admins only; keep downloaded files secure.</p>
+    <button id="export-leads" type="button">Export leads (CSV)</button>
+    <p id="export-feedback" role="status"></p>
     <p id="lead-feedback" role="status"></p>
     <details>
       <summary>Add lead</summary>
@@ -249,6 +267,8 @@ let activeLeadId;
 let leadSnapshot;
 let savingProgress = false;
 const leadTools = document.querySelector('#lead-tools');
+const exportLeadsButton = document.querySelector('#export-leads');
+const exportFeedback = document.querySelector('#export-feedback');
 const leadFeedback = document.querySelector('#lead-feedback');
 const addLead = document.querySelector('#add-lead');
 const importLeads = document.querySelector('#import-leads');
@@ -281,6 +301,55 @@ async function request(path, options = {}, token = accessToken) {
   return body ? JSON.parse(body) : null;
 }
 
+// Export is visible only in the authenticated Admin lead-tools panel.
+function csvCell(value) {
+  const raw = value == null ? '' : String(value);
+  // Prevent spreadsheet formula execution even when a cell begins with whitespace.
+  const safe = /^[\s\uFEFF\u200B]*[=+\-@]/.test(raw) ? "'" + raw : raw;
+  return '"' + safe.replace(/"/g, '""') + '"';
+}
+
+async function exportLeadsCsv() {
+  if (!adminSession || !accessToken) return;
+  const token = accessToken;
+  const fields = ['id','name','company','country','email','phone','service_interest','source','status','follow_up_on','created_at'];
+  const headers = ['Lead ID','Name','Business','Country','Email','Phone','Service interest','Source','Status','Follow-up date','Created at'];
+  const rows = [];
+  exportLeadsButton.disabled = true;
+  exportFeedback.textContent = 'Preparing private CSV export…';
+  try {
+    for (let page = 0; page <= 20; page++) {
+      // Paginate under the active authenticated session and its RLS policies.
+      const limit = page === 20 ? 1 : 500;
+      const result = await request('/rest/v1/leads?select=' + fields.join(',') +
+        '&order=created_at.asc.nullslast,id.asc&limit=' + limit + '&offset=' + (page * 500), {}, token);
+      if (accessToken !== token || !adminSession) return;
+      if (!Array.isArray(result)) throw new Error('Invalid export response');
+      if (page === 20 && result.length) throw new Error('Export limit exceeded');
+      rows.push(...result);
+      if (result.length < limit) break;
+    }
+    const lines = [headers.map(csvCell).join(','), ...rows.map(row => fields.map(key => csvCell(row[key])).join(','))];
+    const blob = new Blob(['\uFEFF', lines.join('\r\n'), '\r\n'], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const download = document.createElement('a');
+    download.href = url;
+    download.download = 'aarohan-crm-leads-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.append(download);
+    download.click();
+    download.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    exportFeedback.textContent = rows.length + ' leads exported. Keep the file private.';
+  } catch (error) {
+    if (accessToken === token) exportFeedback.textContent = error.message === 'Export limit exceeded'
+      ? 'More than 10,000 leads. Contact Admin for a server-side export.'
+      : 'Could not export leads. Sign in again or retry.';
+  } finally {
+    exportLeadsButton.disabled = false;
+  }
+}
+exportLeadsButton.addEventListener('click', exportLeadsCsv);
+
 function renderRows(list, rows, emptyText, append = false) {
   const entries = rows.length ? rows : [{ title: emptyText }];
   const items = entries.map(({ title, detail, onOpen }) => {
@@ -311,6 +380,14 @@ const report = document.querySelector('#sales-report');
 const saleForm = document.querySelector('#record-sale');
 const saleStatus = document.querySelector('#sale-status');
 const reportStatus = document.querySelector('#report-status');
+const followupView = document.querySelector('#followup-view');
+const followupFeedback = document.querySelector('#followup-feedback');
+const followupList = document.querySelector('#followup-list');
+const followupRefresh = document.querySelector('#followup-refresh');
+const followupMore = document.querySelector('#followup-more');
+const followupPageSize = 25;
+let followupOffset = 0;
+let followupRequest = 0;
 const money = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
 let reportVersion = 0;
 
@@ -325,6 +402,63 @@ function clearReport() {
   for (const id of ['due-list','stage-list','sales-total','commission-list','report-status'])
     document.getElementById(id).replaceChildren();
 }
+
+function resetFollowupQueue() {
+  followupRequest++;
+  followupOffset = 0;
+  followupMore.hidden = true;
+  followupMore.disabled = false;
+  followupRefresh.disabled = false;
+  followupFeedback.textContent = '';
+  followupList.replaceChildren();
+  followupView.value = 'today';
+}
+
+async function refreshFollowupQueue(more = false) {
+  if (!accessToken || !adminSession) return;
+  const token = accessToken;
+  const version = ++followupRequest;
+  const view = followupView.value;
+  if (!['today', 'overdue', 'unscheduled'].includes(view)) return;
+  const pageOffset = more ? followupOffset : 0;
+  followupMore.disabled = true;
+  followupRefresh.disabled = true;
+  followupFeedback.textContent = 'Loading follow-up queue…';
+  try {
+    const rows = await request('/rest/v1/rpc/crm_followup_queue', {
+      method: 'POST', body: JSON.stringify({ p_view: view, p_offset: pageOffset }),
+    }, token);
+    if (token !== accessToken || !adminSession || version !== followupRequest || followupView.value !== view) return;
+    if (!Array.isArray(rows)) throw new Error('Invalid queue response');
+    const page = rows.slice(0, followupPageSize);
+    renderRows(followupList, page.map(lead => ({
+      title: lead.name,
+      detail: [lead.company, lead.country, lead.status, lead.follow_up_on ? 'Follow-up ' + lead.follow_up_on : 'No date assigned'].filter(Boolean).join(' · '),
+      onOpen: () => openLead(lead.id),
+    })), 'No matching follow-ups.', more);
+    followupOffset = pageOffset + page.length;
+    followupMore.hidden = rows.length <= followupPageSize;
+    followupFeedback.textContent = 'Showing ' + followupOffset + ' lead(s). This is a manual reminder list; no messages sent.';
+  } catch {
+    if (token === accessToken && version === followupRequest) {
+      if (!more) followupList.replaceChildren();
+      followupFeedback.textContent = 'Could not load follow-ups. Try Refresh queue.';
+    }
+  } finally {
+    if (version === followupRequest) {
+      followupMore.disabled = false;
+      followupRefresh.disabled = false;
+    }
+  }
+}
+followupRefresh.addEventListener('click', () => refreshFollowupQueue());
+followupMore.addEventListener('click', () => refreshFollowupQueue(true));
+followupView.addEventListener('change', () => {
+  followupOffset = 0;
+  followupMore.hidden = true;
+  followupList.replaceChildren();
+  refreshFollowupQueue();
+});
 
 async function refreshReport() {
   if (!accessToken || !adminSession) return;
@@ -426,6 +560,7 @@ function clearSession() {
   startForm.reset();
   report.hidden = true;
   clearReport();
+  resetFollowupQueue();
   closeLead();
   inboxRequest++;
   inboxOffset = 0;
@@ -499,6 +634,7 @@ form.addEventListener('submit', async event => {
       refreshWork();
       report.hidden = false;
       refreshReport();
+      refreshFollowupQueue();
       refreshInbox();
       refreshCalls();
     }
@@ -848,7 +984,7 @@ editLead.addEventListener('submit', async event => {
     }
     if (result.saved) {
       offset = 0;
-      await Promise.all([loadLeads(), refreshReport()]).catch(() => {
+      await Promise.all([loadLeads(), refreshReport(), refreshFollowupQueue()]).catch(() => {
         if (activeLeadId === lead.id && accessToken === token) leadEditorFeedback.textContent = 'Lead progress saved. Sign in again to refresh the list.';
       });
     }
