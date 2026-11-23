@@ -5,7 +5,7 @@
 <form id="login"><label>Email <input name="email" type="email" autocomplete="username" required></label><label>Password <input name="password" type="password" autocomplete="current-password" required></label><button>Admin sign in</button></form>
 <main hidden id="desk"><button id="logout">Sign out</button><section><h2>New quotation</h2><form id="create"><label>Customer <input name="customer" required maxlength="160"></label><div id="lines"></div><button type="button" id="add">Add service</button> <button>Save quotation</button></form></section><section><h2>Latest 100 quotations</h2><select id="history" aria-label="Saved quotations"></select> <button id="open">Open</button></section><section><h2>Latest 100 invoices</h2><select id="invoices" aria-label="Saved invoices"></select> <button id="openInvoice">Open invoice</button></section></main><p role="status" id="msg"></p><article id="doc" hidden></article>
 <script type="module">
-import {buildItems,totalPaise,formatINR} from './amounts.mjs';
+import {buildItems,totalPaise,formatINR,validateCustomer} from './amounts.mjs';
 const base='https://zvrdbekyqbwrztckvkpw.supabase.co', key='sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI';
 const $=id=>document.getElementById(id);
 function replaceContents(element,...children){
@@ -138,7 +138,7 @@ $('create').onsubmit=async e=>{
  const form=e.target,btn=form.querySelector('button:not([type])');
  btn.disabled=true;
  try{
-  const customer=form.customer.value.trim();
+  const customer=validateCustomer(form.customer.value);
   const items=buildItems(Array.from($('lines').children,el=>({
    service:el.querySelector('[name=service]').value,
    qty:el.querySelector('[name=qty]').value,
