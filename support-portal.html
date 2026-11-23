@@ -193,6 +193,9 @@ function renderTickets(){
 async function listTickets(){await loadTicketsPage(true)}
 async function loadTicketsPage(reset){
  if(!user)return;
+ // Ignore repeated Load more clicks while a page is pending. Refresh/reset
+ // deliberately supersedes the pending page via listRequest below.
+ if(!reset&&$('loadMore').disabled)return;
  const request=++listRequest;
  const accountId=user.id,accountSession=sessionRequest;
  const active=()=>request===listRequest&&user?.id===accountId&&sessionRequest===accountSession;
