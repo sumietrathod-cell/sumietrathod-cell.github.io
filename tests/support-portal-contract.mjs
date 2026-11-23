@@ -43,7 +43,7 @@ const detailSource=js.slice(js.indexOf('async function openTicket(id)'),js.index
 assert.ok(detailSource.startsWith('async function openTicket(id)'), 'Missing ticket detail handler');
 assert.match(detailSource,/const request=\+\+detailRequest,actorId=user\.id,actorSession=sessionRequest;/,'Detail must snapshot actor and session');
 assert.match(detailSource,/const active=\(\)=>request===detailRequest&&user\?\.id===actorId&&sessionRequest===actorSession;/,'Detail guard must check request, actor and session');
-assert.equal((detailSource.match(/if\(!active\(\)\)return;/g)||[]).length,3,'Guard ticket, history and error completion');
+assert.equal((detailSource.match(/if\(!active\(\)\)return;/g)||[]).length,5,'Guard ticket, history, error and both nested mutation completions');
 assert.doesNotMatch(detailSource,/if\(request!==detailRequest\)return;/,'Request ID alone cannot protect account switching');
 
 assert.match(js, /\.textContent/, 'User-controlled content should render as text');
