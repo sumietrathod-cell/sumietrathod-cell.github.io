@@ -34,7 +34,7 @@ function harness(){
  const dom={login,desk,msg};
  const requests=[],timers=[];
  const ctx={
-  sessionEpoch:0,loginRequest:0,pendingLoginRequest:null,expires:null,token:'',
+  sessionEpoch:0,loginRequest:0,pendingLoginRequest:null,expires:null,token:'',key:'synthetic-public-key',
   $:name=>dom[name],
   FormData:class{
    *[Symbol.iterator](){
