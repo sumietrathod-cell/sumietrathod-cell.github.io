@@ -40,6 +40,13 @@ end $$;
 create index if not exists idx_campaign_jobs_due
   on public.campaign_jobs(status, available_at, created_at);
 
+-- One active queued/processing attempt per enrolled contact, even if two
+-- enqueue requests accidentally use different idempotency keys. This index is
+-- a database-level safeguard against concurrent duplicate outbound attempts.
+create unique index if not exists idx_campaign_jobs_one_active_per_contact
+  on public.campaign_jobs (organization_id, campaign_contact_id)
+  where status in ('queued', 'processing');
+
 alter table public.campaign_jobs enable row level security;
 -- No authenticated policies: only trusted backend/service-role code may enqueue or claim jobs.
 
@@ -84,6 +91,13 @@ begin
       and c.dry_run = false
       and c.channel in ('voice', 'whatsapp')
       and cc.status in ('queued', 'callback', 'no_answer')
+      -- First contact can be unscheduled; retries/callbacks must have an
+      -- explicit due time. A future callback can never be claimed early.
+      and (
+        (cc.status = 'queued' and (cc.next_attempt_at is null or cc.next_attempt_at <= now()))
+        or (cc.status in ('callback', 'no_answer')
+            and cc.next_attempt_at is not null and cc.next_attempt_at <= now())
+      )
       and cc.attempts < c.max_attempts
       and j.attempts < c.max_attempts
       and ct.phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
