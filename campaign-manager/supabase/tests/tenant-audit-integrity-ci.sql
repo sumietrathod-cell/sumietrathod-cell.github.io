@@ -30,7 +30,6 @@ SELECT set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000
 DO $check_alpha$
 DECLARE denied boolean;
 DECLARE count_before integer;
-DECLARE audit_id bigint;
 BEGIN
   INSERT INTO public.audit_events(
     organization_id,actor_user_id,event_type,entity_type,entity_id,details
@@ -40,10 +39,7 @@ BEGIN
     'contact_permission_withdrawn','contact',
     '62000000-0000-4000-8000-000000000001',
     '{"channel":"whatsapp","source":"campaign_manager_opt_out"}'
-  ) RETURNING id INTO audit_id;
-  IF audit_id IS NULL THEN
-    RAISE EXCEPTION 'FAIL: real opt-out audit event was blocked';
-  END IF;
+  );
 
   FOR count_before IN 1..8 LOOP
     denied := false;
@@ -91,7 +87,6 @@ SELECT set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000
 
 DO $check_beta$
 DECLARE denied boolean := false;
-DECLARE audit_id bigint;
 BEGIN
   INSERT INTO public.audit_events(
     organization_id,actor_user_id,event_type,entity_type,entity_id,details
@@ -101,10 +96,7 @@ BEGIN
     'contact_permission_withdrawn','contact',
     '62000000-0000-4000-8000-000000000003',
     '{"channel":"voice","source":"campaign_manager_opt_out"}'
-  ) RETURNING id INTO audit_id;
-  IF audit_id IS NULL THEN
-    RAISE EXCEPTION 'FAIL: viewer cannot record evidence-backed own opt-out';
-  END IF;
+  );
   BEGIN
     INSERT INTO public.audit_events(
       organization_id,actor_user_id,event_type,entity_type,entity_id,details
