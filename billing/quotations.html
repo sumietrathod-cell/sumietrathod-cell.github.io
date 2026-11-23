@@ -174,16 +174,6 @@ $('login').onsubmit=async e=>{
   }
  }
 };
-$('refreshOverview').onclick=async()=>{
- if(!token)return;
- const expectedToken=token,expectedEpoch=sessionEpoch;
- const button=$('refreshOverview');button.disabled=true;
- try{
-  await refresh(expectedToken,expectedEpoch);
-  if(current(expectedToken,expectedEpoch))$('msg').textContent='Billing overview refreshed.';
- }catch(err){if(current(expectedToken,expectedEpoch))$('msg').textContent=err.message}
- finally{button.disabled=false}
-};
 $('logout').onclick=async()=>{
  const previousToken=token;
  reset();$('msg').textContent='Signed out of this page.';
@@ -194,6 +184,16 @@ $('logout').onclick=async()=>{
  }catch{
   if(!token)$('msg').textContent='Signed out locally. Remote session revocation could not be confirmed.';
  }
+};
+$('refreshOverview').onclick=async()=>{
+ if(!token)return;
+ const expectedToken=token,expectedEpoch=sessionEpoch;
+ const button=$('refreshOverview');button.disabled=true;
+ try{
+  await refresh(expectedToken,expectedEpoch);
+  if(current(expectedToken,expectedEpoch))$('msg').textContent='Billing overview refreshed.';
+ }catch(err){if(current(expectedToken,expectedEpoch))$('msg').textContent=err.message}
+ finally{button.disabled=false}
 };
 function addLine(){if($('lines').children.length>=50)return;const el=document.createElement('fieldset');el.innerHTML='<label>Service <input list="service-catalog" name="service" required maxlength="200"></label><label>Quantity <input name="qty" type="number" min="1" max="9999" value="1" required></label><label>Unit price (INR) <input name="price" type="number" min="0" max="9999999.99" step="0.01" required></label><button type="button">Remove service</button>';el.querySelector('button').onclick=()=>{if($('lines').children.length>1)el.remove()};$('lines').append(el)}
 $('add').onclick=addLine;addLine();
