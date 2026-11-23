@@ -43,6 +43,12 @@ Own campaign orchestration product for AAROHAN AI WORLD. This repository current
 - The SQL policies are a draft, not a substitute for independent security review or integration tests.
 
 
+## Campaign preflight preview parity (staging draft)
+- The read-only Edge Function preview now uses `supabase/functions/campaign-api/preview-eligibility.ts` to cross-check phone validity, recorded channel consent, evidence reference, evidence actor/timestamp (not future), opt-out/suppression, terminal outcomes, retry due time, attempt cap and the **currently configured campaign-local calling window**.
+- Missing windows, unsupported/invalid time zones, missing proof metadata and future/unset callbacks fail closed. Preview counts distinguish incomplete proof, callback not yet due, invalid window and outside calling hours. The API does not queue or send anything.
+- `preview-eligibility.test.ts` exercises 30 synthetic cases, and GitHub Actions runs these with `deno test`. Dashboard regression checks ensure the Edge Function actually selects the required consent date/actor and due-time fields and invokes the tested gate.
+- The campaign's `status` and `dry_run` still determine whether the **underlying campaign state** would permit dispatch; `campaign_dispatch_ready` and `dispatch_enabled` stay **false** in this staging release. A passing contact preflight is not legal consent verification, provider approval, actual delivery or a production go-live claim.
+
 ## Outbound eligibility safety (staging draft)
 - `claim_due_campaign_jobs` now requires a **real non-empty consent evidence reference**, a non-future `captured_at` timestamp and a `captured_by` actor before considering any voice/WhatsApp job.
 - Campaigns must configure **both** calling-window times, with `start < end`. Missing windows and overnight ranges now **fail closed**; an absent window is **not** treated as 24/7 authorization.
