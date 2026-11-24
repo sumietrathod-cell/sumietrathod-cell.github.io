@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {calculateOutstanding} from '../billing/outstanding-snapshot.mjs';
 const invoice={id:'synthetic-invoice',amountPaise:25000};
 const payment={invoiceId:invoice.id,paymentId:'pay_Synthetic123',source:'server-verified-razorpay',
- signatureValid:true,disputeChecked:true,disputed:false,refunded:false,currency:'INR',amountPaise:10000};
+ signatureValid:true,status:'captured',disputeChecked:true,disputed:false,refunded:false,currency:'INR',amountPaise:10000};
 test('unpaid, partial and fully paid synthetic snapshots',()=>{
  assert.equal(calculateOutstanding(invoice,[]).outstandingPaise,25000);
  assert.deepEqual([calculateOutstanding(invoice,[payment]).status,
@@ -12,7 +12,7 @@ test('unpaid, partial and fully paid synthetic snapshots',()=>{
 });
 test('fail closed on missing records and unverified or disputed payment',()=>{
  assert.equal(calculateOutstanding(invoice,null).available,false);
- for(const change of [{signatureValid:false},{disputeChecked:false},{disputed:true},
+ for(const change of [{status:'authorized'},{status:undefined},{signatureValid:false},{disputeChecked:false},{disputed:true},
  {refunded:true},{source:'browser'},{currency:'USD'},{amountPaise:30000},
  {invoiceId:'another-invoice'}])
   assert.equal(calculateOutstanding(invoice,[{...payment,...change}]).available,false);
