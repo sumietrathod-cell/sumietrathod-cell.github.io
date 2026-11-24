@@ -2,7 +2,10 @@
 // Accept only trusted server-fetched invoices and verified payment records.
 // A single invalid invoice/payment fails the whole report closed.
 import {calculateOutstanding} from './outstanding-snapshot.mjs';
-export function summarizeOutstanding(invoices,payments) {
+export function summarizeOutstanding(invoices,payments,options={}) {
+ // A paginated or stale payment query must never produce a misleading balance.
+ if (options?.completeSnapshot!==true || options?.independentRefundDisputeCheck!==true)
+  return {available:false,reason:'Complete independently rechecked payment snapshot required'};
  if (!Array.isArray(invoices)||!Array.isArray(payments))
   return {available:false,reason:'Invoice or payment records unavailable'};
  const invoiceIds=new Set(),byInvoice=new Map();
