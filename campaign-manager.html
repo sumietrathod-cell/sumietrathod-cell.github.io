@@ -105,7 +105,7 @@ summary { cursor: pointer; color: #86e6d1; }
     <p id="inbox-feedback" role="status"></p>
     <ul class="list" id="inbox-list"></ul>
     <details>
-      <summary>Log an enquiry</summary>
+      <summary>Log an enquiry / Ambassador quotation</summary><p>Admin only. Use details from a received, consented enquiry. Review before saving; this is manual intake, not automatic website sync.</p>
       <form id="record-enquiry" method="post">
         <div class="lead-fields">
           <label>Channel<select id="record-channel"><option value="whatsapp">WhatsApp</option><option value="voice">Voice</option><option value="chatbot">Chatbot</option></select></label>
@@ -114,7 +114,7 @@ summary { cursor: pointer; color: #86e6d1; }
           <label>Phone<input id="record-phone" maxlength="40" type="tel"></label>
           <label>Business<input id="record-company" maxlength="200"></label>
         </div>
-        <label>Message<textarea id="record-message" maxlength="2000" required></textarea></label>
+        <div class="lead-fields"><label>Enquiry origin<select id="record-origin"><option value="">Other / existing channel</option><option value="Business Ambassador">Business Ambassador</option><option value="Digital Presenter">Digital Presenter</option><option value="Website">Website quotation</option></select></label><label>Requested service<select id="record-service"><option value="">Not specified</option><option>Aarohi PRISM Voice AI</option><option>AI Chatbot Development</option><option>WhatsApp Automation</option><option>AI Workflow Automation</option><option>CRM &amp; Lead Management</option><option>Invoice &amp; Quotation</option><option>Customer Support &amp; Ticketing</option><option>Booking &amp; Reminders</option><option>Sales &amp; Partner Commission</option><option>Inventory Management</option><option>Expense Management</option><option>Order Management</option><option>Purchase Request Desk</option><option>Vendor Onboarding</option><option>Field Service Management</option><option>AMC Renewal Desk</option><option>Invoice Receivables Tracking</option><option>Power BI &amp; Excel Analytics</option><option>Pharma QA Analytics</option><option>Training Tracker</option><option>Project Cost Planning</option><option>SEO &amp; Website Optimization</option><option>Website Design &amp; Development</option><option>E-commerce &amp; Catalogue</option><option>Customer Feedback</option></select></label><label>Requested package<select id="record-scope"><option value="">Not specified</option><option>Classic</option><option>Advanced</option><option>Discuss options</option></select></label></div><label>Message<textarea id="record-message" maxlength="2000" required></textarea></label>
         <button type="submit">Save enquiry</button>
       </form>
     </details>
@@ -792,17 +792,28 @@ async function refreshInbox(older = false, success = '') {
 
 inboxRefresh.addEventListener('click', () => refreshInbox());
 inboxOlder.addEventListener('click', () => refreshInbox(true));
+function withQuotationContext(record, origin, service, scope) {
+  const allowedOrigins = ["Business Ambassador","Digital Presenter","Website"];
+  const allowedServices = ["Aarohi PRISM Voice AI","AI Chatbot Development","WhatsApp Automation","AI Workflow Automation","CRM & Lead Management","Invoice & Quotation","Customer Support & Ticketing","Booking & Reminders","Sales & Partner Commission","Inventory Management","Expense Management","Order Management","Purchase Request Desk","Vendor Onboarding","Field Service Management","AMC Renewal Desk","Invoice Receivables Tracking","Power BI & Excel Analytics","Pharma QA Analytics","Training Tracker","Project Cost Planning","SEO & Website Optimization","Website Design & Development","E-commerce & Catalogue","Customer Feedback"];
+  const allowedScopes = ["Classic","Advanced","Discuss options"];
+  if ((origin && !allowedOrigins.includes(origin)) || (service && !allowedServices.includes(service)) || (scope && !allowedScopes.includes(scope))) throw new Error("Invalid quotation context");
+  const context = [origin && "Enquiry origin: " + origin, service && "Requested service: " + service, scope && "Requested package: " + scope].filter(Boolean);
+  const message = [context.join("\n"), record.message].filter(Boolean).join("\n\n");
+  if (message.length > 2000) throw new Error("Enquiry including quotation details exceeds 2,000 characters.");
+  return {...record, message};
+}
 recordEnquiry.addEventListener('submit', async event => {
   event.preventDefault();
   const token = accessToken;
   if (!token || !adminSession) return;
-  const record = Object.fromEntries(['channel','name','email','phone','company','message'].map(key =>
+  let record = Object.fromEntries(['channel','name','email','phone','company','message'].map(key =>
     [key, recordEnquiry.elements['record-' + key].value.trim() || null]));
   if (!record.name || !record.message || !(record.email || record.phone) ||
       (record.phone && !/^\d{5,20}$/.test(record.phone.replace(/\D/g,'')))) {
     inboxFeedback.textContent = 'Provide a name, message, and valid email or phone.';
     return;
   }
+  try { record = withQuotationContext(record, recordEnquiry.elements['record-origin'].value, recordEnquiry.elements['record-service'].value, recordEnquiry.elements['record-scope'].value); } catch (error) { inboxFeedback.textContent = error.message; return; }
   const button = recordEnquiry.querySelector('button');
   button.disabled = true;
   inboxFeedback.textContent = 'Saving…';
