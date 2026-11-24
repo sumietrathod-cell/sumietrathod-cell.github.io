@@ -347,7 +347,7 @@ function valid(){
  return true;
 }
 $("qe-email").addEventListener("input",()=>{$("qe-email").setCustomValidity("")});
-$("qe-whatsapp").addEventListener("input",()=>{$("qe-whatsapp").setCustomValidity("")});
+$("qe-whatsapp").addEventListener("input",()=>{$("qe-whatsapp").setCustomValidity("");$("qe-email").setCustomValidity("")});
 function payload(){
  const d=new FormData(form);
  d.set("_subject","AAROHAN AI WORLD: New "+plan.options[plan.selectedIndex].text+" enquiry");
