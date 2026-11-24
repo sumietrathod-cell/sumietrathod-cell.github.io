@@ -206,7 +206,7 @@ function view(r,invoice=null){
  append('div','AAROHAN AI WORLD',identity).className='letterhead-brand';
  append('div','AI Automation · Data & Business Software',identity).className='letterhead-tag';
  append('div','aarohanaiworld.com · aarohananalytics951@gmail.com',identity).className='letterhead-web';
- append('div','Udyam Registration No.: UDYAM-GJ-01-0013783',identity).className='letterhead-web';
+ // Seller registration identifier intentionally withheld from customer documents until independently verified.
  const content=append('div','');content.className='doc-body';
  const titleRow=append('div','',content);titleRow.className='doc-top';
  const heading=append('div','',titleRow);
@@ -218,7 +218,7 @@ function view(r,invoice=null){
  append('p','Reference: '+(invoice||r).id,meta).className='doc-ref';
  if(invoice)append('p','Quotation reference: '+r.id,meta).className='doc-ref';
  append('p','Date: '+new Date(invoice?.issued_at||r.created_at).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}),meta).className='doc-ref';
- append('p','Udyam registration number supplied by business owner; not independently verified.',meta).className='doc-ref';
+ append('p','Seller registration details pending independent verification.',meta).className='doc-ref';
  const client=append('div','',content);client.className='client-box';
  append('div',invoice?'Billed to':'Prepared for',client).className='doc-label';
  append('h3',r.customer,client);
