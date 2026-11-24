@@ -16,6 +16,7 @@ export function calculateOutstanding(invoice,verifiedPayments) {
       seen.has(payment.paymentId) ||
       payment.source!=='server-verified-razorpay' ||
       payment.signatureValid!==true ||
+      payment.status!=='captured' ||
       payment.disputeChecked!==true ||
       payment.disputed!==false || payment.refunded!==false ||
       payment.currency!=='INR' ||
