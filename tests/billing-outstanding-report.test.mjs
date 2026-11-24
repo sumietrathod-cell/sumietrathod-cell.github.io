@@ -4,7 +4,7 @@ import {summarizeOutstanding} from '../billing/outstanding-report.mjs';
 const invoices=[{id:'synthetic-A',amountPaise:25000},{id:'synthetic-B',amountPaise:5000}];
 const complete={completeSnapshot:true,independentRefundDisputeCheck:true};
 const p={invoiceId:'synthetic-A',paymentId:'pay_Synthetic123',source:'server-verified-razorpay',
- signatureValid:true,disputeChecked:true,disputed:false,refunded:false,currency:'INR',amountPaise:10000};
+ signatureValid:true,status:'captured',disputeChecked:true,disputed:false,refunded:false,currency:'INR',amountPaise:10000};
 test('summarizes unpaid and partially paid invoices without claiming settlement',()=>{
  const result=summarizeOutstanding(invoices,[p],complete);
  assert.equal(result.available,true);
