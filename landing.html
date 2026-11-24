@@ -215,7 +215,7 @@ header .nav-links>a:not(.btn):hover{color:#92f6f5}
   <div class="quick-enquiry-card">
    <div class="qe-head"><h3>Request your AI plan quote</h3><span>FREE ENQUIRY</span></div>
    <form id="qe-form" class="qe-form" autocomplete="on">
-    <div class="qe-fields">
+    <div class="qe-fields"><div class="qe-field wide" id="qe-context" hidden style="display:none"><label for="qe-requested-service">Selected service</label><input id="qe-requested-service" name="requested_service" readonly><label for="qe-requested-scope">Requested scope</label><select id="qe-requested-scope" name="requested_scope"><option value="Classic">Classic</option><option value="Advanced">Advanced</option><option value="Discuss options">Discuss options</option></select></div>
      <div class="qe-field"><label for="qe-name">Your name *</label><input id="qe-name" name="name" autocomplete="name" maxlength="80" required placeholder="Your name"></div>
      <div class="qe-field"><label for="qe-company">Business name *</label><input id="qe-company" name="company" maxlength="100" required placeholder="Your business"></div>
      <div class="qe-field"><label for="qe-service">AI agent plan *</label><select id="qe-service" name="plan" required><option value="basic">Basic Agent</option><option value="growth">Growth Agent</option><option value="advanced">Advanced Agent</option><option value="voice">Voice AI Agent</option><option value="custom">Custom AI Automation Project</option></select></div>
@@ -334,6 +334,7 @@ const $=id=>document.getElementById(id);
 const plan=$("qe-service"),billing=$("qe-billing"),status=$("qe-status"),btn=$("qe-submit");
 const params=new URLSearchParams(location.search);const allowed=["basic","growth","advanced","voice","custom"];
 if(allowed.includes(params.get("plan")))plan.value=params.get("plan");
+const serviceCatalog={"voice-ai":"Aarohi PRISM Voice AI","ai-chatbot":"AI Chatbot Development","whatsapp-automation":"WhatsApp Automation","business-automation":"AI Workflow Automation","crm-leads":"CRM & Lead Management","invoice-quotation":"Invoice & Quotation","customer-support":"Customer Support & Ticketing","booking-reminders":"Booking & Reminders","sales-commission":"Sales & Partner Commission","inventory":"Inventory Management","expenses":"Expense Management","order-management":"Order Management","purchase-requests":"Purchase Request Desk","vendor-onboarding":"Vendor Onboarding","field-service":"Field Service Management","amc-renewal":"AMC Renewal Desk","receivables":"Invoice Receivables Tracking","analytics-reporting":"Power BI & Excel Analytics","pharma-qa":"Pharma QA Analytics","training-tracker":"Training Tracker","project-cost":"Project Cost Planning","seo":"SEO & Website Optimization","website-development":"Website Design & Development","ecommerce-catalogue":"E-commerce & Catalogue","customer-feedback":"Customer Feedback"};const selectedService=Object.prototype.hasOwnProperty.call(serviceCatalog,params.get("service"))?serviceCatalog[params.get("service")]:"";const selectedScope={classic:"Classic",advanced:"Advanced",discuss:"Discuss options"};const initialScope=Object.prototype.hasOwnProperty.call(selectedScope,params.get("scope"))?selectedScope[params.get("scope")]:"Discuss options";const contextBox=$("qe-context");const restoreContext=()=>{if(selectedService){contextBox.hidden=false;contextBox.style.display="grid";$("qe-requested-service").value=selectedService;$("qe-requested-scope").value=initialScope}else{$("qe-requested-service").disabled=true;$("qe-requested-scope").disabled=true}};restoreContext();
 if(["monthly","yearly","unsure"].includes(params.get("billing")))billing.value=params.get("billing");
 function updateStatus(message,kind){status.textContent=message;status.className="qe-message"+(kind?" "+kind:"")}
 function valid(){
@@ -350,8 +351,8 @@ $("qe-whatsapp").addEventListener("input",()=>{$("qe-whatsapp").setCustomValidit
 function payload(){
  const d=new FormData(form);
  d.set("_subject","AAROHAN AI WORLD: New "+plan.options[plan.selectedIndex].text+" enquiry");
- d.set("service","AI agent quotation enquiry");
- d.set("source","aarohanaiworld.com/landing.html – quick enquiry");
+ d.set("service",selectedService||"AI agent quotation enquiry");
+ d.set("source",params.get("source")==="digital-presenter"&&selectedService?"Digital Presenter – quotation handoff":"aarohanaiworld.com/landing.html – quick enquiry");
  d.set("consent",String($("qe-consent").checked));
  return d;
 }
@@ -371,7 +372,7 @@ form.addEventListener("submit",async e=>{
   const response=await fetch("https://formspree.io/f/xrpervae",{method:"POST",body:payload(),headers:{"Accept":"application/json"}});
   if(!response.ok)throw new Error("Unable to submit");
   const selectedPlan=plan.value,selectedBilling=billing.value;
-  form.reset();plan.value=selectedPlan;billing.value=selectedBilling;
+  form.reset();plan.value=selectedPlan;billing.value=selectedBilling;restoreContext();
   updateStatus("Your enquiry was accepted by our form service. We will review your requirements and prepare a quotation. No payment has been taken.","ok");
  }catch(error){updateStatus("Online submission was not confirmed. Please use the WhatsApp option to share your enquiry instead.","fail")}
  finally{btn.disabled=false}
@@ -381,6 +382,7 @@ $("qe-whatsapp-send").addEventListener("click",()=>{
  const body=["Hello AAROHAN AI WORLD, I would like a quotation.",
  "Name: "+d.get("name"),"Business: "+d.get("company"),
  "AI Plan: "+plan.options[plan.selectedIndex].text,"Subscription: "+billing.options[billing.selectedIndex].text,
+ ...(selectedService?["Service: "+selectedService,"Scope: "+$("qe-requested-scope").value]:[]),
  "Phone/WhatsApp: "+(d.get("whatsapp")||"Not supplied"),"Email: "+(d.get("email")||"Not supplied"),
  "Requirements: "+(d.get("message")||"Please discuss")].join("\n");
  const url="https://wa.me/916357115513?text="+encodeURIComponent(body);
