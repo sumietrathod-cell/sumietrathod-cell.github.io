@@ -61,6 +61,9 @@ async function refreshActivity() {
   try {
     const rows = await api('/rest/v1/voice_events?select=event_type,created_at&order=created_at.desc&limit=100&deployment_id=eq.' + encodeURIComponent(deployment), { token: session });
     if (session !== token || deployment !== selection.value || requestId !== activityRequest) return;
+    if (!Array.isArray(rows) || rows.some(row => !row || typeof row.event_type !== 'string' || typeof row.created_at !== 'string' || !Number.isFinite(Date.parse(row.created_at)))) {
+      throw new Error('Invalid activity response');
+    }
     const labels = { connected: 'Agent connected', turn_completed: 'Voice turn completed', runtime_error: 'Voice turn failed' };
     const recent = summarizeVoiceActivity(rows);
     byId('health-summary').textContent = recent.description;
@@ -73,6 +76,8 @@ async function refreshActivity() {
   } catch (error) {
     if (session === token && deployment === selection.value && requestId === activityRequest) {
       byId('health-summary').textContent = 'Recent event summary unavailable.';
+      byId('last-activity').textContent = 'Activity unavailable.';
+      activity.replaceChildren();
       handleError(error, 'Could not load agent activity.');
     }
   }
