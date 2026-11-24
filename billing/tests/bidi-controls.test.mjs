@@ -15,3 +15,10 @@ test('service names reject bidi controls at creation and on readback',()=>{
  }
  assert.equal(buildItems([{service:'ગુજરાતી સેવા',qty:'1',price:'100.00'}])[0].service,'ગુજરાતી સેવા');
 });
+
+test('service names reject Unicode line and paragraph separators in input and readback',()=>{
+ for(const mark of ['\u2028','\u2029']){
+  assert.throws(()=>buildItems([{service:'Synthetic'+mark+'Service',qty:'1',price:'10.00'}]),/Service name/);
+  assert.throws(()=>totalPaise([{service:'Synthetic'+mark+'Service',qty:1,paise:1000}]),/invalid line/);
+ }
+});
