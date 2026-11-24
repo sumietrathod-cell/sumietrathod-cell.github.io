@@ -224,11 +224,11 @@ header .nav-links>a:not(.btn):hover{color:#92f6f5}
      <div class="qe-field"><label for="qe-email">Business email</label><input id="qe-email" name="email" type="email" autocomplete="email" maxlength="120" placeholder="name@company.com"></div>
      <div class="qe-field wide"><label for="qe-message">What would you like to automate?</label><textarea id="qe-message" name="message" maxlength="850" placeholder="e.g. WhatsApp enquiries, quotations, CRM reminders or voice agent"></textarea></div>
     </div>
-    <label class="qe-opt"><input type="checkbox" id="qe-consent" required><span>I agree to be contacted about this enquiry. Submitting online shares my details with the website's form processing service. *</span></label>
+    <label class="qe-opt"><input type="checkbox" id="qe-consent" required><span>I agree to be contacted about this enquiry. Submitting online shares my details with our CRM intake or form processing service for quotation review. Please provide only business contact information. *</span></label>
     <div class="qe-hp" aria-hidden="true"><label for="qe-website-check">Leave blank</label><input id="qe-website-check" name="_gotcha" tabindex="-1" autocomplete="off"></div>
     <div class="qe-actions"><button type="submit" id="qe-submit">Send enquiry ↗</button><button type="button" id="qe-whatsapp-send">Send by WhatsApp ↗</button></div>
     <div class="qe-message" id="qe-status" role="status" aria-live="polite"></div>
-    <p class="qe-tiny">Use either a WhatsApp number or a business email so we can respond. WhatsApp opens a message for you to review and send. No payment is collected here.</p>
+    <p class="qe-tiny">Use either a WhatsApp number or a business email. Presenter and Ambassador enquiries with a business email go to our CRM inbox; phone-only enquiries use our existing form service. WhatsApp opens a message for you to review and send. No payment is collected here.</p>
    </form>
   </div>
  </div>
@@ -364,17 +364,29 @@ document.querySelectorAll("[data-plan-select]").forEach(a=>{
 });
 document.querySelectorAll("[data-billing]").forEach(b=>b.addEventListener("click",()=>{billing.value=b.dataset.billing}));
 $("qe-full-assessment").addEventListener("click",e=>{const u=new URL(e.currentTarget.href,location.href);u.searchParams.set("plan",plan.value);u.searchParams.set("billing",billing.value);e.currentTarget.href=u.pathname+u.search;});
+function quotationIntake(data, context){
+ const sources={"business-ambassador":"Business Ambassador","digital-presenter":"Digital Presenter"};
+ const source=Object.prototype.hasOwnProperty.call(sources,context.source)?sources[context.source]:"";
+ if(!source||!context.service||!String(data.email||"").trim())return null;
+ if(data.consent!==true)throw Error("Consent required");
+ const message=["Enquiry origin: "+source,"Requested service: "+context.service,"Requested package: "+context.scope,"AI plan: "+context.plan,"Support: "+context.billing, data.phone&&"Contact phone: "+data.phone,"Requirements: "+(data.message||"Please discuss")].filter(Boolean).join("\n");
+ if(message.length>2000)throw Error("Enquiry too long");
+ return {channel:"chatbot",name:data.name,company:data.company,email:data.email.trim(),message,consent:true};
+}
 form.addEventListener("submit",async e=>{
  e.preventDefault();if(!valid())return;
  if($("qe-website-check").value){updateStatus("Thank you for your enquiry.","ok");return}
  btn.disabled=true;updateStatus("Submitting your enquiry securely…");
  try{
-  const response=await fetch("https://formspree.io/f/xrpervae",{method:"POST",body:payload(),headers:{"Accept":"application/json"}});
+  const d=payload();
+  const intake=quotationIntake({name:String(d.get("name")||""),company:String(d.get("company")||""),email:String(d.get("email")||""),phone:String(d.get("whatsapp")||""),message:String(d.get("message")||""),consent:$("qe-consent").checked},{source:params.get("source"),service:selectedService,scope:$("qe-requested-scope").value,plan:plan.options[plan.selectedIndex].text,billing:billing.options[billing.selectedIndex].text});
+  const response=intake?await fetch("https://zvrdbekyqbwrztckvkpw.supabase.co/functions/v1/campaign-intake",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(intake),signal:AbortSignal.timeout(15000)}):await fetch("https://formspree.io/f/xrpervae",{method:"POST",body:d,headers:{"Accept":"application/json"},signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw new Error("Unable to submit");
+  if(intake&&(response.status!==201||(await response.json()).received!==true))throw new Error("CRM receipt not confirmed");
   const selectedPlan=plan.value,selectedBilling=billing.value;
   form.reset();plan.value=selectedPlan;billing.value=selectedBilling;restoreContext();
-  updateStatus("Your enquiry was accepted by our form service. We will review your requirements and prepare a quotation. No payment has been taken.","ok");
- }catch(error){updateStatus("Online submission was not confirmed. Please use the WhatsApp option to share your enquiry instead.","fail")}
+  updateStatus(intake?"Your enquiry was accepted into our CRM inbox. We will review your requirements and prepare a quotation. No payment has been taken.":"Your enquiry was accepted by our form service. We will review your requirements and prepare a quotation. No payment has been taken.","ok");
+ }catch(error){updateStatus("Online submission was not confirmed. To avoid duplicate enquiries, please wait for confirmation or use WhatsApp and mention the earlier attempt.","fail")}
  finally{btn.disabled=false}
 });
 $("qe-whatsapp-send").addEventListener("click",()=>{
