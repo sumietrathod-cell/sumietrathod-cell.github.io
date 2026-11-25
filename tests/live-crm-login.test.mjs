@@ -186,3 +186,80 @@ test('selected partner login rejects an account without partner profile',async()
  assert.equal(h.ctx.accessToken,undefined);
  assert.equal(h.pendingLeads.length,0);
 });
+
+
+/* Campaign intake regression: synthetic requests only; never contact a provider or database. */
+import {createHmac,webcrypto} from 'node:crypto';
+const intakeSource=readFileSync(new URL('../supabase/functions/campaign-intake/index.ts',import.meta.url),'utf8');
+const syntheticSecret='synthetic-test-secret';
+const intakeUrl='https://example.invalid/campaign-intake';
+function intakeHarness(configured=true,dbStatus=201){
+ const calls=[];
+ let handler;
+ const env={SUPABASE_URL:'https://database.example.invalid',SUPABASE_SERVICE_ROLE_KEY:'synthetic-key',
+ WHATSAPP_APP_SECRET:configured?syntheticSecret:undefined,WHATSAPP_VERIFY_TOKEN:'synthetic-verify',WHATSAPP_PHONE_NUMBER_ID:'test-number'};
+ vm.runInNewContext(intakeSource,{Deno:{env:{get:k=>env[k]},serve:fn=>{handler=fn}},
+  URL,Headers,Request,Response,TextEncoder,TextDecoder,Uint8Array,AbortSignal,crypto:webcrypto,
+  fetch:async(url,options)=>{calls.push({url,method:options.method,prefer:options.headers.Prefer,body:JSON.parse(options.body)});
+   return new Response(dbStatus===201?'true':'false',{status:dbStatus});}
+ },{filename:'campaign-intake/index.ts'});
+ assert.equal(typeof handler,'function');
+ return {handler,calls};
+}
+function webhookRequest(payload,signature=true){
+ const body=JSON.stringify(payload);
+ const headers={'content-type':'application/json'};
+ if(signature!==null)headers['x-hub-signature-256']='sha256='+createHmac('sha256',signature?syntheticSecret:'wrong-secret').update(body).digest('hex');
+ return new Request(intakeUrl+'/whatsapp',{method:'POST',headers,body});
+}
+function syntheticWebhook(){
+ const text={id:'wamid.synthetic1',from:'15550100000',type:'text',text:{body:'Synthetic demo request'}};
+ return {object:'whatsapp_business_account',entry:[{changes:[
+ {field:'messages',value:{metadata:{phone_number_id:'test-number'},messages:[text,text,{...text,id:'wamid.media',type:'image'},{...text,id:'invalid'}]}},
+ {field:'messages',value:{metadata:{phone_number_id:'different-number'},messages:[{...text,id:'wamid.other'}]}}
+ ]}]};
+}
+test('intake webhook verification accepts correct challenge and rejects wrong token',async()=>{
+ const h=intakeHarness();
+ const q='?hub.mode=subscribe&hub.challenge=12345&hub.verify_token=';
+ const good=await h.handler(new Request(intakeUrl+'/whatsapp'+q+'synthetic-verify'));
+ assert.equal(good.status,200);assert.equal(await good.text(),'12345');
+ const bad=await h.handler(new Request(intakeUrl+'/whatsapp'+q+'incorrect'));
+ assert.equal(bad.status,403);assert.equal(h.calls.length,0);
+});
+test('intake rejects missing or invalid HMAC without touching database',async()=>{
+ const h=intakeHarness();
+ for(const sig of [null,false]){
+  assert.equal((await h.handler(webhookRequest(syntheticWebhook(),sig))).status,401);
+ }
+ assert.equal(h.calls.length,0);
+});
+test('intake stores only valid matching text and deduplicates message IDs',async()=>{
+ const h=intakeHarness();
+ const res=await h.handler(webhookRequest(syntheticWebhook()));
+ assert.equal(res.status,200);assert.equal(h.calls.length,1);
+ assert.equal(h.calls[0].body.length,1);
+ assert.equal(h.calls[0].body[0].external_id,'wamid.synthetic1');
+ assert.equal(h.calls[0].body[0].message,'Synthetic demo request');
+ assert.match(h.calls[0].url,/on_conflict=external_id/);
+ assert.match(h.calls[0].prefer,/ignore-duplicates/);
+});
+test('intake reports unavailable provider configuration and storage errors',async()=>{
+ const disabled=intakeHarness(false);
+ assert.equal((await disabled.handler(webhookRequest(syntheticWebhook()))).status,503);
+ assert.equal(disabled.calls.length,0);
+ const failed=intakeHarness(true,500);
+ assert.equal((await failed.handler(webhookRequest(syntheticWebhook()))).status,503);
+ assert.equal(failed.calls.length,1);
+});
+test('intake website rejects missing consent and foreign origin; accepts synthetic consented enquiry',async()=>{
+ const h=intakeHarness();
+ const data={channel:'chatbot',name:'Synthetic demo',email:'demo@example.invalid',message:'Demo only',consent:true};
+ const make=(body,origin)=>new Request(intakeUrl,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});
+ assert.equal((await h.handler(make({...data,consent:false},'https://aarohanaiworld.com'))).status,400);
+ assert.equal((await h.handler(make(data,'https://example.invalid'))).status,403);
+ assert.equal(h.calls.length,0);
+ const res=await h.handler(make(data,'https://aarohanaiworld.com'));
+ assert.equal(res.status,201);assert.equal((await res.json()).received,true);
+ assert.equal(h.calls.length,1);assert.match(h.calls[0].url,/campaign_web_enquiry/);
+});
