@@ -1,0 +1,86 @@
+name: Aarohi browser regression checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aarohi-voice.html'
+      - 'enquiry.html'
+      - '.github/workflows/aarohi-browser-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test library
+        run: npm install --no-save --ignore-scripts --prefix /tmp/aarohi-qa playwright@1.56.1
+      - name: Test mobile and desktop layouts with mocked external services
+        shell: bash
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/aarohi-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8765/aarohi-voice.html -o /dev/null && break; sleep 1; done
+          cat > /tmp/aarohi-qa/check.mjs <<'NODE'
+          import assert from 'node:assert/strict';
+          import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true,channel:'chrome'});
+          const categories={voice:'Voice AI',chatbot:'Website chatbot',whatsapp:'WhatsApp automation',crm:'CRM and lead management',quotation:'Quotation software',analytics:'Analytics and reporting',support:'Customer support automation',other:'Other business automation'};
+          const base='http://127.0.0.1:8765';
+          try {
+           for(const viewport of [{width:390,height:844},{width:1280,height:800}]) {
+            const page=await browser.newPage({viewport});
+            const errors=[];let posts=0;let last=null;
+            page.on('pageerror',e=>errors.push(e.message));
+            await page.route('**/*',async route=>{
+             const url=new URL(route.request().url());
+             if(url.origin===base)return route.continue();
+             if(url.pathname==='/functions/v1/campaign-intake'&&route.request().method()==='POST'){
+              posts++;last=route.request().postDataJSON();
+              return route.fulfill({status:201,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:'{"received":true}'});
+             }
+             if(url.pathname==='/functions/v1/campaign-intake'&&route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'content-type, apikey'}});
+             return route.abort();
+            });
+            for(const [key,label] of Object.entries(categories)){
+             await page.goto(base+'/aarohi-voice.html?lang=hi');
+             assert.equal(await page.locator('#call-language').inputValue(),'hi');
+             assert.equal(await page.locator('#voice-enquiry-review').isVisible(),false);
+             const result=await page.evaluate(service=>{
+              const config={};document.querySelector('elevenlabs-convai').dispatchEvent(new CustomEvent('elevenlabs-convai:call',{detail:{config}}));
+              return config.clientTools.prepareVoiceEnquiry({service});
+             },key);
+             assert.match(result,/No enquiry has been submitted/);
+             assert.equal(await page.locator('#voice-enquiry-review').isVisible(),true);
+             await page.locator('#voice-enquiry-link').click();
+             await page.waitForURL('**/enquiry.html?channel=voice&service='+key);
+             assert.equal(await page.locator('#enquiry-message').inputValue(),'I would like to discuss '+label+'.');
+             assert.equal(await page.locator('#enquiry-name').inputValue(),'');
+             assert.equal(await page.locator('#enquiry-email').inputValue(),'');
+             assert.equal(await page.locator('#enquiry-consent').isChecked(),false);
+             await page.locator('#enquiry-name').fill('Synthetic QA');
+             await page.locator('#enquiry-email').fill('qa@example.invalid');
+             const before=posts;
+             await page.locator('#enquiry button').click();
+             assert.equal(posts,before);
+             await page.locator('#enquiry-consent').check();
+             await page.locator('#enquiry button').click();
+             await page.locator('#enquiry-status').filter({hasText:'Your enquiry was received'}).waitFor();
+             assert.equal(posts,before+1);
+             assert.equal(last.channel,'voice');assert.equal(last.consent,true);
+             assert.equal(last.message,'I would like to discuss '+label+'.');
+            }
+            assert.equal(errors.length,0,errors.join('; '));
+            assert.equal(posts,8);
+            console.log('PASS '+viewport.width+'px: 8 category paths, review link, consent gate, mocked receipt, no page errors');
+            await page.close();
+           }
+          } finally { await browser.close(); }
+          NODE
+          node /tmp/aarohi-qa/check.mjs
