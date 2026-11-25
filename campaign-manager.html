@@ -188,6 +188,7 @@ summary { cursor: pointer; color: #86e6d1; }
       <div class="lead-editor-heading"><button type="submit">Save progress</button><button id="reload-lead" type="button">Refresh details</button></div>
     </form>
     <div id="work-lead" hidden>
+      <div id="lead-follow-up-draft"></div>
       <form id="campaign-enrol"><label>Active campaign<select name="campaign" required></select></label><button>Enrol lead</button></form>
       <form id="appointment-add"><label>Appointment time (India)<input name="when" type="datetime-local" required></label><label>Purpose<input name="purpose" maxlength="160" required></label><button>Book appointment</button></form>
       <h3>Contact history</h3><form id="log-contact"><label>Contact method<select name="channel"><option>Phone</option><option>Email</option><option>WhatsApp</option><option>Meeting</option></select></label><label>What happened?<textarea name="outcome" required maxlength="1000"></textarea></label><button>Save contact note</button></form><ul id="contact-history" class="list"></ul>
@@ -751,11 +752,11 @@ function makeReplyDraft(language,kind) {
   const selected = Object.hasOwn(texts,language) ? texts[language] : texts.en;
   return Object.hasOwn(selected,kind) ? selected[kind] : selected.ack;
 }
-function replyDraftControl() {
+function replyDraftControl(initialKind='ack', leadId=null) {
   const details = document.createElement('details');
   details.className = 'reply-draft';
   const summary = document.createElement('summary');
-  summary.textContent = 'Prepare reply draft';
+  summary.textContent = leadId ? 'Prepare follow-up draft' : 'Prepare reply draft';
   const note = document.createElement('p');
   note.textContent = 'Template only. Check consent, customer requirements and accuracy before copying. Nothing is sent or saved automatically.';
   const language = document.createElement('select');
@@ -768,18 +769,29 @@ function replyDraftControl() {
   for(const [value,label] of [['ack','Acknowledge enquiry'],['demo','Demo invitation'],['quote','Quotation requirements'],['follow','Consented follow-up']]) {
     const option = document.createElement('option'); option.value=value; option.textContent=label; kind.append(option);
   }
+  kind.value=initialKind;
+  const permissionLabel=document.createElement('label');
+  const permission=document.createElement('input');permission.type='checkbox';
+  permissionLabel.append(permission,document.createTextNode(' I verified that follow-up is permitted and the customer has not opted out.'));
+  permissionLabel.hidden=initialKind!=='follow';
+  let generatedKind=initialKind;
+  const current=()=>!!(adminSession&&accessToken&&details.isConnected&&(!leadId||activeLeadId===leadId));
   const body = document.createElement('textarea');
   body.setAttribute('aria-label','Editable reply draft'); body.rows=6; body.maxLength=4000;
   const status = document.createElement('p'); status.setAttribute('role','status');
   const generate = document.createElement('button'); generate.type='button'; generate.textContent='Generate / replace draft';
   const copy = document.createElement('button'); copy.type='button'; copy.textContent='Copy draft';
   generate.addEventListener('click',()=>{
-    if(!adminSession||!accessToken)return;
-    body.value=makeReplyDraft(language.value,kind.value);
+    if(!current())return;
+    generatedKind=kind.value;
+    permission.checked=false;
+    permissionLabel.hidden=generatedKind!=='follow';
+    body.value=makeReplyDraft(language.value,generatedKind);
     status.textContent='Draft prepared. Review before copying.';
   });
   copy.addEventListener('click',async()=>{
-    if(!adminSession||!accessToken||!body.value.trim())return;
+    if(!current()||!body.value.trim())return;
+    if(generatedKind==='follow'&&!permission.checked){status.textContent='Verify follow-up permission before copying.';return;}
     try {
       if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
       await navigator.clipboard.writeText(body.value);
@@ -788,8 +800,9 @@ function replyDraftControl() {
       if(details.isConnected){body.focus();body.select();status.textContent='Copy manually from the selected draft.';}
     }
   });
-  body.value=makeReplyDraft('en','ack');
-  details.append(summary,note,language,kind,generate,body,copy,status);
+  body.value=makeReplyDraft('en',initialKind);
+  kind.addEventListener('change',()=>{permission.checked=false;status.textContent='Choose Generate / replace draft to apply the new reply type.';});
+  details.append(summary,note,language,kind,generate,body,permissionLabel,copy,status);
   return details;
 }
 
@@ -1034,6 +1047,7 @@ async function openLead(id, refreshed = false) {
       return;
     }
     leadSnapshot = lead;
+    document.getElementById('lead-follow-up-draft').replaceChildren(replyDraftControl('follow',lead.id));
     workLead.hidden=false;
     loadContactHistory(id,token);
     leadTitle.textContent = lead.name;
@@ -1359,6 +1373,7 @@ async function loadContactHistory(lead,token){
   }catch{if(version===historyVersion)historyList.textContent='Could not load contact history. Reopen this lead to retry.'}
 }
 function resetWorkLead(){
+  document.getElementById('lead-follow-up-draft').replaceChildren();
   historyVersion++;contactForm.reset();historyList.replaceChildren();
   workLead.hidden=true;
   appointmentForm.reset();
