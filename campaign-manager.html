@@ -40,6 +40,9 @@ summary { cursor: pointer; color: #86e6d1; }
 .channel-links a { color: #a5d3ff; }
 #channel-hub form { max-width: none; margin-block: 1rem; }
 #channel-hub textarea { display: block; width: 100%; min-height: 5rem; font: inherit; color: inherit; background: #0e1828; border: 1px solid #526886; border-radius: .55rem; margin-top: .35rem; padding: .65rem; }
+.reply-draft { margin-top: .8rem; padding: .7rem; border: 1px solid currentColor; border-radius: .5rem; }
+.reply-draft select, .reply-draft textarea { display: block; width: 100%; box-sizing: border-box; margin: .5rem 0; }
+.reply-draft button { margin: .25rem 0; }
 .inbox-message { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }
 .inbox-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .7rem; }
 #lead-tools form { max-width: none; margin-block: .75rem; }
@@ -696,6 +699,72 @@ async function refreshCalls(older = false) {
 callsRefresh.addEventListener('click', () => refreshCalls());
 callsOlder.addEventListener('click', () => refreshCalls(true));
 
+function makeReplyDraft(language,kind) {
+  const texts = {
+    en: {
+      ack: "Thank you for contacting AAROHAN AI WORLD. We received your enquiry. Could you confirm the service you need and your business requirements?",
+      demo: "Thank you for your interest in AAROHAN AI WORLD. Explore our illustrative AI Presenter demo at https://aarohanaiworld.com/aiworld/digital-presenter.html . Please tell us which service and workflow you would like to demonstrate.",
+      quote: "Thank you for contacting AAROHAN AI WORLD. To prepare a quotation, please confirm the required service, scope, expected usage and preferred languages. Pricing and delivery will be confirmed after review.",
+      follow: "Following up on your enquiry to AAROHAN AI WORLD. Would you like to continue discussing your requirements? If not, please let us know and we will not follow up."
+    },
+    gu: {
+      ack: "AAROHAN AI WORLDનો સંપર્ક કરવા બદલ આભાર. તમારી પૂછપરછ મળી છે. કૃપા કરીને જરૂરી સર્વિસ અને વ્યવસાયની જરૂરિયાત જણાવશો?",
+      demo: "AAROHAN AI WORLDમાં રસ દર્શાવવા બદલ આભાર. નમૂનારૂપ AI Presenter ડેમો https://aarohanaiworld.com/aiworld/digital-presenter.html પર જોઈ શકશો. કઈ સર્વિસનો અને કઈ પ્રક્રિયાનો ડેમો જોઈએ છે તે જણાવશો?",
+      quote: "AAROHAN AI WORLDનો સંપર્ક કરવા બદલ આભાર. કોટેશન માટે જરૂરી સર્વિસ, કામનો વ્યાપ, અંદાજિત વપરાશ અને પસંદગીની ભાષા જણાવશો. સમીક્ષા પછી કિંમત અને સમયની પુષ્ટિ કરવામાં આવશે.",
+      follow: "AAROHAN AI WORLD તરફથી તમારી અગાઉની પૂછપરછ અંગે સંપર્ક કરી રહ્યા છીએ. શું તમે આગળ ચર્ચા કરવા માંગો છો? જો નહીં, તો જણાવશો અને ફરી સંપર્ક નહીં કરીએ."
+    },
+    hi: {
+      ack: "AAROHAN AI WORLD से संपर्क करने के लिए धन्यवाद। आपकी पूछताछ प्राप्त हुई है। कृपया आवश्यक सेवा और व्यवसाय की जरूरत बताएं।",
+      demo: "AAROHAN AI WORLD में रुचि के लिए धन्यवाद। उदाहरण के लिए AI Presenter का डेमो https://aarohanaiworld.com/aiworld/digital-presenter.html पर देखें। कृपया बताएं कि किस सेवा और प्रक्रिया का डेमो चाहिए।",
+      quote: "AAROHAN AI WORLD से संपर्क करने के लिए धन्यवाद। कोटेशन तैयार करने के लिए सेवा, कार्यक्षेत्र, अनुमानित उपयोग और पसंदीदा भाषा बताएं। समीक्षा के बाद कीमत और समय की पुष्टि की जाएगी।",
+      follow: "AAROHAN AI WORLD की ओर से आपकी पिछली पूछताछ के बारे में संपर्क कर रहे हैं। क्या आप आगे चर्चा करना चाहते हैं? यदि नहीं, तो बताएं और हम दोबारा संपर्क नहीं करेंगे।"
+    }
+  };
+  const selected = Object.hasOwn(texts,language) ? texts[language] : texts.en;
+  return Object.hasOwn(selected,kind) ? selected[kind] : selected.ack;
+}
+function replyDraftControl() {
+  const details = document.createElement('details');
+  details.className = 'reply-draft';
+  const summary = document.createElement('summary');
+  summary.textContent = 'Prepare reply draft';
+  const note = document.createElement('p');
+  note.textContent = 'Template only. Check consent, customer requirements and accuracy before copying. Nothing is sent or saved automatically.';
+  const language = document.createElement('select');
+  language.setAttribute('aria-label','Reply language');
+  for(const [value,label] of [['en','English'],['gu','Gujarati'],['hi','Hindi']]) {
+    const option = document.createElement('option'); option.value=value; option.textContent=label; language.append(option);
+  }
+  const kind = document.createElement('select');
+  kind.setAttribute('aria-label','Reply type');
+  for(const [value,label] of [['ack','Acknowledge enquiry'],['demo','Demo invitation'],['quote','Quotation requirements'],['follow','Consented follow-up']]) {
+    const option = document.createElement('option'); option.value=value; option.textContent=label; kind.append(option);
+  }
+  const body = document.createElement('textarea');
+  body.setAttribute('aria-label','Editable reply draft'); body.rows=6; body.maxLength=4000;
+  const status = document.createElement('p'); status.setAttribute('role','status');
+  const generate = document.createElement('button'); generate.type='button'; generate.textContent='Generate / replace draft';
+  const copy = document.createElement('button'); copy.type='button'; copy.textContent='Copy draft';
+  generate.addEventListener('click',()=>{
+    if(!adminSession||!accessToken)return;
+    body.value=makeReplyDraft(language.value,kind.value);
+    status.textContent='Draft prepared. Review before copying.';
+  });
+  copy.addEventListener('click',async()=>{
+    if(!adminSession||!accessToken||!body.value.trim())return;
+    try {
+      if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(body.value);
+      if(details.isConnected)status.textContent='Copied to clipboard. No message sent.';
+    } catch {
+      if(details.isConnected){body.focus();body.select();status.textContent='Copy manually from the selected draft.';}
+    }
+  });
+  body.value=makeReplyDraft('en','ack');
+  details.append(summary,note,language,kind,generate,body,copy,status);
+  return details;
+}
+
 function inboxItem(record) {
   const item = document.createElement('li');
   const title = document.createElement('strong');
@@ -721,6 +790,7 @@ function inboxItem(record) {
     actions.append(enquiryAction('Save as lead', record, 'convert'));
   }
   item.append(title, summary, copy, actions);
+  if (adminSession && accessToken) item.append(replyDraftControl());
   return item;
 }
 
