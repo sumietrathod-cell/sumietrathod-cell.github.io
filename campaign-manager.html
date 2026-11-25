@@ -752,18 +752,36 @@ function makeReplyDraft(language,kind) {
   const selected = Object.hasOwn(texts,language) ? texts[language] : texts.en;
   return Object.hasOwn(selected,kind) ? selected[kind] : selected.ack;
 }
-function replyDraftControl(initialKind='ack', leadId=null) {
+function suggestEnquiryReply(message) {
+  const text=typeof message==='string'?message.slice(0,2000).normalize('NFKC').toLowerCase():'';
+  const gu=(text.match(/[\u0a80-\u0aff]/g)||[]).length;
+  const hi=(text.match(/[\u0900-\u097f]/g)||[]).length;
+  const en=(text.match(/[a-z]/g)||[]).length;
+  const language=gu>hi&&gu>en?'gu':hi>gu&&hi>en?'hi':'en';
+  const stop=/\b(unsubscribe|opt[ -]?out|stop\s+(?:email|contact|messag)|do not contact|don't contact|no more messages|not interested|remove me)\b|સંપર્ક ન કરશો|મેસેજ ન મોકલશો|રસ નથી|संपर्क न करें|मैसेज मत भेज|रुचि नहीं/u.test(text);
+  const quote=/\b(quote|quotation|pricing|price|cost|estimate)\b|કોટેશન|કિંમત|ભાવ|ખર્ચ|कोटेशन|कीमत|खर्च|दाम/u.test(text);
+  const demo=/\b(demo|demonstration|trial)\b|ડેમો|નમૂનો|डेमो|प्रदर्शन/u.test(text);
+  return {language,kind:quote?'quote':demo?'demo':'ack',manualReview:stop};
+}
+function replyDraftControl(initialKind='ack', leadId=null, suggestion=null) {
   const details = document.createElement('details');
   details.className = 'reply-draft';
   const summary = document.createElement('summary');
   summary.textContent = leadId ? 'Prepare follow-up draft' : 'Prepare reply draft';
   const note = document.createElement('p');
   note.textContent = 'Template only. Check consent, customer requirements and accuracy before copying. Nothing is sent or saved automatically.';
+  const initialLanguage=suggestion?.language||'en';
+  if(suggestion?.manualReview) {
+    const warning=document.createElement('p');warning.textContent='Possible opt-out or declined interest. Review the original message; do not prepare an outreach reply here. Respect the customer’s communication preferences.';
+    details.append(summary,note,warning);return details;
+  }
+  if(suggestion)note.textContent+=' Suggested language and reply type are keyword-based, not an AI interpretation or evidence of consent.';
   const language = document.createElement('select');
   language.setAttribute('aria-label','Reply language');
   for(const [value,label] of [['en','English'],['gu','Gujarati'],['hi','Hindi']]) {
     const option = document.createElement('option'); option.value=value; option.textContent=label; language.append(option);
   }
+  language.value=initialLanguage;
   const kind = document.createElement('select');
   kind.setAttribute('aria-label','Reply type');
   for(const [value,label] of [['ack','Acknowledge enquiry'],['demo','Demo invitation'],['quote','Quotation requirements'],['follow','Consented follow-up']]) {
@@ -800,7 +818,7 @@ function replyDraftControl(initialKind='ack', leadId=null) {
       if(details.isConnected){body.focus();body.select();status.textContent='Copy manually from the selected draft.';}
     }
   });
-  body.value=makeReplyDraft('en',initialKind);
+  body.value=makeReplyDraft(initialLanguage,initialKind);
   kind.addEventListener('change',()=>{permission.checked=false;status.textContent='Choose Generate / replace draft to apply the new reply type.';});
   details.append(summary,note,language,kind,generate,body,permissionLabel,copy,status);
   return details;
@@ -870,7 +888,11 @@ function inboxItem(record) {
     actions.append(enquiryAction('Save as lead', record, 'convert'));
   }
   item.append(title, summary, copy, actions);
-  if (adminSession && accessToken) item.append(replyDraftControl(),quotationBriefControl(record));
+  if (adminSession && accessToken) {
+    const suggestion=suggestEnquiryReply(record.message);
+    item.append(replyDraftControl(suggestion.kind,null,suggestion));
+    if(!suggestion.manualReview)item.append(quotationBriefControl(record));
+  }
   return item;
 }
 
