@@ -41,7 +41,7 @@ summary { cursor: pointer; color: #86e6d1; }
 #channel-hub form { max-width: none; margin-block: 1rem; }
 #channel-hub textarea { display: block; width: 100%; min-height: 5rem; font: inherit; color: inherit; background: #0e1828; border: 1px solid #526886; border-radius: .55rem; margin-top: .35rem; padding: .65rem; }
 .reply-draft { margin-top: .8rem; padding: .7rem; border: 1px solid currentColor; border-radius: .5rem; }
-.reply-draft select, .reply-draft textarea { display: block; width: 100%; box-sizing: border-box; margin: .5rem 0; }
+.reply-draft select, .reply-draft textarea, .reply-draft input { display: block; width: 100%; box-sizing: border-box; margin: .5rem 0; }
 .reply-draft button { margin: .25rem 0; }
 .inbox-message { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }
 .inbox-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .7rem; }
@@ -793,6 +793,45 @@ function replyDraftControl() {
   return details;
 }
 
+function makeQuotationBrief(record,scope,usage,languages) {
+  const clean=(v,n)=>typeof v==='string'?v.replace(/\r\n?/g,'\n').replace(/\0/g,'').trim().slice(0,n):'';
+  const customer=clean(record?.company,160)||clean(record?.name,160);
+  const channel=({voice:'Aarohi / Voice',chatbot:'Chatbot',whatsapp:'WhatsApp'})[record?.channel]||'Other';
+  const requirements=clean(record?.message,2000);
+  return [
+    'AAROHAN AI WORLD — Internal quotation preparation brief',
+    'Not a quotation, invoice or payment request. Review all details.',
+    'Customer / business: '+(customer||'Confirm with customer'),
+    'Enquiry channel: '+channel,
+    'Customer-provided requirements (unverified):',
+    requirements||'Confirm with customer',
+    'Proposed scope: '+(clean(scope,500)||'Pending review'),
+    'Expected usage: '+(clean(usage,160)||'Pending confirmation'),
+    'Languages: '+(clean(languages,160)||'Pending confirmation'),
+    'Setup fees, recurring fees, taxes and delivery: pending authorized review.',
+    'Check consent and seller details before preparing or sharing a quotation.'
+  ].join('\n');
+}
+function quotationBriefControl(record) {
+  const box=document.createElement('details');box.className='reply-draft';
+  const heading=document.createElement('summary');heading.textContent='Prepare quotation brief';
+  const note=document.createElement('p');note.textContent='Internal review only. No price is calculated, document saved or message sent. Do not include confidential information.';
+  function field(label,max){const input=document.createElement('input');input.type='text';input.maxLength=max;input.setAttribute('aria-label',label);input.placeholder=label;return input;}
+  const scope=field('Proposed service and scope',500),usage=field('Expected usage / enquiry volume',160),languages=field('Required languages',160);
+  const brief=document.createElement('textarea');brief.rows=10;brief.readOnly=true;brief.setAttribute('aria-label','Internal quotation brief');
+  const status=document.createElement('p');status.setAttribute('role','status');
+  const refresh=()=>{if(!adminSession||!accessToken)return;brief.value=makeQuotationBrief(record,scope.value,usage.value,languages.value);};
+  for(const f of [scope,usage,languages])f.addEventListener('input',refresh);
+  const copy=document.createElement('button');copy.type='button';copy.textContent='Copy quotation brief';
+  copy.addEventListener('click',async()=>{
+    if(!adminSession||!accessToken||!box.isConnected)return;
+    try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(brief.value);if(box.isConnected)status.textContent='Internal brief copied. No quotation saved or sent.';}
+    catch{if(box.isConnected){brief.focus();brief.select();status.textContent='Copy the selected text manually.';}}
+  });
+  const link=document.createElement('a');link.href='/billing/quotations.html';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open Billing Desk (Admin sign-in)';
+  refresh();box.append(heading,note,scope,usage,languages,brief,copy,status,link);return box;
+}
+
 function inboxItem(record) {
   const item = document.createElement('li');
   const title = document.createElement('strong');
@@ -818,7 +857,7 @@ function inboxItem(record) {
     actions.append(enquiryAction('Save as lead', record, 'convert'));
   }
   item.append(title, summary, copy, actions);
-  if (adminSession && accessToken) item.append(replyDraftControl());
+  if (adminSession && accessToken) item.append(replyDraftControl(),quotationBriefControl(record));
   return item;
 }
 
