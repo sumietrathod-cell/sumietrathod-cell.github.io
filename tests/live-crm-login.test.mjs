@@ -16,7 +16,7 @@ function deferred(){
  const promise=new Promise((a,b)=>{resolve=a;reject=b});
  return {promise,resolve,reject};
 }
-function harness(){
+function harness(requestedRole=null){
  const requests=[], pendingLeads=[], messages=[];
  let onsubmit;
  const submit={disabled:false};
@@ -31,12 +31,12 @@ function harness(){
  form.elements={email:{value:'synthetic@example.invalid'}};
  form.addEventListener=(type,cb)=>{assert.equal(type,'submit');onsubmit=cb};
  const ctx={
-  loginRequestId:0,pendingLoginRequestId:null,
+  requestedRole,loginRequestId:0,pendingLoginRequestId:null,
   accessToken:undefined,adminSession:false,
   submit,password,message,form,dashboard,roleHeading,leadTools,exportLeadsButton,
   channelHub,callHistory,partnerCard,partnerList,workPanel,report,signOut,recoveryOptions,
-  request(path){
-   const d=deferred();requests.push({path,...d});return d.promise;
+  request(path,options,token){
+   const d=deferred();requests.push({path,options,token,...d});return d.promise;
   },
   async loadLeads(){const d=deferred();pendingLeads.push(d);return d.promise},
   renderRows(){},refreshPartnerTotals(){},refreshWork(){},refreshReport(){},
@@ -133,4 +133,56 @@ test('unauthorized login clears the page and shows an actionable sign-in error',
  assert.equal(h.ctx.accessToken,undefined);
  assert.match(h.message.textContent,/Email or password is incorrect/);
  assert.equal(h.submit.disabled,false);
+});
+
+test('selected login rejects opposite authenticated role before loading leads',async()=>{
+ for(const [role,actual] of [['admin','partner'],['partner','admin']]){
+  const h=harness(role),done=h.start();
+  h.requests[0].resolve({access_token:'JWT-wrong',expires_in:3600,user:{id:'synthetic',app_metadata:{campaign_manager_role:actual}}});
+  await microtasks();
+  assert.equal(h.requests[1].path,'/auth/v1/logout');
+  assert.equal(h.requests[1].token,'JWT-wrong');
+  h.requests[1].resolve(null);
+  await done;
+  assert.equal(h.dashboard.hidden,true);
+  assert.equal(h.ctx.accessToken,undefined);
+  assert.equal(h.pendingLeads.length,0);
+  assert.match(h.message.textContent,/not authorized for the selected login/);
+ }
+});
+test('selected admin login accepts admin account',async()=>{
+ const h=harness('admin'),done=h.start();
+ h.requests[0].resolve(h.adminSession('ADMIN'));
+ await microtasks();
+ h.pendingLeads[0].resolve([]);
+ await done;
+ assert.equal(h.dashboard.hidden,false);
+ assert.equal(h.ctx.roleHeading.textContent,'Admin dashboard');
+});
+test('selected partner login accepts only an account with a visible partner profile',async()=>{
+ const h=harness('partner'),done=h.start();
+ h.requests[0].resolve({access_token:'JWT-partner',expires_in:3600,user:{id:'synthetic',app_metadata:{}}});
+ await microtasks();
+ assert.match(h.requests[1].path,/\/rest\/v1\/partners/);
+ h.requests[1].resolve([{name:'Synthetic partner',commission_rate:10}]);
+ await microtasks();
+ h.pendingLeads[0].resolve([]);
+ await done;
+ assert.equal(h.dashboard.hidden,false);
+ assert.equal(h.ctx.roleHeading.textContent,'Partner dashboard');
+ assert.equal(h.ctx.leadTools.hidden,true);
+ assert.equal(h.ctx.channelHub.hidden,true);
+});
+test('selected partner login rejects an account without partner profile',async()=>{
+ const h=harness('partner'),done=h.start();
+ h.requests[0].resolve({access_token:'JWT-no-profile',expires_in:3600,user:{id:'synthetic',app_metadata:{}}});
+ await microtasks();
+ h.requests[1].resolve([]);
+ await microtasks();
+ assert.equal(h.requests[2].path,'/auth/v1/logout');
+ h.requests[2].resolve(null);
+ await done;
+ assert.equal(h.dashboard.hidden,true);
+ assert.equal(h.ctx.accessToken,undefined);
+ assert.equal(h.pendingLeads.length,0);
 });
