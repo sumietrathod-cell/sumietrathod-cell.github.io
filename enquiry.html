@@ -34,12 +34,35 @@ const topicName = topics.get(demoParams.get('topic'));
 if (channel === 'chatbot' && shopName && topicName) {
   document.getElementById('enquiry-message').value = 'I would like a chatbot demo for my ' + shopName + ' that handles ' + topicName + '.';
 }
-button.disabled = false;
-form.addEventListener('submit', async event => {
+const fields = ['enquiry-name','enquiry-email','enquiry-company','enquiry-message','enquiry-consent'].map(id => document.getElementById(id));
+let pending = false;
+function buildEnquiry() {
+  const [name,email,company,message,consent] = fields;
+  return {channel, name:name.value.trim(), email:email.value.trim(), company:company.value.trim(), message:message.value.trim(), consent:consent.checked};
+}
+function validEnquiry(p) {
+  return p.consent === true && ['voice','chatbot'].includes(p.channel) &&
+    p.name.length > 0 && p.name.length <= 120 && p.email.length <= 254 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) &&
+    p.company.length <= 200 && p.message.length > 0 && p.message.length <= 2000 &&
+    [p.name,p.email,p.company,p.message].every(s => !s.includes('\0'));
+}
+function setStatus(message,error=false) {
+  output.textContent = message;
+  output.dataset.error = String(error);
+}
+async function submitEnquiry(event) {
   event.preventDefault();
+  if(pending) return;
+  const payload = buildEnquiry();
+  if(!validEnquiry(payload)) {
+    setStatus('Please enter a valid business email, name, enquiry and consent.',true);
+    return;
+  }
+  pending = true;
   button.disabled = true;
-  output.textContent = 'Sending…';
-  output.dataset.error = 'false';
+  fields.forEach(field => field.disabled = true);
+  setStatus('Sending…');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -47,31 +70,29 @@ form.addEventListener('submit', async event => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_BEBIhj5Y3G5BETK9wFZFVw_URRhizrI' },
       signal: controller.signal,
-      body: JSON.stringify({
-        channel, name: form.elements['enquiry-name'].value.trim(),
-        email: form.elements['enquiry-email'].value.trim(),
-        company: form.elements['enquiry-company'].value.trim(),
-        message: form.elements['enquiry-message'].value.trim(),
-        consent: form.elements['enquiry-consent'].checked,
-      }),
+      body: JSON.stringify(payload),
     });
     if (response.status === 429) {
-      output.textContent = 'Enquiry limit reached. Please try again later.';
-      output.dataset.error = 'true';
-    } else if (response.ok) {
+      setStatus('Enquiry limit reached. Please wait before trying again.',true);
+    } else if (response.status === 400 || response.status === 413 || response.status === 415) {
+      setStatus('The enquiry was rejected. Please check your details.',true);
+    } else if (response.status === 201 && (await response.json())?.received === true) {
       form.reset();
-      output.textContent = 'Your enquiry was received.';
+      setStatus('Your enquiry was received. The team can review it for follow-up.');
     } else {
-      throw new Error('Could not submit');
+      setStatus('Receipt could not be confirmed. Your details are retained. Check with the team before resending to avoid duplicate enquiries.',true);
     }
   } catch {
-    output.textContent = 'Could not send your enquiry. Check the details or try again.';
-    output.dataset.error = 'true';
+    setStatus('Receipt could not be confirmed. Your details are retained. Check with the team before resending to avoid duplicate enquiries.',true);
   } finally {
     clearTimeout(timeout);
+    pending = false;
+    fields.forEach(field => field.disabled = false);
     button.disabled = false;
   }
-});
+}
+button.disabled = false;
+form.addEventListener('submit', submitEnquiry);
 </script>
 </body>
 </html>
