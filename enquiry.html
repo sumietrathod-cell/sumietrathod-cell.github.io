@@ -91,6 +91,12 @@ async function submitEnquiry(event) {
     button.disabled = false;
   }
 }
+const voiceServices = new Map([['voice','Voice AI'],['chatbot','Website chatbot'],['whatsapp','WhatsApp automation'],['crm','CRM and lead management'],['quotation','Quotation software'],['analytics','Analytics and reporting'],['support','Customer support automation'],['other','Other business automation']]);
+function voiceServiceMessage(channel,key) {
+  return channel === 'voice' && voiceServices.has(key) ? 'I would like to discuss '+voiceServices.get(key)+'.' : '';
+}
+const suggested = voiceServiceMessage(channel,demoParams.get('service'));
+if(suggested) document.getElementById('enquiry-message').value = suggested;
 button.disabled = false;
 form.addEventListener('submit', submitEnquiry);
 </script>
