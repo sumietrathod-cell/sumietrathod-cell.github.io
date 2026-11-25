@@ -24,6 +24,12 @@
 <p class="hint">Aarohi is an AI assistant. Calls use the existing ElevenLabs service and are limited to 3 minutes. Do not share passwords or sensitive information.</p>
 <p class="hint"><a style="color:#b5e6c6" href="/voice-agent-pro.html">Try the browser voice and text demo if the call service is unavailable</a> (limited scripted answers; not a live call).</p>
 <nav class="demo-paths" aria-label="Explore business demonstrations"><a id="ambassador-demo" href="/aiworld/business-ambassador.html?lang=gu"><strong>Business Ambassador &amp; Video Studio</strong><small>Explore services and create a narrated promotional video using local audio. Fictional AI representative.</small></a><a href="/aiworld/digital-presenter.html"><strong>Digital Presenter</strong><small>Explore 25 services and sample scripted answers.</small></a><a href="/enquiry.html?channel=voice"><strong>Request a custom demo or quotation</strong><small>Submit a consent-based business enquiry for the team to review.</small></a></nav>
+<section id="voice-enquiry-review" hidden class="demo-paths" aria-label="Review voice enquiry">
+<p id="voice-enquiry-note" role="status" class="hint"></p>
+<a id="voice-enquiry-link" href="/enquiry.html?channel=voice">Review and submit enquiry</a>
+<button id="voice-enquiry-dismiss" type="button">Dismiss</button>
+<p class="hint">Only the selected service is suggested. Enter your details and consent on the enquiry form. Nothing has been submitted yet.</p>
+</section>
 </main>
 <elevenlabs-convai override-language="gu" agent-id="agent_6701m7cb57dkftcbkvd0ggfdd2ep"></elevenlabs-convai>
 <script>
@@ -39,6 +45,28 @@ const initial=new URLSearchParams(location.search).get("lang");
 if(["en","gu","hi"].includes(initial))choice.value=initial;
 choice.addEventListener("change",syncLanguage);
 syncLanguage();
+const allowedVoiceServices=new Set(["voice","chatbot","whatsapp","crm","quotation","analytics","support","other"]);
+function voiceEnquiryPath(service) {
+ return allowedVoiceServices.has(service)?"/enquiry.html?channel=voice&service="+service:null;
+}
+function prepareVoiceEnquiry({service}={}) {
+ const path=voiceEnquiryPath(service);
+ if(!path)return "Invalid service. No enquiry was prepared or submitted.";
+ const panel=document.getElementById("voice-enquiry-review");
+ const link=document.getElementById("voice-enquiry-link");
+ link.href=path;
+ document.getElementById("voice-enquiry-note").textContent="Aarohi has suggested a service for your enquiry. Review it before submitting.";
+ panel.hidden=false;
+ return "A review link is visible on the website. No enquiry has been submitted. Ask the customer to review and submit the form themselves.";
+}
+document.getElementById("voice-enquiry-dismiss").addEventListener("click",()=>{
+ document.getElementById("voice-enquiry-review").hidden=true;
+ document.getElementById("voice-enquiry-link").href="/enquiry.html?channel=voice";
+});
+widget.addEventListener("elevenlabs-convai:call",event=>{
+ if(!event.detail?.config)return;
+ event.detail.config.clientTools={...event.detail.config.clientTools,prepareVoiceEnquiry};
+});
 </script>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async></script>
 </body>
