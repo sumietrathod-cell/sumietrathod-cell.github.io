@@ -63,6 +63,9 @@ summary { cursor: pointer; color: #86e6d1; }
 <h1>Campaign Manager</h1>
 <p id="message" role="alert"></p>
 <form id="sign-in" method="post">
+  <h2 id="login-heading">Campaign Manager login</h2>
+  <nav class="channel-links" aria-label="Choose your login"><a id="admin-login-link" href="campaign-manager.html?login=admin">Admin Login</a><a id="partner-login-link" href="campaign-manager.html?login=partner">Partner Login</a></nav>
+  <p id="login-help">Choose Admin Login or Partner Login, or sign in with your existing account.</p>
   <label>Email<input id="email" type="email" autocomplete="username" required></label>
   <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
   <button id="submit" type="submit">Sign in</button>
@@ -211,6 +214,15 @@ const pageSize = 25;
 const form = document.querySelector('#sign-in');
 const submit = document.querySelector('#submit');
 const password = document.querySelector('#password');
+const loginChoice = new URLSearchParams(location.search).get('login');
+const requestedRole = ['admin', 'partner'].includes(loginChoice) ? loginChoice : null;
+if (requestedRole) {
+  const label = requestedRole === 'admin' ? 'Admin' : 'Partner';
+  document.querySelector('#login-heading').textContent = label + ' Login';
+  document.querySelector('#login-help').textContent = requestedRole === 'admin' ? 'Sign in with your authorized administrator account.' : 'Sign in with your assigned partner account.';
+  document.querySelector('#' + requestedRole + '-login-link').setAttribute('aria-current', 'page');
+  submit.textContent = 'Sign in as ' + label;
+}
 const signOut = document.querySelector('#sign-out');
 const message = document.querySelector('#message');
 const recoveryOptions = document.querySelector('#recovery-options');
@@ -583,6 +595,13 @@ form.addEventListener('submit', async event => {
     if (!session?.access_token || !session?.user?.id) throw new Error('Incomplete authentication response');
     accessToken = session.access_token;
     const admin = session.user?.app_metadata?.campaign_manager_role === 'admin';
+    if ((requestedRole === 'admin' && !admin) || (requestedRole === 'partner' && admin)) {
+      await request('/auth/v1/logout', { method: 'POST' }, session.access_token).catch(() => {});
+      if (loginAttempt !== loginRequestId || accessToken !== session.access_token) return;
+      clearSession();
+      message.textContent = 'This account is not authorized for the selected login. Choose the correct login.';
+      return;
+    }
     adminSession = admin;
     if (!admin) {
       const profiles = await request('/rest/v1/partners?select=name,commission_rate&limit=1');
