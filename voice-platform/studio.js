@@ -33,6 +33,9 @@ let agentExpiration;
 let deployments = [];
 let currentAgent = demoAgent;
 let agentBusy = false;
+let agentSessionId = 0;
+let agentTurnId = 0;
+let agentConnecting = false;
 
 function updateAudioControls() {
   const recording = recorder?.state === 'recording';
@@ -256,8 +259,20 @@ function showAgent(agent) {
   byId('agent-reply').textContent = '';
 }
 
+function resetAgentTurn() {
+  agentTurnId++;
+  agentBusy = false;
+  byId('run-agent').disabled = false;
+}
+
 function disconnect() {
+  agentSessionId++;
+  agentConnecting = false;
+  connect.querySelector('button').disabled = false;
+  resetAgentTurn();
   clearTimeout(agentExpiration);
+  byId('visitor-message').value = '';
+  byId('agent-password').value = '';
   agentToken = undefined;
   deployments = [];
   selectAgent.replaceChildren();
@@ -282,29 +297,48 @@ async function logEvent(token, id, eventType) {
 async function chooseDeployment() {
   const agent = deployments.find(row => row.id === selectAgent.value);
   if (!agent) return;
+  resetAgentTurn();
   showAgent(agent);
+  const turn = agentTurnId;
   const token = agentToken;
   try {
     await logEvent(token, agent.id, 'connected');
-    if (token === agentToken && currentAgent.id === agent.id) showStatus(agentStatus, 'Connected to ' + agent.name + '.');
+    if (turn === agentTurnId && token === agentToken && currentAgent.id === agent.id) showStatus(agentStatus, 'Connected to ' + agent.name + '.');
   } catch {
-    if (token === agentToken && currentAgent.id === agent.id) showStatus(agentStatus, 'Agent loaded. Activity could not be recorded.', true);
+    if (turn === agentTurnId && token === agentToken && currentAgent.id === agent.id) showStatus(agentStatus, 'Agent loaded. Activity could not be recorded.', true);
   }
 }
 
 connect.addEventListener('submit', async event => {
   event.preventDefault();
+  if (agentConnecting || agentToken) return;
+  agentConnecting = true;
+  const attempt = ++agentSessionId;
+  const current = () => attempt === agentSessionId;
   const button = connect.querySelector('button');
   button.disabled = true;
   showStatus(agentStatus, 'Connecting…');
+  let session;
   try {
-    const session = await signIn(byId('agent-email').value, byId('agent-password').value);
+    session = await signIn(byId('agent-email').value, byId('agent-password').value);
+    if (!current()) return;
+    if (typeof session?.access_token !== 'string' || !session.access_token ||
+        !Number.isFinite(session.expires_in) || session.expires_in <= 0) throw new Error('Invalid session');
     agentToken = session.access_token;
-    deployments = await api(agentQuery(), { token: agentToken });
+    agentExpiration = setTimeout(() => {
+      if (!current()) return;
+      disconnect();
+      showStatus(agentStatus, 'Your managed agent session expired.');
+    }, session.expires_in * 1000);
+    const rows = await api(agentQuery(), { token: agentToken });
+    if (!current()) return;
+    if (!Array.isArray(rows)) throw new Error('Invalid deployment list');
+    deployments = rows;
     if (!deployments.length) {
-      await signOut(agentToken).catch(() => {});
+      const previous = agentToken;
       disconnect();
       showStatus(agentStatus, 'There are no enabled deployments assigned to this account.', true);
+      await signOut(previous).catch(() => {});
       return;
     }
     const requestedId = new URLSearchParams(location.search).get('agent');
@@ -312,18 +346,19 @@ connect.addEventListener('submit', async event => {
     if (deployments.some(agent => agent.id === requestedId)) selectAgent.value = requestedId;
     byId('connect-details').hidden = true;
     byId('connected-agent').hidden = false;
-    agentExpiration = setTimeout(() => {
-      disconnect();
-      showStatus(agentStatus, 'Your managed agent session expired.');
-    }, session.expires_in * 1000);
     await chooseDeployment();
   } catch {
-    if (agentToken) await signOut(agentToken).catch(() => {});
+    if (!current()) return;
+    const previous = agentToken;
     disconnect();
     showStatus(agentStatus, 'Could not connect. Check your login and deployment assignment.', true);
+    if (previous) await signOut(previous).catch(() => {});
   } finally {
-    byId('agent-password').value = '';
-    button.disabled = false;
+    if (current()) {
+      agentConnecting = false;
+      byId('agent-password').value = '';
+      button.disabled = false;
+    }
   }
 });
 
@@ -342,36 +377,40 @@ byId('run-agent').addEventListener('click', async () => {
   }
   if (agentBusy) return;
   agentBusy = true;
+  const turn = ++agentTurnId;
   const button = byId('run-agent');
   const session = agentToken;
   const deployment = currentAgent.id;
+  const current = () => turn === agentTurnId && session === agentToken && currentAgent.id === deployment;
   button.disabled = true;
   showStatus(agentStatus, '');
   try {
     if (deployment) {
       const rows = await api(agentQuery(deployment), { token: session });
-      if (session !== agentToken || currentAgent.id !== deployment) return;
+      if (!current()) return;
       if (!rows.length) {
         disconnect();
-        await signOut(session).catch(() => {});
         showStatus(agentStatus, 'This deployment is no longer available. The local demo is ready.', true);
+        await signOut(session).catch(() => {});
         return;
       }
       showAgent(rows[0]);
     }
     byId('agent-reply').textContent = currentAgent.answer;
-    const audioError = readAloud(currentAgent.answer, currentAgent.locale);
+    const audioError = readAloud(currentAgent.answer, currentAgent.locale, undefined, agentStatus);
     if (audioError) showStatus(agentStatus, audioError);
     if (deployment) {
       await logEvent(session, deployment, audioError ? 'runtime_error' : 'turn_completed').catch(() => {
-        if (session === agentToken && deployment === currentAgent.id) showStatus(agentStatus, 'Reply shown. Activity could not be recorded.', true);
+        if (current()) showStatus(agentStatus, 'Reply shown. Activity could not be recorded.', true);
       });
     }
   } catch {
-    if (session === agentToken && deployment === currentAgent.id) showStatus(agentStatus, 'Could not load the deployment. Try again.', true);
+    if (current()) showStatus(agentStatus, 'Could not load the deployment. Try again.', true);
   } finally {
-    agentBusy = false;
-    button.disabled = false;
+    if (current()) {
+      agentBusy = false;
+      button.disabled = false;
+    }
   }
 });
 
