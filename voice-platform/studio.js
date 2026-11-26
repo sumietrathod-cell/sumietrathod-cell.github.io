@@ -36,6 +36,8 @@ let agentBusy = false;
 let agentSessionId = 0;
 let agentTurnId = 0;
 let agentConnecting = false;
+let playbackId = 0;
+let managedPlayback = false;
 
 function updateAudioControls() {
   const recording = recorder?.state === 'recording';
@@ -215,20 +217,34 @@ function refreshVoices() {
   if (voices.some(voice => voice.voiceURI === previous)) voiceOptions.value = previous;
 }
 
+function stopPlayback() {
+  playbackId++;
+  managedPlayback = false;
+  synth?.cancel();
+}
+
 function readAloud(text, locale, voice, status = ttsStatus) {
   if (!text.trim()) return 'Enter text to read aloud.';
   if (!synth) return 'Audio playback is unavailable in this browser.';
   const prefix = locale.split('-')[0].toLowerCase();
   const available = voice ?? synth.getVoices().find(item => item.localService && item.lang.toLowerCase().split(/[-_]/)[0] === prefix);
   if (!available) return 'No installed voice for this language. Read the text on screen.';
-  synth.cancel();
+  stopPlayback();
+  const id = playbackId;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.voice = available;
   utterance.lang = available.lang;
   utterance.onerror = event => {
+    if (id !== playbackId) return;
+    managedPlayback = false;
     if (!['canceled', 'interrupted'].includes(event.error)) showStatus(status, 'This device could not play the selected voice.', true);
   };
-  synth.speak(utterance);
+  utterance.onend = () => { if (id === playbackId) managedPlayback = false; };
+  managedPlayback = status === agentStatus;
+  try { synth.speak(utterance); } catch {
+    if (id === playbackId) managedPlayback = false;
+    return 'This device could not play the selected voice.';
+  }
   return '';
 }
 
@@ -239,7 +255,7 @@ byId('speak').addEventListener('click', () => {
   const error = readAloud(byId('tts-text').value, voiceLanguage.value, voices.find(voice => voice.voiceURI === voiceOptions.value));
   showStatus(ttsStatus, error, Boolean(error));
 });
-byId('stop-speaking').addEventListener('click', () => synth?.cancel());
+byId('stop-speaking').addEventListener('click', stopPlayback);
 byId('read-transcript').addEventListener('click', () => {
   if (!transcript.value) return;
   const error = readAloud(transcript.value, transcriptLocale, undefined, transcriptStatus);
@@ -261,6 +277,7 @@ function showAgent(agent) {
 
 function resetAgentTurn() {
   agentTurnId++;
+  if (managedPlayback) stopPlayback();
   agentBusy = false;
   byId('run-agent').disabled = false;
 }
