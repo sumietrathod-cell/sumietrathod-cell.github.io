@@ -10,8 +10,10 @@ const activity = byId('activity');
 let token;
 let expiration;
 let deployments = [];
+let activityRequestId = 0;
 
 function clearSession() {
+  activityRequestId++;
   clearTimeout(expiration);
   token = undefined;
   deployments = [];
@@ -47,13 +49,23 @@ function showConfiguration() {
 }
 
 async function refreshActivity() {
+  const requestId = ++activityRequestId;
   activity.replaceChildren();
   const deployment = selection.value;
   const session = token;
   byId('last-activity').textContent = deployment ? 'Loading activity…' : 'Select a saved deployment to view activity.';
   if (!deployment || !session) return;
-  const rows = await api('/rest/v1/voice_events?select=event_type,created_at&order=created_at.desc&limit=30&deployment_id=eq.' + encodeURIComponent(deployment), { token: session });
-  if (session !== token || deployment !== selection.value) return;
+  const current = () => requestId === activityRequestId && session === token && deployment === selection.value;
+  let rows;
+  try {
+    rows = await api('/rest/v1/voice_events?select=event_type,created_at&order=created_at.desc&limit=30&deployment_id=eq.' + encodeURIComponent(deployment), { token: session });
+  } catch (error) {
+    if (!current()) return;
+    byId('last-activity').textContent = 'Activity unavailable. Refresh to retry.';
+    handleError(error, 'Could not load activity.');
+    return;
+  }
+  if (!current()) return;
   const labels = { connected: 'Agent connected', turn_completed: 'Voice turn completed', runtime_error: 'Voice turn failed' };
   byId('last-activity').textContent = rows.length ? 'Last activity ' + new Date(rows[0].created_at).toLocaleString() : 'No activity received.';
   activity.replaceChildren(...rows.map(row => {
@@ -105,9 +117,9 @@ login.addEventListener('submit', async event => {
 
 selection.addEventListener('change', () => {
   showConfiguration();
-  refreshActivity().catch(error => handleError(error, 'Could not load activity.'));
+  void refreshActivity();
 });
-byId('refresh').addEventListener('click', () => refreshActivity().catch(error => handleError(error, 'Could not load activity.')));
+byId('refresh').addEventListener('click', () => { void refreshActivity(); });
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
