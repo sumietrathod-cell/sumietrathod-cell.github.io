@@ -11,9 +11,15 @@ let token;
 let expiration;
 let deployments = [];
 let activityRequestId = 0;
+let saveRequestId = 0;
+let savePending = false;
 
 function clearSession() {
   activityRequestId++;
+  saveRequestId++;
+  savePending = false;
+  form.querySelector('button').disabled = false;
+  selection.disabled = false;
   clearTimeout(expiration);
   token = undefined;
   deployments = [];
@@ -124,7 +130,10 @@ byId('refresh').addEventListener('click', () => { void refreshActivity(); });
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const session = token;
-  if (!session) return;
+  if (!session || savePending) return;
+  const requestId = ++saveRequestId;
+  savePending = true;
+  const current = () => requestId === saveRequestId && session === token;
   const button = form.querySelector('button');
   button.disabled = true;
   selection.disabled = true;
@@ -139,18 +148,21 @@ form.addEventListener('submit', async event => {
   try {
     const path = '/rest/v1/voice_deployments' + (deployment ? '?id=eq.' + encodeURIComponent(deployment) : '');
     const saved = await api(path, { token: session, method: deployment ? 'PATCH' : 'POST', data: fields, prefer: 'return=representation' });
-    if (session !== token) return;
+    if (!current()) return;
     if (!saved?.length) throw new Error('Deployment unavailable');
     showStatus(status, 'Deployment saved.');
     await loadDeployments(saved[0].id);
-    if (session !== token) return;
+    if (!current()) return;
     showConfiguration();
     await refreshActivity();
   } catch (error) {
-    if (session === token) handleError(error, 'Could not complete the save. Check the fields and refresh before retrying.');
+    if (current()) handleError(error, 'Could not complete the save. Check the fields and refresh before retrying.');
   } finally {
-    button.disabled = false;
-    selection.disabled = false;
+    if (current()) {
+      savePending = false;
+      button.disabled = false;
+      selection.disabled = false;
+    }
   }
 });
 
