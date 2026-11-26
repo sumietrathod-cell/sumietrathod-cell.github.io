@@ -538,6 +538,9 @@ function clearSession() {
   clearTimeout(expires);
   accessToken = undefined;
   adminSession = false;
+  savingProgress = false;
+  editLead.querySelector('button[type="submit"]').disabled = false;
+  reloadLead.disabled = false;
   workPanel.hidden=true;
   workStatus.textContent='';
   appointmentList.replaceChildren();
@@ -1166,9 +1169,11 @@ editLead.addEventListener('submit', async event => {
       leadEditorFeedback.textContent = 'Could not save progress. Review the details and try again.';
     }
   } finally {
-    savingProgress = false;
-    button.disabled = false;
-    reloadLead.disabled = false;
+    if (accessToken === token) {
+      savingProgress = false;
+      button.disabled = false;
+      reloadLead.disabled = false;
+    }
   }
 });
 
