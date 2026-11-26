@@ -12,6 +12,43 @@ const between=(from,to)=>{
   assert.ok(first>=0&&last>first,'Could not locate '+from);
   return js.slice(first,last);
 };
+test('a follow-up save from a signed-out session cannot unlock a newer save',async()=>{
+  const requests=[];
+  const button={disabled:false};
+  const editLead={
+    querySelector:()=>button,
+    addEventListener(_kind,listener){this.submit=listener}
+  };
+  const context=vm.createContext({
+    editLead, reloadLead:{disabled:false}, savingProgress:false,
+    accessToken:'old-session', adminSession:true,
+    leadSnapshot:{id:'demo-lead',status:'New',follow_up_on:null},
+    editStatus:{value:'Contacted'}, editFollowUp:{value:'2026-11-27'},
+    leadEditorFeedback:{textContent:''},
+    request(_path,options){
+      const pending=deferred();
+      requests.push({...pending,body:JSON.parse(options.body)});
+      return pending.promise;
+    },
+    loadLeads:async()=>{},refreshReport:async()=>{}
+  });
+  vm.runInContext(between("editLead.addEventListener('submit'",'function validateLead('),context);
+  const event={preventDefault(){}};
+  const old=editLead.submit(event);
+  context.accessToken='new-session';
+  context.savingProgress=false;
+  const current=editLead.submit(event);
+  requests[0].resolve({saved:false});
+  await old;
+  assert.equal(button.disabled,true);
+  assert.equal(context.savingProgress,true);
+  assert.equal(requests[1].body.next_follow_up,'2026-11-27');
+  requests[1].resolve({saved:true,status:'Contacted',follow_up_on:'2026-11-27'});
+  await current;
+  assert.equal(button.disabled,false);
+  assert.equal(context.leadSnapshot.follow_up_on,'2026-11-27');
+  assert.equal(context.leadEditorFeedback.textContent,'Lead progress saved.');
+});
 function deferred(){
   let resolve,reject;
   const promise=new Promise((yes,no)=>{resolve=yes;reject=no});
