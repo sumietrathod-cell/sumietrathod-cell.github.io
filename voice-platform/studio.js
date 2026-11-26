@@ -281,6 +281,12 @@ function disconnect() {
   showAgent(demoAgent);
 }
 
+function validDeployment(row) {
+  return !!row && typeof row.id === 'string' && row.id.length > 0 &&
+    typeof row.name === 'string' && typeof row.greeting === 'string' &&
+    typeof row.answer === 'string' && typeof row.locale === 'string' && row.locale.trim().length > 0;
+}
+
 function agentQuery(id) {
   return '/rest/v1/voice_deployments?select=id,name,locale,greeting,answer&enabled=eq.true' +
     (id ? '&id=eq.' + encodeURIComponent(id) : '&order=name.asc&limit=200');
@@ -332,7 +338,7 @@ connect.addEventListener('submit', async event => {
     }, session.expires_in * 1000);
     const rows = await api(agentQuery(), { token: agentToken });
     if (!current()) return;
-    if (!Array.isArray(rows)) throw new Error('Invalid deployment list');
+    if (!Array.isArray(rows) || !rows.every(validDeployment)) throw new Error('Invalid deployment list');
     deployments = rows;
     if (!deployments.length) {
       const previous = agentToken;
@@ -388,6 +394,7 @@ byId('run-agent').addEventListener('click', async () => {
     if (deployment) {
       const rows = await api(agentQuery(deployment), { token: session });
       if (!current()) return;
+      if (!Array.isArray(rows) || !rows.every(validDeployment) || rows.length > 1 || (rows.length && rows[0].id !== deployment)) throw new Error('Invalid deployment response');
       if (!rows.length) {
         disconnect();
         showStatus(agentStatus, 'This deployment is no longer available. The local demo is ready.', true);
@@ -404,8 +411,16 @@ byId('run-agent').addEventListener('click', async () => {
         if (current()) showStatus(agentStatus, 'Reply shown. Activity could not be recorded.', true);
       });
     }
-  } catch {
-    if (current()) showStatus(agentStatus, 'Could not load the deployment. Try again.', true);
+  } catch (error) {
+    if (current()) {
+      if (session && [401, 403].includes(error?.status)) {
+        disconnect();
+        showStatus(agentStatus, 'Access expired or was denied. Sign in again to use a managed agent.', true);
+        await signOut(session).catch(() => {});
+      } else {
+        showStatus(agentStatus, 'Could not load the deployment. Try again.', true);
+      }
+    }
   } finally {
     if (current()) {
       agentBusy = false;
