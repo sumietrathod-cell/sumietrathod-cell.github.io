@@ -26,7 +26,7 @@ function harness(requestedRole=null){
  const dashboard=hidden(),form=hidden(),roleHeading={textContent:'',focus(){}};
  const leadTools=hidden(),exportLeadsButton=hidden(),channelHub=hidden(),callHistory=hidden();
  const partnerCard=hidden(),partnerList={};
- const workPanel=hidden(),report=hidden(),signOut=hidden(),recoveryOptions=hidden();
+ const workPanel=hidden(),report=hidden(),signOut=hidden(),recoveryOptions=hidden(),partnerAdmin=hidden();
  form.hidden=false;
  form.elements={email:{value:'synthetic@example.invalid'}};
  form.addEventListener=(type,cb)=>{assert.equal(type,'submit');onsubmit=cb};
@@ -34,13 +34,13 @@ function harness(requestedRole=null){
   requestedRole,loginRequestId:0,pendingLoginRequestId:null,
   accessToken:undefined,adminSession:false,
   submit,password,message,form,dashboard,roleHeading,leadTools,exportLeadsButton,
-  channelHub,callHistory,partnerCard,partnerList,workPanel,report,signOut,recoveryOptions,
+  channelHub,callHistory,partnerCard,partnerList,workPanel,report,signOut,recoveryOptions,partnerAdmin,
   request(path,options,token){
    const d=deferred();requests.push({path,options,token,...d});return d.promise;
   },
   async loadLeads(){const d=deferred();pendingLeads.push(d);return d.promise},
   renderRows(){},refreshPartnerTotals(){},refreshWork(){},refreshReport(){},
-  refreshInbox(){},refreshCalls(){},
+  refreshInbox(){},refreshCalls(){},refreshPartnerAdmin(){},
   clearSession(){
    ctx.loginRequestId++;
    ctx.accessToken=undefined;
@@ -106,6 +106,7 @@ test('older login success cannot clear a newer login password or alter session',
  assert.equal(h.ctx.accessToken,'JWT-NEW');
  assert.equal(h.dashboard.hidden,false);
  assert.equal(h.ctx.roleHeading.textContent,'Admin dashboard');
+ assert.equal(h.ctx.partnerAdmin.hidden,false);
 });
 test('older authentication error cannot dismiss a second login',async()=>{
  const h=harness();
@@ -170,6 +171,7 @@ test('selected partner login accepts only an account with a visible partner prof
  await done;
  assert.equal(h.dashboard.hidden,false);
  assert.equal(h.ctx.roleHeading.textContent,'Partner dashboard');
+ assert.equal(h.ctx.partnerAdmin.hidden,true);
  assert.equal(h.ctx.leadTools.hidden,true);
  assert.equal(h.ctx.channelHub.hidden,true);
 });
