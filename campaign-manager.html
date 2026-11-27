@@ -85,6 +85,33 @@ summary { cursor: pointer; color: #86e6d1; }
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="export-leads" type="button" hidden>Download leads CSV</button><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="partner-admin" hidden>
+    <h2>Partner Management</h2>
+    <p>Create a partner profile using an existing, verified non-admin Supabase Authentication account. Account invitations are handled separately by the authorized administrator.</p>
+    <form id="partner-add">
+      <label>Partner name<input name="name" required maxlength="120"></label>
+      <label>Business email<input name="email" type="email" required maxlength="254"></label>
+      <label>Verified Auth user ID (UUID)<input name="auth_user_id" required pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"></label>
+      <label>Agreed commission rate (%)<input name="rate" type="number" required min="0" max="100" step="0.01"></label>
+      <button type="submit">Add partner profile</button>
+    </form>
+    <button type="button" id="partner-admin-refresh">Refresh partners</button>
+    <p id="partner-admin-status" role="status"></p>
+    <ul class="list" id="partner-admin-list"></ul>
+    <form id="partner-change" method="post">
+      <h3>Manage partner status</h3>
+      <label>Partner<select name="partner" required><option value="">Select partner</option></select></label>
+      <label>Status<select name="status"><option>Active</option><option>Inactive</option></select></label>
+      <button type="submit">Save status</button>
+    </form>
+    <form id="partner-assign" method="post">
+      <h3>Assign a lead</h3>
+      <p>Shows up to 100 recent leads. Confirm the selected lead and partner before saving.</p>
+      <label>Lead<select name="lead" required><option value="">Select lead</option></select></label>
+      <label>Active partner<select name="partner"><option value="">Unassigned</option></select></label>
+      <button type="submit">Save assignment</button>
+    </form>
+  </article>
   <article id="sales-report" hidden>
     <h2>Follow-ups and sales</h2>
     <button type="button" id="report-refresh">Refresh report</button>
@@ -427,6 +454,109 @@ saleForm.addEventListener('submit',async event => {
   }
 });
 
+
+const partnerAdmin = document.querySelector('#partner-admin');
+const partnerAdd = document.querySelector('#partner-add');
+const partnerAdminStatus = document.querySelector('#partner-admin-status');
+const partnerAdminList = document.querySelector('#partner-admin-list');
+const partnerChange = document.querySelector('#partner-change');
+const partnerAssign = document.querySelector('#partner-assign');
+let partnerAdminVersion = 0;
+let partnerAdminRows = [], partnerLeadRows = [];
+function fillPartnerChoices(select, rows, label, describe){
+  select.replaceChildren(new Option(label,''));
+  for(const row of rows) select.add(new Option(describe(row),row.id));
+}
+function clearPartnerChoices(){
+  partnerAdminRows=[]; partnerLeadRows=[];
+  fillPartnerChoices(partnerChange.elements.partner,[],'Select partner',p=>p.name);
+  fillPartnerChoices(partnerAssign.elements.partner,[],'Unassigned',p=>p.name);
+  fillPartnerChoices(partnerAssign.elements.lead,[],'Select lead',p=>p.name);
+}
+partnerChange.elements.partner.addEventListener('change',()=>{
+  const p=partnerAdminRows.find(r=>r.id===partnerChange.elements.partner.value);
+  partnerChange.elements.status.value=p?.status==='Active'?'Active':'Inactive';
+});
+partnerAssign.elements.lead.addEventListener('change',()=>{
+  const l=partnerLeadRows.find(r=>r.id===partnerAssign.elements.lead.value);
+  partnerAssign.elements.partner.value=l?.partner_id||'';
+});
+function attachPartnerUpdate(form,kind){
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!adminSession || !accessToken) return;
+    const token=accessToken, button=form.querySelector('button');
+    const partner=form.elements.partner.value;
+    const isStatus=kind==='status';
+    const row=isStatus?partnerAdminRows.find(p=>p.id===partner):partnerLeadRows.find(l=>l.id===form.elements.lead.value);
+    if(!row || (!isStatus && partner && !partnerAdminRows.some(p=>p.id===partner && p.status==='Active'))) return;
+    const payload=isStatus?{status:form.elements.status.value}:{partner_id:partner||null};
+    const table=isStatus?'partners':'leads';
+    if(!confirm(isStatus?'Save status for '+row.name+'?':'Save partner assignment for '+row.name+'?')) return;
+    button.disabled=true;
+    try{
+      const result=await request('/rest/v1/'+table+'?id=eq.'+encodeURIComponent(row.id),{method:'PATCH',body:JSON.stringify(payload)},token);
+      if(token!==accessToken||!adminSession) return;
+      await refreshPartnerAdmin();
+      if(token!==accessToken||!adminSession) return;
+      const saved=isStatus?partnerAdminRows.find(p=>p.id===row.id):partnerLeadRows.find(l=>l.id===row.id);
+      const verified=isStatus?saved?.status===payload.status:saved && (saved.partner_id||null)===payload.partner_id;
+      partnerAdminStatus.textContent=verified?'Change verified.':'Change could not be verified. Refresh before retrying.';
+      if(!isStatus) { await loadLeads(); }
+    }catch(e){if(token===accessToken&&adminSession)partnerAdminStatus.textContent='Could not save or verify change.';}
+    finally{if(token===accessToken&&adminSession)button.disabled=false;}
+  });
+}
+attachPartnerUpdate(partnerChange,'status');
+attachPartnerUpdate(partnerAssign,'assignment');
+function resetPartnerAdmin(){
+  partnerAdminVersion++;
+  partnerAdmin.hidden=true;
+  partnerAdd.reset();
+  partnerChange.reset(); partnerAssign.reset(); clearPartnerChoices();
+  partnerChange.querySelector('button').disabled=false; partnerAssign.querySelector('button').disabled=false;
+  partnerAdd.querySelector('button').disabled=false;
+  partnerAdminStatus.textContent='';
+  partnerAdminList.replaceChildren();
+}
+async function refreshPartnerAdmin(){
+  if(!adminSession || !accessToken) return;
+  const token=accessToken, version=++partnerAdminVersion;
+  try {
+    const [rows,leads]=await Promise.all([
+      request('/rest/v1/partners?select=id,name,email,status,commission_rate&order=created_at.desc&limit=100',{},token),
+      request('/rest/v1/leads?select=id,name,partner_id&order=created_at.desc.nullslast,id.asc&limit=100',{},token)
+    ]);
+    if(token!==accessToken || version!==partnerAdminVersion || !adminSession) return;
+    partnerAdminRows=rows; partnerLeadRows=leads;
+    fillPartnerChoices(partnerChange.elements.partner,rows,'Select partner',p=>p.name+' · '+p.status);
+    fillPartnerChoices(partnerAssign.elements.partner,rows.filter(p=>p.status==='Active'),'Unassigned',p=>p.name);
+    fillPartnerChoices(partnerAssign.elements.lead,leads,'Select lead',l=>l.name);
+    renderRows(partnerAdminList,rows.map(p=>({title:p.name,detail:[p.email,p.status,p.commission_rate==null?'Rate not set':p.commission_rate+'%'].filter(Boolean).join(' · ')})),'No partners registered.');
+  } catch(e) {
+    if(token===accessToken && version===partnerAdminVersion) partnerAdminStatus.textContent='Could not load partners.';
+  }
+}
+document.querySelector('#partner-admin-refresh').addEventListener('click',refreshPartnerAdmin);
+partnerAdd.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!adminSession || !accessToken) return;
+  const token=accessToken, button=partnerAdd.querySelector('button'), fields=new FormData(partnerAdd);
+  const name=String(fields.get('name')).trim(), email=String(fields.get('email')).trim().toLowerCase(), auth_user_id=String(fields.get('auth_user_id')).trim(), commission_rate=Number(fields.get('rate'));
+  if(!name || !email || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(auth_user_id) || !Number.isFinite(commission_rate) || commission_rate<0 || commission_rate>100) return;
+  button.disabled=true;
+  partnerAdminStatus.textContent='';
+  try {
+    await request('/rest/v1/partners',{method:'POST',body:JSON.stringify({name,email,auth_user_id,commission_rate,status:'Active'})},token);
+    if(token!==accessToken || !adminSession) return;
+    partnerAdd.reset();
+    partnerAdminStatus.textContent='Partner profile added. Verify account login separately.';
+    await refreshPartnerAdmin();
+  } catch(e) {
+    if(token===accessToken && adminSession) partnerAdminStatus.textContent='Could not add profile. Check the verified account ID and whether it is already linked.';
+  } finally { if(token===accessToken && adminSession) button.disabled=false; }
+});
+
 let partnerRequest = 0;
 async function refreshPartnerTotals() {
   const token = accessToken;
@@ -569,6 +699,7 @@ function clearSession() {
   importLeads.reset();
   resetImport();
   leadFeedback.textContent = '';
+  resetPartnerAdmin();
   partnerCard.hidden = true;
   signOut.hidden = true;
   more.hidden = true;
@@ -633,6 +764,8 @@ form.addEventListener('submit', async event => {
     channelHub.hidden = !admin;
     callHistory.hidden = !admin;
     if (admin) {
+      partnerAdmin.hidden=false;
+      refreshPartnerAdmin();
       workPanel.hidden=false;
       refreshWork();
       report.hidden = false;
