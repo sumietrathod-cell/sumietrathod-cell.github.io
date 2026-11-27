@@ -85,6 +85,20 @@ summary { cursor: pointer; color: #86e6d1; }
 </form>
 <section id="dashboard" aria-label="Campaign Manager dashboard" hidden>
   <div class="dashboard-title"><h2 id="role-heading" tabindex="-1"></h2><button id="export-leads" type="button" hidden>Download leads CSV</button><button id="more" type="button" hidden>Load more leads</button></div>
+  <article id="partner-admin" hidden>
+    <h2>Partner Management</h2>
+    <p>Create a partner profile using an existing, verified non-admin Supabase Authentication account. Account invitations are handled separately by the authorized administrator.</p>
+    <form id="partner-add">
+      <label>Partner name<input name="name" required maxlength="120"></label>
+      <label>Business email<input name="email" type="email" required maxlength="254"></label>
+      <label>Verified Auth user ID (UUID)<input name="auth_user_id" required pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"></label>
+      <label>Agreed commission rate (%)<input name="rate" type="number" required min="0" max="100" step="0.01"></label>
+      <button type="submit">Add partner profile</button>
+    </form>
+    <button type="button" id="partner-admin-refresh">Refresh partners</button>
+    <p id="partner-admin-status" role="status"></p>
+    <ul class="list" id="partner-admin-list"></ul>
+  </article>
   <article id="sales-report" hidden>
     <h2>Follow-ups and sales</h2>
     <button type="button" id="report-refresh">Refresh report</button>
@@ -427,6 +441,51 @@ saleForm.addEventListener('submit',async event => {
   }
 });
 
+
+const partnerAdmin = document.querySelector('#partner-admin');
+const partnerAdd = document.querySelector('#partner-add');
+const partnerAdminStatus = document.querySelector('#partner-admin-status');
+const partnerAdminList = document.querySelector('#partner-admin-list');
+let partnerAdminVersion = 0;
+function resetPartnerAdmin(){
+  partnerAdminVersion++;
+  partnerAdmin.hidden=true;
+  partnerAdd.reset();
+  partnerAdd.querySelector('button').disabled=false;
+  partnerAdminStatus.textContent='';
+  partnerAdminList.replaceChildren();
+}
+async function refreshPartnerAdmin(){
+  if(!adminSession || !accessToken) return;
+  const token=accessToken, version=++partnerAdminVersion;
+  try {
+    const rows=await request('/rest/v1/partners?select=name,email,status,commission_rate&order=created_at.desc&limit=100',{},token);
+    if(token!==accessToken || version!==partnerAdminVersion || !adminSession) return;
+    renderRows(partnerAdminList,rows.map(p=>({title:p.name,detail:[p.email,p.status,p.commission_rate==null?'Rate not set':p.commission_rate+'%'].filter(Boolean).join(' · ')})),'No partners registered.');
+  } catch(e) {
+    if(token===accessToken && version===partnerAdminVersion) partnerAdminStatus.textContent='Could not load partners.';
+  }
+}
+document.querySelector('#partner-admin-refresh').addEventListener('click',refreshPartnerAdmin);
+partnerAdd.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!adminSession || !accessToken) return;
+  const token=accessToken, button=partnerAdd.querySelector('button'), fields=new FormData(partnerAdd);
+  const name=String(fields.get('name')).trim(), email=String(fields.get('email')).trim().toLowerCase(), auth_user_id=String(fields.get('auth_user_id')).trim(), commission_rate=Number(fields.get('rate'));
+  if(!name || !email || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(auth_user_id) || !Number.isFinite(commission_rate) || commission_rate<0 || commission_rate>100) return;
+  button.disabled=true;
+  partnerAdminStatus.textContent='';
+  try {
+    await request('/rest/v1/partners',{method:'POST',body:JSON.stringify({name,email,auth_user_id,commission_rate,status:'Active'})},token);
+    if(token!==accessToken || !adminSession) return;
+    partnerAdd.reset();
+    partnerAdminStatus.textContent='Partner profile added. Verify account login separately.';
+    await refreshPartnerAdmin();
+  } catch(e) {
+    if(token===accessToken && adminSession) partnerAdminStatus.textContent='Could not add profile. Check the verified account ID and whether it is already linked.';
+  } finally { if(token===accessToken && adminSession) button.disabled=false; }
+});
+
 let partnerRequest = 0;
 async function refreshPartnerTotals() {
   const token = accessToken;
@@ -569,6 +628,7 @@ function clearSession() {
   importLeads.reset();
   resetImport();
   leadFeedback.textContent = '';
+  resetPartnerAdmin();
   partnerCard.hidden = true;
   signOut.hidden = true;
   more.hidden = true;
@@ -633,6 +693,8 @@ form.addEventListener('submit', async event => {
     channelHub.hidden = !admin;
     callHistory.hidden = !admin;
     if (admin) {
+      partnerAdmin.hidden=false;
+      refreshPartnerAdmin();
       workPanel.hidden=false;
       refreshWork();
       report.hidden = false;
