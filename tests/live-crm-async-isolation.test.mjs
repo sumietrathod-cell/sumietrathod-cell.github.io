@@ -55,6 +55,84 @@ function deferred(){
   return {promise,resolve,reject};
 }
 function error(status){return Object.assign(new Error('synthetic network error'),{status})}
+test('a CRM export stays tied to its own session and current unauthorized exports sign out',async()=>{
+  const requests=[], message={textContent:''}, button={disabled:false};
+  let cleared=0;
+  let csv, downloads=0;
+  const link={click(){downloads++},remove(){}};
+  const context=vm.createContext({
+    accessToken:'synthetic-admin',adminSession:true,message,exportLeadsButton:button,
+    Blob, URL:{createObjectURL(blob){csv=blob;return 'blob:synthetic'},revokeObjectURL(){}},
+    document:{createElement:()=>link,body:{append(){}}},setTimeout(){},
+    request(_path,_options,token){
+      const pending=deferred();
+      requests.push({...pending,token});
+      return pending.promise;
+    },
+    clearSession(){
+      cleared++;
+      vm.runInContext('activeLeadExport=undefined;accessToken=undefined;adminSession=false',context);
+      button.disabled=false;
+    },
+  });
+  vm.runInContext(between('function csvSafeCell(',"exportLeadsButton.addEventListener('click'"),context);
+  const old=context.downloadLeadsCsv();
+  context.clearSession();
+  // Signing back into the same account may return the same test token.
+  context.accessToken='synthetic-admin';
+  context.adminSession=true;
+  const current=context.downloadLeadsCsv();
+  assert.equal(requests.length,2);
+  requests[0].reject(error(401));
+  await old;
+  assert.equal(cleared,1);
+  assert.equal(button.disabled,true);
+  assert.match(message.textContent,/Preparing/);
+  requests[1].reject(error(401));
+  await current;
+  assert.equal(cleared,2);
+  assert.equal(button.disabled,false);
+  assert.match(message.textContent,/session expired/);
+  assert.equal(downloads,0);
+  context.accessToken='synthetic-admin';
+  context.adminSession=true;
+  const fresh=context.downloadLeadsCsv();
+  requests[2].resolve([{name:'Sample, "quoted" lead',notes:'=1+1'}]);
+  await fresh;
+  assert.equal(downloads,1);
+  assert.equal(button.disabled,false);
+  const output=await csv.text();
+  assert.ok(output.includes('"Sample, ""quoted"" lead"'));
+  assert.ok(output.includes('"\'=1+1"'));
+});
+test('only the current CRM search can show an error or expire the session',async()=>{
+  const requests=[], message={textContent:''};
+  let cleared=0;
+  const context=vm.createContext({
+    accessToken:'synthetic-account', leadListRequest:0, leadFilter:'', offset:0,
+    searchForm:{elements:{field:{value:'name'},term:{value:'Example'}}},
+    more:{}, message, leadList:{replaceChildren(){}}, closeLead(){},
+    clearSession(){cleared++},
+  });
+  context.loadLeads=()=>{
+    context.leadListRequest++;
+    const pending=deferred();
+    requests.push(pending);
+    return pending.promise;
+  };
+  vm.runInContext(between('async function searchLeads(', 'searchForm.onsubmit='),context);
+  const event={preventDefault(){}};
+  const old=context.searchLeads(event);
+  const current=context.searchLeads(event);
+  requests[0].reject(error(401));
+  await old;
+  assert.equal(message.textContent,'');
+  assert.equal(cleared,0);
+  requests[1].reject(error(401));
+  await current;
+  assert.match(message.textContent,/session expired/);
+  assert.equal(cleared,1);
+});
 function moreHarness(){
   let token='synthetic-old-account',listener,cleared=0;
   const promise=deferred(),message={textContent:''};

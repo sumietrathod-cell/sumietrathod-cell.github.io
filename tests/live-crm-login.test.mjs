@@ -187,6 +187,28 @@ test('selected partner login rejects an account without partner profile',async()
  assert.equal(h.pendingLeads.length,0);
 });
 
+test('logout of a rejected Partner cannot clear a newer Partner session',async()=>{
+ const h=harness('partner'),old=h.start();
+ h.requests[0].resolve({access_token:'JWT-rejected',expires_in:3600,user:{id:'rejected'}});
+ await microtasks();
+ h.requests[1].resolve([]);
+ await microtasks();
+ assert.equal(h.requests[2].path,'/auth/v1/logout');
+ assert.equal(h.requests[2].token,'JWT-rejected');
+ const current=h.start();
+ h.requests[3].resolve({access_token:'JWT-approved',expires_in:3600,user:{id:'approved'}});
+ await microtasks();
+ h.requests[4].resolve([{name:'Synthetic approved Partner'}]);
+ await microtasks();
+ h.pendingLeads[0].resolve([]);
+ await current;
+ h.requests[2].resolve(null);
+ await old;
+ assert.equal(h.ctx.accessToken,'JWT-approved');
+ assert.equal(h.ctx.roleHeading.textContent,'Partner dashboard');
+ assert.equal(h.dashboard.hidden,false);
+});
+
 
 /* Campaign intake regression: synthetic requests only; never contact a provider or database. */
 import {createHmac,webcrypto} from 'node:crypto';
